@@ -1,1 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexGen - 3D AI Studio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0f19;
+            color: #ffffff;
+        }
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Top Header */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background: linear-gradient(to bottom, rgba(11, 15, 25, 0.85), transparent);
+            pointer-events: none;
+        }
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: #38bdf8;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            pointer-events: auto;
+        }
+        .action-btns {
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .btn {
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #334155;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: #334155;
+            border-color: #38bdf8;
+        }
+        .btn-primary {
+            background: #0284c7;
+            border-color: #38bdf8;
+        }
+        .btn-primary:hover {
+            background: #0369a1;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        /* Bottom AI Chat Bar */
+        .chat-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 650px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-status {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 4px 12px;
+            border-radius: 6px;
+            align-self: flex-start;
+            backdrop-filter: blur(8px);
+        }
+        .chat-bar {
+            display: flex;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px;
+            padding: 6px 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffffff;
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .chat-input::placeholder {
+            color: #64748b;
+        }
+        .btn-send {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-send:hover {
+            background: #38bdf8;
+        }
+
+        /* Modals & Popups */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 28px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-size: 1.4rem;
+            color: #38bdf8;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .modal-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .input-group {
+            text-align: left;
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">ApexGen</div>
+        <div id="project-actions" class="action-btns hidden">
+            <button id="save-btn" class="btn">Save</button>
+            <button id="install-btn" class="btn btn-primary">Install</button>
+        </div>
+    </header>
+
+    <!-- 3D Canvas -->
+    <div id="webgl-canvas"></div>
+
+    <!-- AI Chat Bar -->
+    <div class="chat-container">
+        <div id="status-indicator" class="chat-status">Ready. Type prompt to create 3D assets.</div>
+        <div class="chat-bar">
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a cyberpunk car or low-poly castle..." />
+            <button id="ai-send" class="btn-send">Generate</button>
+        </div>
+    </div>
+
+    <!-- Menu Modal (Continue / New Project) -->
+    <div id="menu-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2 class="modal-title">ApexGen Studio</h2>
+            <p class="modal-desc">You have a saved project. How would you like to proceed?</p>
+            <div class="modal-btns">
+                <button id="btn-continue" class="btn btn-primary">Continue</button>
+                <button id="btn-new" class="btn">New Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install Modal -->
+    <div id="install-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h2 class="modal-title">Install / Export App</h2>
+            <p class="modal-desc">Configure app metadata before downloading.</p>
+            <div class="input-group">
+                <label>App Name</label>
+                <input type="text" id="app-name-input" value="My 3D Game" />
+            </div>
+            <div class="input-group">
+                <label>Icon Emoji or Text</label>
+                <input type="text" id="app-icon-input" value="🚀" />
+            </div>
+            <div class="modal-btns">
+                <button id="btn-download" class="btn btn-primary">Download File</button>
+                <button id="btn-cancel-install" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API KEY configuration
+        const API_KEY = "AQ.Ab8RN6Iq2kAX_CVE7J0QfXy6EEDcyCs6QmCA9tFQN3bRuVaYOg";
+
+        // Three.js Core Setup
+        let scene, camera, renderer, controls;
+        let createdObjects = [];
+        let executionHistory = [];
+
+        function initScene() {
+            const container = document.getElementById('webgl-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.03);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            setupEnvironment();
+
+            window.addEventListener('resize', onWindowResize, false);
+            animate();
+        }
+
+        function setupEnvironment() {
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Grid Platform
+            const gridHelper = new THREE.GridHelper(40, 40, 0x38bdf8, 0x1e293b);
+            gridHelper.position.y = -0.01;
+            scene.add(gridHelper);
+        }
+
+        function clearCustomScene() {
+            createdObjects.forEach(obj => scene.remove(obj));
+            createdObjects = [];
+            executionHistory = [];
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // AI Request Handling
+        async function sendToAI(promptText) {
+            const status = document.getElementById('status-indicator');
+            status.innerText = "ApexGen AI is building 3D code...";
+
+            const systemPrompt = `You are an expert Three.js 3D developer for ApexGen.
+Given a user prompt, generate executable JavaScript code using Three.js to construct the requested 3D model, world, or interactive element.
+Guidelines:
+1. The variables 'scene' and 'THREE' are already initialized.
+2. Group all created meshes in a THREE.Group called 'currentGroup' and do 'scene.add(currentGroup)'.
+3. Use modern materials (MeshStandardMaterial) with vibrant colors.
+4. Return ONLY valid JavaScript code enclosed inside a markdown block: \`\`\`javascript ... \`\`\`. Do not write extra explanations.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: systemPrompt },
+                        { text: `User request: ${promptText}` }
+                    ]
+                }]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                
+                // Extract JavaScript block
+                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const codeToRun = match ? match[1].trim() : text;
+
+                // Execute Code
+                const buildFunc = new Function('scene', 'THREE', codeToRun);
+                buildFunc(scene, THREE);
+
+                executionHistory.push(codeToRun);
+                status.innerText = "Built successfully!";
+
+                // Reveal Save & Install buttons
+                document.getElementById('project-actions').classList.remove('hidden');
+
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error: " + err.message;
+            }
+        }
+
+        // Save & Project Persistence
+        function saveProject() {
+            if (executionHistory.length === 0) return;
+            localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
+            alert("Project saved successfully!");
+        }
+
+        function loadProject() {
+            const saved = localStorage.getItem('apexgen_saved_code');
+            if (saved) {
+                clearCustomScene();
+                executionHistory = JSON.parse(saved);
+                executionHistory.forEach(code => {
+                    try {
+                        const buildFunc = new Function('scene', 'THREE', code);
+                        buildFunc(scene, THREE);
+                    } catch(e) {
+                        console.error("Execution error on restore:", e);
+                    }
+                });
+                document.getElementById('project-actions').classList.remove('hidden');
+                document.getElementById('status-indicator').innerText = "Project restored!";
+            }
+        }
+
+        // Install / Export Standalone HTML
+        function exportApp(appName, icon) {
+            const currentHTML = document.documentElement.outerHTML;
+            const blob = new Blob([currentHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${appName.toLowerCase().replace(/\s+/g, '_')}.html`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // Initialize App & Events
+        window.addEventListener('DOMContentLoaded', () => {
+            initScene();
+
+            // Check if saved state exists
+            if (localStorage.getItem('apexgen_saved_code')) {
+                document.getElementById('menu-modal').classList.remove('hidden');
+            }
+
+            // Menu Handlers
+            document.getElementById('btn-continue').addEventListener('click', () => {
+                document.getElementById('menu-modal').classList.add('hidden');
+                loadProject();
+            });
+
+            document.getElementById('btn-new').addEventListener('click', () => {
+                document.getElementById('menu-modal').classList.add('hidden');
+                clearCustomScene();
+                localStorage.removeItem('apexgen_saved_code');
+            });
+
+            // Action Buttons
+            document.getElementById('save-btn').addEventListener('click', saveProject);
+            document.getElementById('install-btn').addEventListener('click', () => {
+                document.getElementById('install-modal').classList.remove('hidden');
+            });
+
+            // Install Modal Actions
+            document.getElementById('btn-download').addEventListener('click', () => {
+                const name = document.getElementById('app-name-input').value || "ApexGen Game";
+                const icon = document.getElementById('app-icon-input').value || "🎮";
+                exportApp(name, icon);
+                document.getElementById('install-modal').classList.add('hidden');
+            });
+
+            document.getElementById('btn-cancel-install').addEventListener('click', () => {
+                document.getElementById('install-modal').classList.add('hidden');
+            });
+
+            // AI Chat Submit
+            const aiInput = document.getElementById('ai-input');
+            const aiSend = document.getElementById('ai-send');
+
+            function handleSend() {
+                const prompt = aiInput.value.trim();
+                if (prompt) {
+                    sendToAI(prompt);
+                    aiInput.value = '';
+                }
+            }
+
+            aiSend.addEventListener('click', handleSend);
+            aiInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleSend();
+            });
+        });
+    </script>
+</body>
+</html>
 
