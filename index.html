@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexGen - 3D AI Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ApexGen</title>
+    <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -28,9 +29,10 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            touch-action: none;
         }
 
-        /* Header */
+        /* Top Header */
         header {
             position: absolute;
             top: 0;
@@ -47,11 +49,12 @@
         .brand {
             font-size: 1.4rem;
             font-weight: 800;
+            letter-spacing: 1.5px;
             color: #38bdf8;
             text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
             pointer-events: auto;
         }
-        .action-btns {
+        .header-actions {
             display: flex;
             gap: 8px;
             pointer-events: auto;
@@ -75,14 +78,11 @@
             background: #0284c7;
             border-color: #38bdf8;
         }
-        .btn-primary:hover {
-            background: #0369a1;
-        }
         .hidden {
             display: none !important;
         }
 
-        /* AI Chat Box */
+        /* Bottom AI Chat Bar */
         .chat-container {
             position: absolute;
             bottom: 20px;
@@ -98,11 +98,13 @@
         .chat-status {
             font-size: 0.8rem;
             color: #94a3b8;
-            background: rgba(15, 23, 42, 0.75);
-            padding: 5px 12px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 6px 12px;
             border-radius: 6px;
             align-self: flex-start;
             backdrop-filter: blur(8px);
+            max-width: 100%;
+            word-break: break-word;
         }
         .chat-bar {
             display: flex;
@@ -121,6 +123,9 @@
             color: #ffffff;
             font-size: 0.95rem;
             padding: 8px 12px;
+        }
+        .chat-input::placeholder {
+            color: #64748b;
         }
         .btn-send {
             background: #0284c7;
@@ -152,7 +157,7 @@
             padding: 24px;
             border-radius: 16px;
             width: 90%;
-            max-width: 420px;
+            max-width: 400px;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
@@ -198,21 +203,23 @@
 
     <header>
         <div class="brand">ApexGen</div>
-        <div class="action-btns">
+        <div class="header-actions">
             <button id="key-btn" class="btn">Key ⚙️</button>
-            <div id="project-actions" class="action-btns hidden">
+            <div id="project-actions" class="header-actions hidden">
                 <button id="save-btn" class="btn">Save</button>
                 <button id="install-btn" class="btn btn-primary">Install</button>
             </div>
         </div>
     </header>
 
+    <!-- 3D Canvas -->
     <div id="webgl-canvas"></div>
 
+    <!-- AI Chat Box -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Type prompt to create 3D assets.</div>
+        <div id="status-indicator" class="chat-status">Ready. Type your idea to build in 3D.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or low-poly house..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a cyberpunk car or sci-fi building..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -221,10 +228,10 @@
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <h2 class="modal-title">API Key Setup</h2>
-            <p class="modal-desc">Enter your Google AI Studio API key. It will be stored securely on your device only.</p>
+            <p class="modal-desc">Enter your Google Gemini API key to activate AI 3D building.</p>
             <div class="input-group">
                 <label>Gemini API Key</label>
-                <input type="password" id="api-key-input" placeholder="Paste your API key here..." />
+                <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
             </div>
             <div class="modal-btns">
                 <button id="btn-save-key" class="btn btn-primary">Save Key</button>
@@ -232,11 +239,11 @@
         </div>
     </div>
 
-    <!-- Menu Modal (Continue / New Project) -->
+    <!-- Continue / New Project Modal -->
     <div id="menu-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">ApexGen Studio</h2>
-            <p class="modal-desc">You have a saved project. How would you like to proceed?</p>
+            <h2 class="modal-title">Welcome to ApexGen</h2>
+            <p class="modal-desc">You have a saved 3D project. What would you like to do?</p>
             <div class="modal-btns">
                 <button id="btn-continue" class="btn btn-primary">Continue</button>
                 <button id="btn-new" class="btn">New Project</button>
@@ -247,18 +254,18 @@
     <!-- Install Modal -->
     <div id="install-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Install / Export App</h2>
-            <p class="modal-desc">Configure app metadata before downloading.</p>
+            <h2 class="modal-title">Install / Download</h2>
+            <p class="modal-desc">Set a name and icon for your standalone 3D web app.</p>
             <div class="input-group">
                 <label>App Name</label>
-                <input type="text" id="app-name-input" value="My 3D Game" />
+                <input type="text" id="app-name-input" value="ApexGen Game" />
             </div>
             <div class="input-group">
                 <label>Icon Emoji</label>
                 <input type="text" id="app-icon-input" value="🎮" />
             </div>
             <div class="modal-btns">
-                <button id="btn-download" class="btn btn-primary">Download File</button>
+                <button id="btn-download" class="btn btn-primary">Download App</button>
                 <button id="btn-cancel-install" class="btn">Cancel</button>
             </div>
         </div>
@@ -276,24 +283,22 @@
             scene.fog = new THREE.FogExp2(0x0b0f19, 0.03);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 10);
+            camera.position.set(0, 6, 12);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
             dirLight.position.set(10, 20, 10);
-            dirLight.castShadow = true;
             scene.add(dirLight);
 
             const gridHelper = new THREE.GridHelper(40, 40, 0x38bdf8, 0x1e293b);
@@ -329,22 +334,25 @@
             }
 
             const status = document.getElementById('status-indicator');
-            status.innerText = "ApexGen AI is generating 3D code...";
+            status.innerText = "ApexGen AI is building 3D asset...";
 
-            const systemPrompt = `You are a Three.js expert for ApexGen.
-Generate executable JavaScript code using Three.js to construct the requested 3D model.
+            const systemPrompt = `You are an expert Three.js developer for ApexGen.
+Create JavaScript code using Three.js to construct what the user asked for.
 Rules:
 1. Variables 'scene' and 'THREE' are already initialized.
-2. Group all created elements inside 'currentGroup' and call scene.add(currentGroup).
-3. Use MeshStandardMaterial with vibrant colors.
-4. Output ONLY the code inside \`\`\`javascript ... \`\`\`.`;
+2. Group all created meshes inside a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
+3. Use MeshStandardMaterial with bright and aesthetic colors.
+4. Output ONLY valid JS code inside \`\`\`javascript ... \`\`\`. Do not include comments or explanations outside the code block.`;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey
+                    },
                     body: JSON.stringify({
                         contents: [{
                             parts: [
@@ -355,7 +363,11 @@ Rules:
                     })
                 });
 
-                if (!response.ok) throw new Error("API request failed: " + response.statusText);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    const msg = errData?.error?.message || response.statusText || ("HTTP " + response.status);
+                    throw new Error(msg);
+                }
 
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -366,7 +378,7 @@ Rules:
                 buildFunc(scene, THREE);
 
                 executionHistory.push(codeToRun);
-                status.innerText = "3D Asset Generated!";
+                status.innerText = "Built successfully!";
                 document.getElementById('project-actions').classList.remove('hidden');
 
             } catch (err) {
@@ -377,16 +389,17 @@ Rules:
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
-            const savedKey = localStorage.getItem('apexgen_api_key');
-            if (!savedKey) {
+            // Check API Key
+            if (!localStorage.getItem('apexgen_api_key')) {
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
+            // Check Saved Project
             if (localStorage.getItem('apexgen_saved_code')) {
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // API Key management
+            // Key Settings
             document.getElementById('key-btn').addEventListener('click', () => {
                 document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
                 document.getElementById('api-modal').classList.remove('hidden');
@@ -397,7 +410,7 @@ Rules:
                 if (key) {
                     localStorage.setItem('apexgen_api_key', key);
                     document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = "API Key saved locally!";
+                    document.getElementById('status-indicator').innerText = "API Key saved!";
                 }
             });
 
@@ -422,20 +435,24 @@ Rules:
                 document.getElementById('menu-modal').classList.add('hidden');
                 clearCustomScene();
                 localStorage.removeItem('apexgen_saved_code');
+                document.getElementById('status-indicator').innerText = "New clean project started.";
             });
 
-            // Save / Install Handlers
+            // Save Handler
             document.getElementById('save-btn').addEventListener('click', () => {
-                localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
-                alert("Project saved successfully!");
+                if (executionHistory.length > 0) {
+                    localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
+                    alert("Project saved successfully!");
+                }
             });
 
+            // Install / Export Handlers
             document.getElementById('install-btn').addEventListener('click', () => {
                 document.getElementById('install-modal').classList.remove('hidden');
             });
 
             document.getElementById('btn-download').addEventListener('click', () => {
-                const appName = document.getElementById('app-name-input').value || "ApexGen Game";
+                const appName = document.getElementById('app-name-input').value || "ApexGen_Game";
                 const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -449,7 +466,7 @@ Rules:
                 document.getElementById('install-modal').classList.add('hidden');
             });
 
-            // Chat input
+            // Chat input handlers
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
