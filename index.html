@@ -90,7 +90,7 @@
             display: none !important;
         }
 
-        /* Live Code Viewer Window */
+        /* Live Code Viewer Panel */
         #code-viewer-panel {
             position: absolute;
             top: 65px;
@@ -98,7 +98,7 @@
             width: 90%;
             max-width: 360px;
             max-height: 280px;
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.94);
             border: 1px solid #6366f1;
             border-radius: 12px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
@@ -114,7 +114,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 12px;
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(30, 41, 59, 0.85);
             border-bottom: 1px solid #334155;
             font-size: 0.78rem;
             font-weight: 700;
@@ -281,7 +281,6 @@
         </div>
     </header>
 
-    <!-- 3D Canvas -->
     <div id="webgl-canvas"></div>
 
     <!-- Live Code Viewer Box -->
@@ -300,7 +299,7 @@
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">Ready. Type your idea to build in 3D.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or low-poly house..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or cyberpunk city..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -357,14 +356,6 @@
         let createdObjects = [];
         let executionHistory = [];
 
-        // Fallback Models list to prevent "High Demand" or 503 errors
-        const AI_MODELS = [
-            "gemini-1.5-flash",
-            "gemini-2.0-flash",
-            "gemini-flash-latest",
-            "gemini-1.5-pro"
-        ];
-
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
@@ -416,58 +407,26 @@
             document.getElementById('code-content').innerText = "// Ready for new code...";
         }
 
-        // Call Gemini with Automatic Model Fallback
-        async function fetchAIWithFallback(promptText, apiKey) {
-            const systemPrompt = `You are an expert Three.js 3D developer for ApexGen.
-Generate clean, working Three.js JavaScript code to construct the requested 3D model.
-Rules:
-1. Variables 'scene' and 'THREE' are already initialized.
-2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
-3. Use MeshStandardMaterial with bright, vibrant colors.
-4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations.`;
+        // Dynamically fetch supported models directly from Google API
+        async function getAvailableModels(apiKey) {
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (!res.ok) return ["gemini-flash-latest"];
+                const data = await res.json();
+                const validModels = (data.models || [])
+                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                    .map(m => m.name.replace(/^models\//, ''));
 
-            let lastErrorMessage = "Failed to connect to AI.";
+                validModels.sort((a, b) => {
+                    const aFlash = a.includes('flash') ? -1 : 1;
+                    const bFlash = b.includes('flash') ? -1 : 1;
+                    return aFlash - bFlash;
+                });
 
-            // Try each model sequentially if one is experiencing high demand (503/429)
-            for (let model of AI_MODELS) {
-                try {
-                    const status = document.getElementById('status-indicator');
-                    status.innerText = `Connecting via ${model}...`;
-
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-goog-api-key': apiKey
-                        },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: systemPrompt },
-                                    { text: `User request: ${promptText}` }
-                                ]
-                            }]
-                        })
-                    });
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (text) return text;
-                    } else {
-                        const errData = await res.json().catch(() => ({}));
-                        lastErrorMessage = errData?.error?.message || res.statusText || `HTTP ${res.status}`;
-                        console.warn(`Model ${model} returned error: ${lastErrorMessage}. Trying next fallback...`);
-                    }
-                } catch (e) {
-                    lastErrorMessage = e.message;
-                    console.warn(`Fetch error on ${model}: ${e.message}`);
-                }
+                return validModels.length > 0 ? validModels : ["gemini-flash-latest"];
+            } catch (e) {
+                return ["gemini-flash-latest"];
             }
-
-            throw new Error(lastErrorMessage);
         }
 
         async function sendToAI(promptText) {
@@ -478,18 +437,73 @@ Rules:
             }
 
             const status = document.getElementById('status-indicator');
-            status.innerText = "Building 3D asset...";
+            status.innerText = "Finding active Gemini models...";
+
+            const systemPrompt = `You are an expert Three.js 3D developer for ApexGen.
+Generate clean, working Three.js JavaScript code to construct the requested 3D model.
+Rules:
+1. Variables 'scene' and 'THREE' are already initialized.
+2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
+3. Use MeshStandardMaterial with bright, vibrant colors.
+4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations.`;
 
             try {
-                const responseText = await fetchAIWithFallback(promptText, apiKey);
-                const match = responseText.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const codeToRun = match ? match[1].trim() : responseText;
+                const models = await getAvailableModels(apiKey);
+                let generatedText = null;
+                let lastError = null;
 
-                // Update Code Viewer Window with the generated code
+                for (let model of models) {
+                    for (let attempt = 0; attempt < 2; attempt++) {
+                        try {
+                            status.innerText = `Connecting via ${model}...`;
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                            const res = await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-goog-api-key': apiKey
+                                },
+                                body: JSON.stringify({
+                                    contents: [{
+                                        parts: [
+                                            { text: systemPrompt },
+                                            { text: `User request: ${promptText}` }
+                                        ]
+                                    }]
+                                })
+                            });
+
+                            if (res.ok) {
+                                const data = await res.json();
+                                generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (generatedText) break;
+                            } else {
+                                const errData = await res.json().catch(() => ({}));
+                                lastError = errData?.error?.message || `HTTP ${res.status}`;
+                                if (res.status === 503 || res.status === 429) {
+                                    status.innerText = `High demand on ${model}, retrying in 2s...`;
+                                    await new Promise(r => setTimeout(r, 2000));
+                                } else {
+                                    break;
+                                }
+                            }
+                        } catch (err) {
+                            lastError = err.message;
+                        }
+                    }
+                    if (generatedText) break;
+                }
+
+                if (!generatedText) {
+                    throw new Error(lastError || "Could not generate 3D code from available models.");
+                }
+
+                const match = generatedText.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const codeToRun = match ? match[1].trim() : generatedText;
+
                 document.getElementById('code-content').innerText = codeToRun;
                 document.getElementById('code-viewer-panel').classList.remove('hidden');
 
-                // Execute in 3D Scene
                 const buildFunc = new Function('scene', 'THREE', codeToRun);
                 buildFunc(scene, THREE);
 
@@ -513,7 +527,6 @@ Rules:
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // Key settings
             document.getElementById('key-btn').addEventListener('click', () => {
                 document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
                 document.getElementById('api-modal').classList.remove('hidden');
@@ -528,7 +541,6 @@ Rules:
                 }
             });
 
-            // Code viewer handlers
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
                 const panel = document.getElementById('code-viewer-panel');
                 panel.classList.toggle('hidden');
@@ -543,7 +555,6 @@ Rules:
                 navigator.clipboard.writeText(text).then(() => alert("Code copied to clipboard!"));
             });
 
-            // Menu Handlers
             document.getElementById('btn-continue').addEventListener('click', () => {
                 document.getElementById('menu-modal').classList.add('hidden');
                 const saved = localStorage.getItem('apexgen_saved_code');
@@ -570,7 +581,6 @@ Rules:
                 document.getElementById('status-indicator').innerText = "New clean project started.";
             });
 
-            // Save Handler
             document.getElementById('save-btn').addEventListener('click', () => {
                 if (executionHistory.length > 0) {
                     localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
@@ -578,7 +588,6 @@ Rules:
                 }
             });
 
-            // Install / Export Handlers
             document.getElementById('install-btn').addEventListener('click', () => {
                 document.getElementById('install-modal').classList.remove('hidden');
             });
@@ -598,7 +607,6 @@ Rules:
                 document.getElementById('install-modal').classList.add('hidden');
             });
 
-            // Chat input handlers
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
