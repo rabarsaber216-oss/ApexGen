@@ -61,7 +61,7 @@
             align-items: center;
         }
         .btn {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(30, 41, 59, 0.85);
             color: #f8fafc;
             border: 1px solid rgba(56, 189, 248, 0.3);
             padding: 7px 12px;
@@ -88,23 +88,24 @@
             display: none !important;
         }
 
-        /* Live Code Viewer Window */
+        /* Live Streaming Code Viewer */
         #code-viewer-panel {
             position: absolute;
             top: 65px;
             right: 15px;
             width: 90%;
-            max-width: 360px;
-            max-height: 280px;
-            background: rgba(10, 15, 29, 0.95);
-            border: 1px solid #6366f1;
+            max-width: 380px;
+            height: 290px;
+            background: rgba(9, 14, 28, 0.96);
+            border: 1px solid #8b5cf6;
             border-radius: 12px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(12px);
-            z-index: 20;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(14px);
+            z-index: 25;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: all 0.25s ease;
         }
         .viewer-header {
             display: flex;
@@ -116,6 +117,23 @@
             font-size: 0.78rem;
             font-weight: 700;
             color: #c7d2fe;
+        }
+        .live-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
         }
         .viewer-controls {
             display: flex;
@@ -142,6 +160,7 @@
             white-space: pre-wrap;
             word-break: break-all;
             user-select: text;
+            scroll-behavior: smooth;
         }
 
         /* Bottom AI Chat Bar */
@@ -160,7 +179,7 @@
         .chat-status {
             font-size: 0.78rem;
             color: #94a3b8;
-            background: rgba(10, 15, 29, 0.9);
+            background: rgba(10, 15, 29, 0.92);
             padding: 6px 14px;
             border-radius: 6px;
             align-self: flex-start;
@@ -283,20 +302,20 @@
     <!-- Live Code Viewer -->
     <div id="code-viewer-panel">
         <div class="viewer-header">
-            <span>⚡ Live Three.js HD Code</span>
+            <span class="live-tag"><span class="live-dot"></span> ⚡ Real-Time Three.js Code</span>
             <div class="viewer-controls">
                 <button id="copy-code-btn" class="viewer-btn">Copy</button>
                 <button id="close-viewer-btn" class="viewer-btn">✕</button>
             </div>
         </div>
-        <pre id="code-content">// Ultra HD Three.js Code will be rendered here...</pre>
+        <pre id="code-content">// When building, live AI code will stream and type here...</pre>
     </div>
 
     <!-- AI Chat Box -->
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">ApexGen HD Ready. Describe anything to build.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an ultra-detailed cyberpunk motorcycle..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an ultra-detailed futuristic car..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -305,12 +324,12 @@
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <h2 class="modal-title">AI Engine Settings</h2>
-            <p class="modal-desc">Select your provider and paste your API key.</p>
+            <p class="modal-desc">Select AI provider and paste your API key.</p>
             
             <div class="input-group">
                 <label>AI Provider</label>
                 <select id="provider-select">
-                    <option value="gemini">Google Gemini (Ultra-Fast 8B)</option>
+                    <option value="gemini">Google Gemini (Auto-Stream & Fallback)</option>
                     <option value="openai">OpenAI (ChatGPT)</option>
                     <option value="claude">Anthropic Claude</option>
                 </select>
@@ -372,14 +391,12 @@
             scene.fog = new THREE.FogExp2(0x060913, 0.025);
 
             camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 6, 11);
+            camera.position.set(0, 6, 12);
 
-            // High Fidelity Renderer Setup
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             
-            // Photorealistic Tonemapping & Shadows
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.15;
             renderer.outputEncoding = THREE.sRGBEncoding;
@@ -405,35 +422,25 @@
         }
 
         function setupHighEndLighting() {
-            // Soft atmospheric hemisphere light
             const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x111827, 0.7);
             scene.add(hemiLight);
 
-            // Main sunlight with sharp + soft shadows
             const dirLight = new THREE.DirectionalLight(0xfff8ee, 1.6);
             dirLight.position.set(12, 22, 10);
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 2048;
             dirLight.shadow.mapSize.height = 2048;
             dirLight.shadow.bias = -0.0001;
-            dirLight.shadow.camera.near = 0.5;
-            dirLight.shadow.camera.far = 60;
-            dirLight.shadow.camera.left = -12;
-            dirLight.shadow.camera.right = 12;
-            dirLight.shadow.camera.top = 12;
-            dirLight.shadow.camera.bottom = -12;
             scene.add(dirLight);
 
-            // Rim light (creates glowing edges around 3D objects)
             const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
             rimLight.position.set(-10, 8, -10);
             scene.add(rimLight);
 
-            // Modern glossy ground stage that catches realistic shadows
             const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
             const groundMat = new THREE.MeshStandardMaterial({
                 color: 0x0f172a,
-                roughness: 0.3,
+                roughness: 0.35,
                 metalness: 0.4
             });
             const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -441,7 +448,6 @@
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Cyber grid overlay on the pedestal
             const grid = new THREE.GridHelper(26, 26, 0x38bdf8, 0x1e293b);
             grid.position.y = 0.01;
             scene.add(grid);
@@ -460,59 +466,98 @@
             document.getElementById('code-content').innerText = "// Ready for new creation...";
         }
 
-        // Professional PBR instructions for AI to guarantee rich graphics
         const SYSTEM_PROMPT = `You are a master Three.js 3D developer specializing in AAA stylized graphics.
 Generate clean, highly-detailed, executable JavaScript code using Three.js to construct what the user requested.
 GRAPHIC & QUALITY RULES:
 1. 'scene' and 'THREE' are already initialized.
 2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
 3. Set 'castShadow = true' and 'receiveShadow = true' on every single Mesh.
-4. Use rich MeshStandardMaterial or MeshPhysicalMaterial with distinct roughness, metalness, and vibrant colors (e.g. metallic chrome, glass transparency, matte surfaces).
-5. Add emissive glowing accents (materials with 'emissive: 0x00f0ff, emissiveIntensity: 0.8') to lights or tech parts to make them pop!
-6. Keep the code optimized, concise, and clean. Output ONLY the code inside \`\`\`javascript ... \`\`\`.`;
+4. Use rich MeshStandardMaterial or MeshPhysicalMaterial with distinct roughness, metalness, and vibrant colors (metallic chrome, glass, glowing lights).
+5. Add emissive glowing accents (emissive: 0x00f0ff, emissiveIntensity: 0.8) where appropriate.
+6. Output ONLY valid JavaScript code inside \`\`\`javascript ... \`\`\`. Do not write commentary outside the block.`;
 
-        // 1. Google Gemini Handler with 8B ultra-fast model + instant fallback
-        async function callGemini(promptText, apiKey) {
-            // Priority order: 1.5-flash-8b is blazing fast and never busy!
-            const models = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+        // Real-Time Streaming Gemini caller with auto-retry and multi-model fallback
+        async function callGeminiStream(promptText, apiKey, onChunk) {
+            const models = [
+                "gemini-2.0-flash",
+                "gemini-1.5-flash-8b",
+                "gemini-1.5-flash",
+                "gemini-flash-latest"
+            ];
+
             let lastErr = "";
 
             for (let model of models) {
-                try {
-                    document.getElementById('status-indicator').innerText = `⚡ High-Speed Rendering via ${model}...`;
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-                    
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: SYSTEM_PROMPT },
-                                    { text: `User request: ${promptText}` }
-                                ]
-                            }]
-                        })
-                    });
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        document.getElementById('status-indicator').innerText = `⚡ Streaming via ${model}...`;
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
-                    if (res.ok) {
-                        const data = await res.json();
-                        const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (output) return output;
-                    } else {
-                        const errData = await res.json().catch(() => ({}));
-                        lastErr = errData?.error?.message || `HTTP ${res.status}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: SYSTEM_PROMPT },
+                                        { text: `User request: ${promptText}` }
+                                    ]
+                                }]
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errData = await response.json().catch(() => ({}));
+                            lastErr = errData?.error?.message || `HTTP ${response.status}`;
+                            if (response.status === 503 || response.status === 429) {
+                                document.getElementById('status-indicator').innerText = `High demand on ${model}, switching in 1.5s...`;
+                                await new Promise(r => setTimeout(r, 1500));
+                                continue;
+                            }
+                            break;
+                        }
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let accumulatedText = "";
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            const chunk = decoder.decode(value, { stream: true });
+                            const lines = chunk.split('\n');
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const json = JSON.parse(line.substring(6));
+                                        const textChunk = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                                        if (textChunk) {
+                                            accumulatedText += textChunk;
+                                            onChunk(accumulatedText);
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+
+                        if (accumulatedText.trim().length > 0) {
+                            return accumulatedText;
+                        }
+
+                    } catch (e) {
+                        lastErr = e.message;
                     }
-                } catch (e) {
-                    lastErr = e.message;
                 }
             }
-            throw new Error(lastErr || "Could not generate 3D model.");
+
+            throw new Error(lastErr || "All Gemini models are busy. Please try again or switch provider.");
         }
 
-        // 2. OpenAI (ChatGPT) Handler
-        async function callOpenAI(promptText, apiKey) {
-            document.getElementById('status-indicator').innerText = "Connecting to OpenAI HD...";
+        // OpenAI Fallback
+        async function callOpenAI(promptText, apiKey, onChunk) {
+            document.getElementById('status-indicator').innerText = "Connecting to OpenAI...";
             const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -534,12 +579,14 @@ GRAPHIC & QUALITY RULES:
             }
 
             const data = await res.json();
-            return data.choices?.[0]?.message?.content || "";
+            const text = data.choices?.[0]?.message?.content || "";
+            onChunk(text);
+            return text;
         }
 
-        // 3. Anthropic Claude Handler
-        async function callClaude(promptText, apiKey) {
-            document.getElementById('status-indicator').innerText = "Connecting to Claude 3.5...";
+        // Claude Fallback
+        async function callClaude(promptText, apiKey, onChunk) {
+            document.getElementById('status-indicator').innerText = "Connecting to Claude...";
             const res = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
                 headers: {
@@ -562,10 +609,12 @@ GRAPHIC & QUALITY RULES:
             }
 
             const data = await res.json();
-            return data.content?.[0]?.text || "";
+            const text = data.content?.[0]?.text || "";
+            onChunk(text);
+            return text;
         }
 
-        // Main Send Function
+        // Main Execution Handler
         async function sendToAI(promptText) {
             const provider = localStorage.getItem('apexgen_provider') || 'gemini';
             const apiKey = localStorage.getItem(`apexgen_key_${provider}`);
@@ -576,30 +625,41 @@ GRAPHIC & QUALITY RULES:
             }
 
             const status = document.getElementById('status-indicator');
-            status.innerText = "Building 3D Asset...";
+            const codePanel = document.getElementById('code-viewer-panel');
+            const codeContent = document.getElementById('code-content');
+
+            // Automatically open code window and reset text
+            codePanel.classList.remove('hidden');
+            codeContent.innerText = "// AI is writing 3D code live...\n";
+            status.innerText = "Generating 3D model...";
+
+            const handleLiveChunk = (currentText) => {
+                codeContent.innerText = currentText;
+                codeContent.scrollTop = codeContent.scrollHeight;
+            };
 
             try {
-                let generatedText = "";
+                let fullResponse = "";
                 if (provider === 'gemini') {
-                    generatedText = await callGemini(promptText, apiKey);
+                    fullResponse = await callGeminiStream(promptText, apiKey, handleLiveChunk);
                 } else if (provider === 'openai') {
-                    generatedText = await callOpenAI(promptText, apiKey);
+                    fullResponse = await callOpenAI(promptText, apiKey, handleLiveChunk);
                 } else if (provider === 'claude') {
-                    generatedText = await callClaude(promptText, apiKey);
+                    fullResponse = await callClaude(promptText, apiKey, handleLiveChunk);
                 }
 
-                const match = generatedText.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const codeToRun = match ? match[1].trim() : generatedText;
+                // Extract clean javascript code
+                const match = fullResponse.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const codeToRun = match ? match[1].trim() : fullResponse;
 
-                document.getElementById('code-content').innerText = codeToRun;
-                document.getElementById('code-viewer-panel').classList.remove('hidden');
+                codeContent.innerText = codeToRun;
 
-                // Execute Code
+                // Execute in Three.js
                 const buildFunc = new Function('scene', 'THREE', codeToRun);
                 buildFunc(scene, THREE);
 
                 executionHistory.push(codeToRun);
-                status.innerText = "✨ Built in Ultra HD! Inspect code above.";
+                status.innerText = "✨ Model built successfully in Ultra HD!";
                 document.getElementById('project-actions').classList.remove('hidden');
 
             } catch (err) {
@@ -636,7 +696,7 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // Key modal handlers
+            // Key settings modal
             document.getElementById('key-btn').addEventListener('click', openKeyModal);
             document.getElementById('btn-close-key').addEventListener('click', () => {
                 document.getElementById('api-modal').classList.add('hidden');
@@ -655,11 +715,11 @@ GRAPHIC & QUALITY RULES:
                     localStorage.setItem('apexgen_provider', selectedProvider);
                     localStorage.setItem(`apexgen_key_${selectedProvider}`, key);
                     document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = `Active: ${selectedProvider.toUpperCase()} (High Speed)`;
+                    document.getElementById('status-indicator').innerText = `Active: ${selectedProvider.toUpperCase()} (Streaming Enabled)`;
                 }
             });
 
-            // Live code window
+            // Live code window controls
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
                 document.getElementById('code-viewer-panel').classList.toggle('hidden');
             });
@@ -667,7 +727,7 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('code-viewer-panel').classList.add('hidden');
             });
             document.getElementById('copy-code-btn').addEventListener('click', () => {
-                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("HD Code copied!"));
+                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Code copied!"));
             });
 
             // Menu Handlers
@@ -724,7 +784,7 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('install-modal').classList.add('hidden');
             });
 
-            // Chat input handlers
+            // Chat submit handlers
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
