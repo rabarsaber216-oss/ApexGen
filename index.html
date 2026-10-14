@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - Multi-AI 3D Studio</title>
+    <title>ApexGen - HD 3D AI Studio</title>
     <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -19,7 +19,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0b0f19;
+            background-color: #050811;
             color: #ffffff;
         }
         #webgl-canvas {
@@ -43,7 +43,7 @@
             justify-content: space-between;
             align-items: center;
             z-index: 15;
-            background: linear-gradient(to bottom, rgba(11, 15, 25, 0.95), transparent);
+            background: linear-gradient(to bottom, rgba(5, 8, 17, 0.95), transparent);
             pointer-events: none;
         }
         .brand {
@@ -51,7 +51,7 @@
             font-weight: 800;
             letter-spacing: 1px;
             color: #38bdf8;
-            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
             pointer-events: auto;
         }
         .header-actions {
@@ -61,14 +61,15 @@
             align-items: center;
         }
         .btn {
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.8);
             color: #f8fafc;
-            border: 1px solid #334155;
+            border: 1px solid rgba(56, 189, 248, 0.3);
             padding: 7px 12px;
             border-radius: 8px;
             font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
+            backdrop-filter: blur(8px);
             transition: all 0.2s ease;
         }
         .btn:hover {
@@ -83,9 +84,6 @@
             border-color: #a855f7;
             color: #d8b4fe;
         }
-        .btn-code:hover {
-            background: #581c87;
-        }
         .hidden {
             display: none !important;
         }
@@ -98,11 +96,11 @@
             width: 90%;
             max-width: 360px;
             max-height: 280px;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(10, 15, 29, 0.95);
             border: 1px solid #6366f1;
             border-radius: 12px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
             z-index: 20;
             display: flex;
             flex-direction: column;
@@ -113,7 +111,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 12px;
-            background: rgba(30, 41, 59, 0.85);
+            background: rgba(30, 41, 59, 0.9);
             border-bottom: 1px solid #334155;
             font-size: 0.78rem;
             font-weight: 700;
@@ -138,7 +136,7 @@
             font-family: "Courier New", Courier, monospace;
             font-size: 0.75rem;
             color: #38bdf8;
-            background: #070b14;
+            background: #030712;
             overflow-y: auto;
             flex: 1;
             white-space: pre-wrap;
@@ -162,21 +160,22 @@
         .chat-status {
             font-size: 0.78rem;
             color: #94a3b8;
-            background: rgba(15, 23, 42, 0.88);
-            padding: 6px 12px;
+            background: rgba(10, 15, 29, 0.9);
+            padding: 6px 14px;
             border-radius: 6px;
             align-self: flex-start;
             backdrop-filter: blur(8px);
             max-width: 100%;
             word-break: break-word;
+            border-left: 3px solid #38bdf8;
         }
         .chat-bar {
             display: flex;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(10, 15, 29, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.35);
             border-radius: 12px;
             padding: 6px 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(12px);
         }
         .chat-input {
@@ -195,10 +194,11 @@
             background: #0284c7;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
         }
 
         /* Modals */
@@ -209,21 +209,21 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(6px);
+            backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 100;
         }
         .modal-card {
-            background: #0f172a;
+            background: #0b1120;
             border: 1px solid #1e293b;
             padding: 24px;
             border-radius: 16px;
             width: 90%;
             max-width: 400px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.7);
         }
         .modal-title {
             font-size: 1.25rem;
@@ -283,20 +283,20 @@
     <!-- Live Code Viewer -->
     <div id="code-viewer-panel">
         <div class="viewer-header">
-            <span>⚡ Live Three.js Code</span>
+            <span>⚡ Live Three.js HD Code</span>
             <div class="viewer-controls">
                 <button id="copy-code-btn" class="viewer-btn">Copy</button>
                 <button id="close-viewer-btn" class="viewer-btn">✕</button>
             </div>
         </div>
-        <pre id="code-content">// Generated 3D Three.js code will appear here in real-time...</pre>
+        <pre id="code-content">// Ultra HD Three.js Code will be rendered here...</pre>
     </div>
 
     <!-- AI Chat Box -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Type your idea to build in 3D.</div>
+        <div id="status-indicator" class="chat-status">ApexGen HD Ready. Describe anything to build.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or futuristic robot..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an ultra-detailed cyberpunk motorcycle..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -304,13 +304,13 @@
     <!-- API Key & Provider Modal -->
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">AI Provider Setup</h2>
-            <p class="modal-desc">Select your AI provider and enter its API key.</p>
+            <h2 class="modal-title">AI Engine Settings</h2>
+            <p class="modal-desc">Select your provider and paste your API key.</p>
             
             <div class="input-group">
-                <label>Select AI Provider</label>
+                <label>AI Provider</label>
                 <select id="provider-select">
-                    <option value="gemini">Google Gemini (Recommended)</option>
+                    <option value="gemini">Google Gemini (Ultra-Fast 8B)</option>
                     <option value="openai">OpenAI (ChatGPT)</option>
                     <option value="claude">Anthropic Claude</option>
                 </select>
@@ -331,7 +331,7 @@
     <!-- Continue / New Project Modal -->
     <div id="menu-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Welcome Back</h2>
+            <h2 class="modal-title">Welcome to ApexGen</h2>
             <p class="modal-desc">You have a saved 3D project. How would you like to continue?</p>
             <div class="modal-btns">
                 <button id="btn-continue" class="btn btn-primary">Continue</button>
@@ -343,15 +343,15 @@
     <!-- Install / Download Modal -->
     <div id="install-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Install / Download App</h2>
-            <p class="modal-desc">Set a name and icon for your standalone 3D web app.</p>
+            <h2 class="modal-title">Install Standalone App</h2>
+            <p class="modal-desc">Set name and icon to export as an offline web app.</p>
             <div class="input-group">
                 <label>App Name</label>
-                <input type="text" id="app-name-input" value="ApexGen Game" />
+                <input type="text" id="app-name-input" value="ApexGen 3D Studio" />
             </div>
             <div class="input-group">
                 <label>Icon Emoji</label>
-                <input type="text" id="app-icon-input" value="🎮" />
+                <input type="text" id="app-icon-input" value="🚀" />
             </div>
             <div class="modal-btns">
                 <button id="btn-download" class="btn btn-primary">Download App</button>
@@ -368,31 +368,32 @@
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0b0f19);
-            scene.fog = new THREE.FogExp2(0x0b0f19, 0.03);
+            scene.background = new THREE.Color(0x060913);
+            scene.fog = new THREE.FogExp2(0x060913, 0.025);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 6, 12);
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 6, 11);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // High Fidelity Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // Photorealistic Tonemapping & Shadows
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
             container.appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-
-            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
-            dirLight.position.set(10, 20, 10);
-            scene.add(dirLight);
-
-            const gridHelper = new THREE.GridHelper(40, 40, 0x38bdf8, 0x1e293b);
-            gridHelper.position.y = -0.01;
-            scene.add(gridHelper);
+            setupHighEndLighting();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -401,6 +402,49 @@
             });
 
             animate();
+        }
+
+        function setupHighEndLighting() {
+            // Soft atmospheric hemisphere light
+            const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x111827, 0.7);
+            scene.add(hemiLight);
+
+            // Main sunlight with sharp + soft shadows
+            const dirLight = new THREE.DirectionalLight(0xfff8ee, 1.6);
+            dirLight.position.set(12, 22, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.bias = -0.0001;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 60;
+            dirLight.shadow.camera.left = -12;
+            dirLight.shadow.camera.right = 12;
+            dirLight.shadow.camera.top = 12;
+            dirLight.shadow.camera.bottom = -12;
+            scene.add(dirLight);
+
+            // Rim light (creates glowing edges around 3D objects)
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
+            rimLight.position.set(-10, 8, -10);
+            scene.add(rimLight);
+
+            // Modern glossy ground stage that catches realistic shadows
+            const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                roughness: 0.3,
+                metalness: 0.4
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -0.15;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Cyber grid overlay on the pedestal
+            const grid = new THREE.GridHelper(26, 26, 0x38bdf8, 0x1e293b);
+            grid.position.y = 0.01;
+            scene.add(grid);
         }
 
         function animate() {
@@ -413,67 +457,62 @@
             createdObjects.forEach(obj => scene.remove(obj));
             createdObjects = [];
             executionHistory = [];
-            document.getElementById('code-content').innerText = "// Ready for new code...";
+            document.getElementById('code-content').innerText = "// Ready for new creation...";
         }
 
-        // System prompt used for all AI engines
-        const SYSTEM_PROMPT = `You are an expert Three.js 3D developer for ApexGen.
-Generate clean, working Three.js JavaScript code to construct the requested 3D model.
-Rules:
-1. Variables 'scene' and 'THREE' are already initialized.
+        // Professional PBR instructions for AI to guarantee rich graphics
+        const SYSTEM_PROMPT = `You are a master Three.js 3D developer specializing in AAA stylized graphics.
+Generate clean, highly-detailed, executable JavaScript code using Three.js to construct what the user requested.
+GRAPHIC & QUALITY RULES:
+1. 'scene' and 'THREE' are already initialized.
 2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
-3. Use MeshStandardMaterial with bright, vibrant colors.
-4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations outside code block.`;
+3. Set 'castShadow = true' and 'receiveShadow = true' on every single Mesh.
+4. Use rich MeshStandardMaterial or MeshPhysicalMaterial with distinct roughness, metalness, and vibrant colors (e.g. metallic chrome, glass transparency, matte surfaces).
+5. Add emissive glowing accents (materials with 'emissive: 0x00f0ff, emissiveIntensity: 0.8') to lights or tech parts to make them pop!
+6. Keep the code optimized, concise, and clean. Output ONLY the code inside \`\`\`javascript ... \`\`\`.`;
 
-        // 1. Google Gemini Handler (with retry and fallback between flash models)
+        // 1. Google Gemini Handler with 8B ultra-fast model + instant fallback
         async function callGemini(promptText, apiKey) {
-            const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+            // Priority order: 1.5-flash-8b is blazing fast and never busy!
+            const models = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
             let lastErr = "";
 
             for (let model of models) {
-                for (let attempt = 0; attempt < 2; attempt++) {
-                    try {
-                        document.getElementById('status-indicator').innerText = `Gemini (${model})...`;
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-                        
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: SYSTEM_PROMPT },
-                                        { text: `User request: ${promptText}` }
-                                    ]
-                                }]
-                            })
-                        });
+                try {
+                    document.getElementById('status-indicator').innerText = `⚡ High-Speed Rendering via ${model}...`;
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                    
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: SYSTEM_PROMPT },
+                                    { text: `User request: ${promptText}` }
+                                ]
+                            }]
+                        })
+                    });
 
-                        if (res.ok) {
-                            const data = await res.json();
-                            const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                            if (output) return output;
-                        } else {
-                            const errData = await res.json().catch(() => ({}));
-                            lastErr = errData?.error?.message || `HTTP ${res.status}`;
-                            if (res.status === 503 || res.status === 429) {
-                                document.getElementById('status-indicator').innerText = "High traffic, waiting 2s...";
-                                await new Promise(r => setTimeout(r, 2000));
-                            } else {
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        lastErr = e.message;
+                    if (res.ok) {
+                        const data = await res.json();
+                        const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (output) return output;
+                    } else {
+                        const errData = await res.json().catch(() => ({}));
+                        lastErr = errData?.error?.message || `HTTP ${res.status}`;
                     }
+                } catch (e) {
+                    lastErr = e.message;
                 }
             }
-            throw new Error(lastErr || "Failed to get 3D code from Gemini.");
+            throw new Error(lastErr || "Could not generate 3D model.");
         }
 
-        // 2. OpenAI Handler (ChatGPT)
+        // 2. OpenAI (ChatGPT) Handler
         async function callOpenAI(promptText, apiKey) {
-            document.getElementById('status-indicator').innerText = "Connecting to OpenAI...";
+            document.getElementById('status-indicator').innerText = "Connecting to OpenAI HD...";
             const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -500,7 +539,7 @@ Rules:
 
         // 3. Anthropic Claude Handler
         async function callClaude(promptText, apiKey) {
-            document.getElementById('status-indicator').innerText = "Connecting to Claude...";
+            document.getElementById('status-indicator').innerText = "Connecting to Claude 3.5...";
             const res = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
                 headers: {
@@ -526,7 +565,7 @@ Rules:
             return data.content?.[0]?.text || "";
         }
 
-        // Main AI dispatcher
+        // Main Send Function
         async function sendToAI(promptText) {
             const provider = localStorage.getItem('apexgen_provider') || 'gemini';
             const apiKey = localStorage.getItem(`apexgen_key_${provider}`);
@@ -537,7 +576,7 @@ Rules:
             }
 
             const status = document.getElementById('status-indicator');
-            status.innerText = "Generating 3D model...";
+            status.innerText = "Building 3D Asset...";
 
             try {
                 let generatedText = "";
@@ -555,11 +594,12 @@ Rules:
                 document.getElementById('code-content').innerText = codeToRun;
                 document.getElementById('code-viewer-panel').classList.remove('hidden');
 
+                // Execute Code
                 const buildFunc = new Function('scene', 'THREE', codeToRun);
                 buildFunc(scene, THREE);
 
                 executionHistory.push(codeToRun);
-                status.innerText = "Built successfully! Check live code window.";
+                status.innerText = "✨ Built in Ultra HD! Inspect code above.";
                 document.getElementById('project-actions').classList.remove('hidden');
 
             } catch (err) {
@@ -576,7 +616,11 @@ Rules:
         }
 
         function updateKeyInputLabel(provider) {
-            const names = { gemini: "Gemini API Key", openai: "OpenAI API Key (sk-...)", claude: "Claude API Key (sk-ant-...)" };
+            const names = { 
+                gemini: "Gemini API Key", 
+                openai: "OpenAI API Key (sk-...)", 
+                claude: "Claude API Key (sk-ant-...)" 
+            };
             document.getElementById('key-label').innerText = names[provider] || "API Key";
         }
 
@@ -592,7 +636,7 @@ Rules:
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // Key settings modal
+            // Key modal handlers
             document.getElementById('key-btn').addEventListener('click', openKeyModal);
             document.getElementById('btn-close-key').addEventListener('click', () => {
                 document.getElementById('api-modal').classList.add('hidden');
@@ -611,11 +655,11 @@ Rules:
                     localStorage.setItem('apexgen_provider', selectedProvider);
                     localStorage.setItem(`apexgen_key_${selectedProvider}`, key);
                     document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = `Active Provider: ${selectedProvider.toUpperCase()}`;
+                    document.getElementById('status-indicator').innerText = `Active: ${selectedProvider.toUpperCase()} (High Speed)`;
                 }
             });
 
-            // Live code panel
+            // Live code window
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
                 document.getElementById('code-viewer-panel').classList.toggle('hidden');
             });
@@ -623,10 +667,10 @@ Rules:
                 document.getElementById('code-viewer-panel').classList.add('hidden');
             });
             document.getElementById('copy-code-btn').addEventListener('click', () => {
-                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Code copied!"));
+                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("HD Code copied!"));
             });
 
-            // Menu handlers
+            // Menu Handlers
             document.getElementById('btn-continue').addEventListener('click', () => {
                 document.getElementById('menu-modal').classList.add('hidden');
                 const saved = localStorage.getItem('apexgen_saved_code');
@@ -650,14 +694,14 @@ Rules:
                 document.getElementById('menu-modal').classList.add('hidden');
                 clearCustomScene();
                 localStorage.removeItem('apexgen_saved_code');
-                document.getElementById('status-indicator').innerText = "New clean project started.";
+                document.getElementById('status-indicator').innerText = "New clean canvas ready.";
             });
 
             // Save / Install
             document.getElementById('save-btn').addEventListener('click', () => {
                 if (executionHistory.length > 0) {
                     localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
-                    alert("Project saved successfully!");
+                    alert("HD Project saved successfully!");
                 }
             });
 
@@ -666,7 +710,7 @@ Rules:
             });
 
             document.getElementById('btn-download').addEventListener('click', () => {
-                const appName = document.getElementById('app-name-input').value || "ApexGen_Game";
+                const appName = document.getElementById('app-name-input').value || "ApexGen_HD_App";
                 const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
