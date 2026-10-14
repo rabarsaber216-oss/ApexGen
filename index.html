@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - HD 3D AI Studio</title>
+    <title>ApexGen - Massive World 3D Studio</title>
     <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -313,9 +313,9 @@
 
     <!-- AI Chat Box -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">ApexGen HD Ready. Describe anything to build.</div>
+        <div id="status-indicator" class="chat-status">ApexGen Massive Map Ready. Describe anything to build.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an ultra-detailed futuristic car..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an epic futuristic castle with neon trees..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -324,19 +324,19 @@
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <h2 class="modal-title">AI Engine Settings</h2>
-            <p class="modal-desc">Select AI provider and paste your API key.</p>
+            <p class="modal-desc">Switch AI provider or update your API key.</p>
             
             <div class="input-group">
                 <label>AI Provider</label>
                 <select id="provider-select">
-                    <option value="gemini">Google Gemini (Auto-Stream & Fallback)</option>
+                    <option value="gemini">Google Gemini</option>
                     <option value="openai">OpenAI (ChatGPT)</option>
                     <option value="claude">Anthropic Claude</option>
                 </select>
             </div>
 
             <div class="input-group">
-                <label id="key-label">Gemini API Key</label>
+                <label id="key-label">API Key</label>
                 <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
             </div>
 
@@ -388,10 +388,11 @@
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x060913);
-            scene.fog = new THREE.FogExp2(0x060913, 0.025);
+            scene.fog = new THREE.FogExp2(0x060913, 0.003);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 6, 12);
+            // Wide camera view for massive map
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 4000);
+            camera.position.set(0, 25, 45);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -408,9 +409,10 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+            controls.maxDistance = 1500;
+            controls.maxPolarAngle = Math.PI / 2 + 0.02;
 
-            setupHighEndLighting();
+            setupMassiveWorld();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -421,35 +423,43 @@
             animate();
         }
 
-        function setupHighEndLighting() {
-            const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x111827, 0.7);
+        function setupMassiveWorld() {
+            const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x111827, 0.8);
             scene.add(hemiLight);
 
+            // Sun Light with large shadow coverage
             const dirLight = new THREE.DirectionalLight(0xfff8ee, 1.6);
-            dirLight.position.set(12, 22, 10);
+            dirLight.position.set(50, 100, 50);
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 2048;
             dirLight.shadow.mapSize.height = 2048;
-            dirLight.shadow.bias = -0.0001;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 400;
+            dirLight.shadow.camera.left = -120;
+            dirLight.shadow.camera.right = 120;
+            dirLight.shadow.camera.top = 120;
+            dirLight.shadow.camera.bottom = -120;
             scene.add(dirLight);
 
             const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
-            rimLight.position.set(-10, 8, -10);
+            rimLight.position.set(-60, 50, -60);
             scene.add(rimLight);
 
-            const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
+            // Massive Ground Pedestal (Radius 250)
+            const groundGeo = new THREE.CylinderGeometry(250, 250, 2, 64);
             const groundMat = new THREE.MeshStandardMaterial({
-                color: 0x0f172a,
+                color: 0x0a0f1d,
                 roughness: 0.35,
-                metalness: 0.4
+                metalness: 0.3
             });
             const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.position.y = -0.15;
+            ground.position.y = -1;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            const grid = new THREE.GridHelper(26, 26, 0x38bdf8, 0x1e293b);
-            grid.position.y = 0.01;
+            // Massive Cyber Grid (Size 500)
+            const grid = new THREE.GridHelper(500, 100, 0x38bdf8, 0x1e293b);
+            grid.position.y = 0.02;
             scene.add(grid);
         }
 
@@ -469,14 +479,14 @@
         const SYSTEM_PROMPT = `You are a master Three.js 3D developer specializing in AAA stylized graphics.
 Generate clean, highly-detailed, executable JavaScript code using Three.js to construct what the user requested.
 GRAPHIC & QUALITY RULES:
-1. 'scene' and 'THREE' are already initialized.
+1. 'scene' and 'THREE' are already initialized. The world is a massive platform.
 2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
-3. Set 'castShadow = true' and 'receiveShadow = true' on every single Mesh.
-4. Use rich MeshStandardMaterial or MeshPhysicalMaterial with distinct roughness, metalness, and vibrant colors (metallic chrome, glass, glowing lights).
-5. Add emissive glowing accents (emissive: 0x00f0ff, emissiveIntensity: 0.8) where appropriate.
+3. Set 'castShadow = true' and 'receiveShadow = true' on all meshes.
+4. Use rich MeshStandardMaterial or MeshPhysicalMaterial with distinct roughness, metalness, and vibrant colors.
+5. Add emissive accents (emissive: 0x00f0ff, emissiveIntensity: 0.8) where appropriate.
 6. Output ONLY valid JavaScript code inside \`\`\`javascript ... \`\`\`. Do not write commentary outside the block.`;
 
-        // Real-Time Streaming Gemini caller with auto-retry and multi-model fallback
+        // Real-Time Streaming Gemini caller with auto-retry
         async function callGeminiStream(promptText, apiKey, onChunk) {
             const models = [
                 "gemini-2.0-flash",
@@ -488,71 +498,68 @@ GRAPHIC & QUALITY RULES:
             let lastErr = "";
 
             for (let model of models) {
-                for (let attempt = 0; attempt < 2; attempt++) {
-                    try {
-                        document.getElementById('status-indicator').innerText = `⚡ Streaming via ${model}...`;
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+                try {
+                    document.getElementById('status-indicator').innerText = `⚡ Streaming via ${model}...`;
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
 
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: SYSTEM_PROMPT },
-                                        { text: `User request: ${promptText}` }
-                                    ]
-                                }]
-                            })
-                        });
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: SYSTEM_PROMPT },
+                                    { text: `User request: ${promptText}` }
+                                ]
+                            }]
+                        })
+                    });
 
-                        if (!response.ok) {
-                            const errData = await response.json().catch(() => ({}));
-                            lastErr = errData?.error?.message || `HTTP ${response.status}`;
-                            if (response.status === 503 || response.status === 429) {
-                                document.getElementById('status-indicator').innerText = `High demand on ${model}, switching in 1.5s...`;
-                                await new Promise(r => setTimeout(r, 1500));
-                                continue;
-                            }
-                            break;
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        lastErr = errData?.error?.message || `HTTP ${response.status}`;
+                        if (response.status === 429) {
+                            throw new Error("Quota exceeded on free tier. Please update API key or switch provider in Key settings.");
                         }
-
-                        const reader = response.body.getReader();
-                        const decoder = new TextDecoder();
-                        let accumulatedText = "";
-
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-
-                            const chunk = decoder.decode(value, { stream: true });
-                            const lines = chunk.split('\n');
-
-                            for (const line of lines) {
-                                if (line.startsWith('data: ')) {
-                                    try {
-                                        const json = JSON.parse(line.substring(6));
-                                        const textChunk = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                                        if (textChunk) {
-                                            accumulatedText += textChunk;
-                                            onChunk(accumulatedText);
-                                        }
-                                    } catch (e) {}
-                                }
-                            }
-                        }
-
-                        if (accumulatedText.trim().length > 0) {
-                            return accumulatedText;
-                        }
-
-                    } catch (e) {
-                        lastErr = e.message;
+                        continue;
                     }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let accumulatedText = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const json = JSON.parse(line.substring(6));
+                                    const textChunk = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                                    if (textChunk) {
+                                        accumulatedText += textChunk;
+                                        onChunk(accumulatedText);
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    if (accumulatedText.trim().length > 0) {
+                        return accumulatedText;
+                    }
+
+                } catch (e) {
+                    lastErr = e.message;
+                    if (e.message.includes("Quota exceeded")) throw e;
                 }
             }
 
-            throw new Error(lastErr || "All Gemini models are busy. Please try again or switch provider.");
+            throw new Error(lastErr || "All models busy or quota limit reached.");
         }
 
         // OpenAI Fallback
@@ -614,7 +621,7 @@ GRAPHIC & QUALITY RULES:
             return text;
         }
 
-        // Main Execution Handler
+        // Main Send Function
         async function sendToAI(promptText) {
             const provider = localStorage.getItem('apexgen_provider') || 'gemini';
             const apiKey = localStorage.getItem(`apexgen_key_${provider}`);
@@ -628,10 +635,9 @@ GRAPHIC & QUALITY RULES:
             const codePanel = document.getElementById('code-viewer-panel');
             const codeContent = document.getElementById('code-content');
 
-            // Automatically open code window and reset text
             codePanel.classList.remove('hidden');
-            codeContent.innerText = "// AI is writing 3D code live...\n";
-            status.innerText = "Generating 3D model...";
+            codeContent.innerText = "// AI is writing 3D code in real-time...\n";
+            status.innerText = "Building 3D model on massive canvas...";
 
             const handleLiveChunk = (currentText) => {
                 codeContent.innerText = currentText;
@@ -648,18 +654,16 @@ GRAPHIC & QUALITY RULES:
                     fullResponse = await callClaude(promptText, apiKey, handleLiveChunk);
                 }
 
-                // Extract clean javascript code
                 const match = fullResponse.match(/```(?:javascript|js)?([\s\S]*?)```/);
                 const codeToRun = match ? match[1].trim() : fullResponse;
 
                 codeContent.innerText = codeToRun;
 
-                // Execute in Three.js
                 const buildFunc = new Function('scene', 'THREE', codeToRun);
                 buildFunc(scene, THREE);
 
                 executionHistory.push(codeToRun);
-                status.innerText = "✨ Model built successfully in Ultra HD!";
+                status.innerText = "✨ Built successfully on the massive world!";
                 document.getElementById('project-actions').classList.remove('hidden');
 
             } catch (err) {
@@ -696,7 +700,7 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // Key settings modal
+            // Key settings
             document.getElementById('key-btn').addEventListener('click', openKeyModal);
             document.getElementById('btn-close-key').addEventListener('click', () => {
                 document.getElementById('api-modal').classList.add('hidden');
@@ -715,11 +719,11 @@ GRAPHIC & QUALITY RULES:
                     localStorage.setItem('apexgen_provider', selectedProvider);
                     localStorage.setItem(`apexgen_key_${selectedProvider}`, key);
                     document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = `Active: ${selectedProvider.toUpperCase()} (Streaming Enabled)`;
+                    document.getElementById('status-indicator').innerText = `Active Provider: ${selectedProvider.toUpperCase()}`;
                 }
             });
 
-            // Live code window controls
+            // Live code panel controls
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
                 document.getElementById('code-viewer-panel').classList.toggle('hidden');
             });
@@ -754,14 +758,14 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('menu-modal').classList.add('hidden');
                 clearCustomScene();
                 localStorage.removeItem('apexgen_saved_code');
-                document.getElementById('status-indicator').innerText = "New clean canvas ready.";
+                document.getElementById('status-indicator').innerText = "Massive clean canvas ready.";
             });
 
             // Save / Install
             document.getElementById('save-btn').addEventListener('click', () => {
                 if (executionHistory.length > 0) {
                     localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
-                    alert("HD Project saved successfully!");
+                    alert("Project saved successfully!");
                 }
             });
 
@@ -770,7 +774,7 @@ GRAPHIC & QUALITY RULES:
             });
 
             document.getElementById('btn-download').addEventListener('click', () => {
-                const appName = document.getElementById('app-name-input').value || "ApexGen_HD_App";
+                const appName = document.getElementById('app-name-input').value || "ApexGen_World";
                 const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -784,7 +788,7 @@ GRAPHIC & QUALITY RULES:
                 document.getElementById('install-modal').classList.add('hidden');
             });
 
-            // Chat submit handlers
+            // Chat input
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
