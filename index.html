@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - 3D AI Studio</title>
-    <!-- Three.js & Controls -->
+    <title>ApexGen - Multi-AI 3D Studio</title>
+    <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -58,7 +58,7 @@
             display: flex;
             gap: 8px;
             pointer-events: auto;
-            flex-wrap: wrap;
+            align-items: center;
         }
         .btn {
             background: #1e293b;
@@ -90,7 +90,7 @@
             display: none !important;
         }
 
-        /* Live Code Viewer Panel */
+        /* Live Code Viewer Window */
         #code-viewer-panel {
             position: absolute;
             top: 65px;
@@ -98,7 +98,7 @@
             width: 90%;
             max-width: 360px;
             max-height: 280px;
-            background: rgba(15, 23, 42, 0.94);
+            background: rgba(15, 23, 42, 0.95);
             border: 1px solid #6366f1;
             border-radius: 12px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
@@ -107,7 +107,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: all 0.25s ease;
         }
         .viewer-header {
             display: flex;
@@ -132,9 +131,6 @@
             border-radius: 4px;
             font-size: 0.7rem;
             cursor: pointer;
-        }
-        .viewer-btn:hover {
-            background: #475569;
         }
         #code-content {
             padding: 10px;
@@ -225,7 +221,7 @@
             padding: 24px;
             border-radius: 16px;
             width: 90%;
-            max-width: 380px;
+            max-width: 400px;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
@@ -256,7 +252,7 @@
             color: #94a3b8;
             margin-bottom: 5px;
         }
-        .input-group input {
+        .input-group select, .input-group input {
             width: 100%;
             background: #1e293b;
             border: 1px solid #334155;
@@ -264,6 +260,7 @@
             padding: 9px 12px;
             border-radius: 6px;
             outline: none;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -283,7 +280,7 @@
 
     <div id="webgl-canvas"></div>
 
-    <!-- Live Code Viewer Box -->
+    <!-- Live Code Viewer -->
     <div id="code-viewer-panel">
         <div class="viewer-header">
             <span>⚡ Live Three.js Code</span>
@@ -299,22 +296,34 @@
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">Ready. Type your idea to build in 3D.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or cyberpunk city..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or futuristic robot..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
 
-    <!-- API Key Modal -->
+    <!-- API Key & Provider Modal -->
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">API Key Setup</h2>
-            <p class="modal-desc">Enter your Google Gemini API key to activate AI 3D building.</p>
+            <h2 class="modal-title">AI Provider Setup</h2>
+            <p class="modal-desc">Select your AI provider and enter its API key.</p>
+            
             <div class="input-group">
-                <label>Gemini API Key</label>
+                <label>Select AI Provider</label>
+                <select id="provider-select">
+                    <option value="gemini">Google Gemini (Recommended)</option>
+                    <option value="openai">OpenAI (ChatGPT)</option>
+                    <option value="claude">Anthropic Claude</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label id="key-label">Gemini API Key</label>
                 <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
             </div>
+
             <div class="modal-btns">
                 <button id="btn-save-key" class="btn btn-primary">Save Key</button>
+                <button id="btn-close-key" class="btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -407,95 +416,137 @@
             document.getElementById('code-content').innerText = "// Ready for new code...";
         }
 
-        // Dynamically fetch supported models directly from Google API
-        async function getAvailableModels(apiKey) {
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                if (!res.ok) return ["gemini-flash-latest"];
-                const data = await res.json();
-                const validModels = (data.models || [])
-                    .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
-                    .map(m => m.name.replace(/^models\//, ''));
-
-                validModels.sort((a, b) => {
-                    const aFlash = a.includes('flash') ? -1 : 1;
-                    const bFlash = b.includes('flash') ? -1 : 1;
-                    return aFlash - bFlash;
-                });
-
-                return validModels.length > 0 ? validModels : ["gemini-flash-latest"];
-            } catch (e) {
-                return ["gemini-flash-latest"];
-            }
-        }
-
-        async function sendToAI(promptText) {
-            const apiKey = localStorage.getItem('apexgen_api_key');
-            if (!apiKey) {
-                document.getElementById('api-modal').classList.remove('hidden');
-                return;
-            }
-
-            const status = document.getElementById('status-indicator');
-            status.innerText = "Finding active Gemini models...";
-
-            const systemPrompt = `You are an expert Three.js 3D developer for ApexGen.
+        // System prompt used for all AI engines
+        const SYSTEM_PROMPT = `You are an expert Three.js 3D developer for ApexGen.
 Generate clean, working Three.js JavaScript code to construct the requested 3D model.
 Rules:
 1. Variables 'scene' and 'THREE' are already initialized.
 2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
 3. Use MeshStandardMaterial with bright, vibrant colors.
-4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations.`;
+4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations outside code block.`;
+
+        // 1. Google Gemini Handler (with retry and fallback between flash models)
+        async function callGemini(promptText, apiKey) {
+            const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+            let lastErr = "";
+
+            for (let model of models) {
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        document.getElementById('status-indicator').innerText = `Gemini (${model})...`;
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                        
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: SYSTEM_PROMPT },
+                                        { text: `User request: ${promptText}` }
+                                    ]
+                                }]
+                            })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (output) return output;
+                        } else {
+                            const errData = await res.json().catch(() => ({}));
+                            lastErr = errData?.error?.message || `HTTP ${res.status}`;
+                            if (res.status === 503 || res.status === 429) {
+                                document.getElementById('status-indicator').innerText = "High traffic, waiting 2s...";
+                                await new Promise(r => setTimeout(r, 2000));
+                            } else {
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        lastErr = e.message;
+                    }
+                }
+            }
+            throw new Error(lastErr || "Failed to get 3D code from Gemini.");
+        }
+
+        // 2. OpenAI Handler (ChatGPT)
+        async function callOpenAI(promptText, apiKey) {
+            document.getElementById('status-indicator').innerText = "Connecting to OpenAI...";
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: SYSTEM_PROMPT },
+                        { role: "user", content: promptText }
+                    ]
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData?.error?.message || `OpenAI error HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content || "";
+        }
+
+        // 3. Anthropic Claude Handler
+        async function callClaude(promptText, apiKey) {
+            document.getElementById('status-indicator').innerText = "Connecting to Claude...";
+            const res = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": apiKey,
+                    "anthropic-version": "2023-06-01",
+                    "anthropic-dangerous-direct-browser-access": "true"
+                },
+                body: JSON.stringify({
+                    model: "claude-3-5-sonnet-20241022",
+                    max_tokens: 2048,
+                    system: SYSTEM_PROMPT,
+                    messages: [{ role: "user", content: promptText }]
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData?.error?.message || `Claude error HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            return data.content?.[0]?.text || "";
+        }
+
+        // Main AI dispatcher
+        async function sendToAI(promptText) {
+            const provider = localStorage.getItem('apexgen_provider') || 'gemini';
+            const apiKey = localStorage.getItem(`apexgen_key_${provider}`);
+
+            if (!apiKey) {
+                openKeyModal();
+                return;
+            }
+
+            const status = document.getElementById('status-indicator');
+            status.innerText = "Generating 3D model...";
 
             try {
-                const models = await getAvailableModels(apiKey);
-                let generatedText = null;
-                let lastError = null;
-
-                for (let model of models) {
-                    for (let attempt = 0; attempt < 2; attempt++) {
-                        try {
-                            status.innerText = `Connecting via ${model}...`;
-                            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                            const res = await fetch(url, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'x-goog-api-key': apiKey
-                                },
-                                body: JSON.stringify({
-                                    contents: [{
-                                        parts: [
-                                            { text: systemPrompt },
-                                            { text: `User request: ${promptText}` }
-                                        ]
-                                    }]
-                                })
-                            });
-
-                            if (res.ok) {
-                                const data = await res.json();
-                                generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                                if (generatedText) break;
-                            } else {
-                                const errData = await res.json().catch(() => ({}));
-                                lastError = errData?.error?.message || `HTTP ${res.status}`;
-                                if (res.status === 503 || res.status === 429) {
-                                    status.innerText = `High demand on ${model}, retrying in 2s...`;
-                                    await new Promise(r => setTimeout(r, 2000));
-                                } else {
-                                    break;
-                                }
-                            }
-                        } catch (err) {
-                            lastError = err.message;
-                        }
-                    }
-                    if (generatedText) break;
-                }
-
-                if (!generatedText) {
-                    throw new Error(lastError || "Could not generate 3D code from available models.");
+                let generatedText = "";
+                if (provider === 'gemini') {
+                    generatedText = await callGemini(promptText, apiKey);
+                } else if (provider === 'openai') {
+                    generatedText = await callOpenAI(promptText, apiKey);
+                } else if (provider === 'claude') {
+                    generatedText = await callClaude(promptText, apiKey);
                 }
 
                 const match = generatedText.match(/```(?:javascript|js)?([\s\S]*?)```/);
@@ -516,45 +567,66 @@ Rules:
             }
         }
 
+        function openKeyModal() {
+            const provider = localStorage.getItem('apexgen_provider') || 'gemini';
+            document.getElementById('provider-select').value = provider;
+            updateKeyInputLabel(provider);
+            document.getElementById('api-key-input').value = localStorage.getItem(`apexgen_key_${provider}`) || '';
+            document.getElementById('api-modal').classList.remove('hidden');
+        }
+
+        function updateKeyInputLabel(provider) {
+            const names = { gemini: "Gemini API Key", openai: "OpenAI API Key (sk-...)", claude: "Claude API Key (sk-ant-...)" };
+            document.getElementById('key-label').innerText = names[provider] || "API Key";
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
-            if (!localStorage.getItem('apexgen_api_key')) {
-                document.getElementById('api-modal').classList.remove('hidden');
+            const provider = localStorage.getItem('apexgen_provider') || 'gemini';
+            if (!localStorage.getItem(`apexgen_key_${provider}`)) {
+                openKeyModal();
             }
 
             if (localStorage.getItem('apexgen_saved_code')) {
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            document.getElementById('key-btn').addEventListener('click', () => {
-                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
-                document.getElementById('api-modal').classList.remove('hidden');
+            // Key settings modal
+            document.getElementById('key-btn').addEventListener('click', openKeyModal);
+            document.getElementById('btn-close-key').addEventListener('click', () => {
+                document.getElementById('api-modal').classList.add('hidden');
+            });
+
+            document.getElementById('provider-select').addEventListener('change', (e) => {
+                const selected = e.target.value;
+                updateKeyInputLabel(selected);
+                document.getElementById('api-key-input').value = localStorage.getItem(`apexgen_key_${selected}`) || '';
             });
 
             document.getElementById('btn-save-key').addEventListener('click', () => {
+                const selectedProvider = document.getElementById('provider-select').value;
                 const key = document.getElementById('api-key-input').value.trim();
                 if (key) {
-                    localStorage.setItem('apexgen_api_key', key);
+                    localStorage.setItem('apexgen_provider', selectedProvider);
+                    localStorage.setItem(`apexgen_key_${selectedProvider}`, key);
                     document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = "API Key saved!";
+                    document.getElementById('status-indicator').innerText = `Active Provider: ${selectedProvider.toUpperCase()}`;
                 }
             });
 
+            // Live code panel
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
-                const panel = document.getElementById('code-viewer-panel');
-                panel.classList.toggle('hidden');
+                document.getElementById('code-viewer-panel').classList.toggle('hidden');
             });
-
             document.getElementById('close-viewer-btn').addEventListener('click', () => {
                 document.getElementById('code-viewer-panel').classList.add('hidden');
             });
-
             document.getElementById('copy-code-btn').addEventListener('click', () => {
-                const text = document.getElementById('code-content').innerText;
-                navigator.clipboard.writeText(text).then(() => alert("Code copied to clipboard!"));
+                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Code copied!"));
             });
 
+            // Menu handlers
             document.getElementById('btn-continue').addEventListener('click', () => {
                 document.getElementById('menu-modal').classList.add('hidden');
                 const saved = localStorage.getItem('apexgen_saved_code');
@@ -581,6 +653,7 @@ Rules:
                 document.getElementById('status-indicator').innerText = "New clean project started.";
             });
 
+            // Save / Install
             document.getElementById('save-btn').addEventListener('click', () => {
                 if (executionHistory.length > 0) {
                     localStorage.setItem('apexgen_saved_code', JSON.stringify(executionHistory));
@@ -607,6 +680,7 @@ Rules:
                 document.getElementById('install-modal').classList.add('hidden');
             });
 
+            // Chat input handlers
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
