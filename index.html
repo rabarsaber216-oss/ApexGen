@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen</title>
-    <!-- Three.js & OrbitControls -->
+    <title>ApexGen - 3D AI Studio</title>
+    <!-- Three.js & Controls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -38,18 +38,18 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 16px 20px;
+            padding: 14px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 10;
-            background: linear-gradient(to bottom, rgba(11, 15, 25, 0.9), transparent);
+            z-index: 15;
+            background: linear-gradient(to bottom, rgba(11, 15, 25, 0.95), transparent);
             pointer-events: none;
         }
         .brand {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             color: #38bdf8;
             text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
             pointer-events: auto;
@@ -58,14 +58,15 @@
             display: flex;
             gap: 8px;
             pointer-events: auto;
+            flex-wrap: wrap;
         }
         .btn {
             background: #1e293b;
             color: #f8fafc;
             border: 1px solid #334155;
-            padding: 7px 14px;
+            padding: 7px 12px;
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -78,17 +79,84 @@
             background: #0284c7;
             border-color: #38bdf8;
         }
+        .btn-code {
+            border-color: #a855f7;
+            color: #d8b4fe;
+        }
+        .btn-code:hover {
+            background: #581c87;
+        }
         .hidden {
             display: none !important;
+        }
+
+        /* Live Code Viewer Window */
+        #code-viewer-panel {
+            position: absolute;
+            top: 65px;
+            right: 15px;
+            width: 90%;
+            max-width: 360px;
+            max-height: 280px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #6366f1;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid #334155;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #c7d2fe;
+        }
+        .viewer-controls {
+            display: flex;
+            gap: 6px;
+        }
+        .viewer-btn {
+            background: #334155;
+            border: none;
+            color: #f8fafc;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .viewer-btn:hover {
+            background: #475569;
+        }
+        #code-content {
+            padding: 10px;
+            margin: 0;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.75rem;
+            color: #38bdf8;
+            background: #070b14;
+            overflow-y: auto;
+            flex: 1;
+            white-space: pre-wrap;
+            word-break: break-all;
+            user-select: text;
         }
 
         /* Bottom AI Chat Bar */
         .chat-container {
             position: absolute;
-            bottom: 20px;
+            bottom: 18px;
             left: 50%;
             transform: translateX(-50%);
-            width: 92%;
+            width: 94%;
             max-width: 650px;
             z-index: 10;
             display: flex;
@@ -96,9 +164,9 @@
             gap: 8px;
         }
         .chat-status {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #94a3b8;
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.88);
             padding: 6px 12px;
             border-radius: 6px;
             align-self: flex-start;
@@ -108,11 +176,11 @@
         }
         .chat-bar {
             display: flex;
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 23, 42, 0.9);
             border: 1px solid rgba(56, 189, 248, 0.3);
             border-radius: 12px;
             padding: 6px 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(12px);
         }
         .chat-input {
@@ -121,7 +189,7 @@
             border: none;
             outline: none;
             color: #ffffff;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             padding: 8px 12px;
         }
         .chat-input::placeholder {
@@ -131,7 +199,7 @@
             background: #0284c7;
             color: white;
             border: none;
-            padding: 8px 18px;
+            padding: 8px 16px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
@@ -144,7 +212,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(6px);
             display: flex;
             justify-content: center;
@@ -157,20 +225,20 @@
             padding: 24px;
             border-radius: 16px;
             width: 90%;
-            max-width: 400px;
+            max-width: 380px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
         .modal-title {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             color: #38bdf8;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-weight: 700;
         }
         .modal-desc {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: #94a3b8;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
             line-height: 1.4;
         }
         .modal-btns {
@@ -184,7 +252,7 @@
         }
         .input-group label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #94a3b8;
             margin-bottom: 5px;
         }
@@ -204,6 +272,7 @@
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
+            <button id="toggle-code-btn" class="btn btn-code">Code &lt;/&gt;</button>
             <button id="key-btn" class="btn">Key ⚙️</button>
             <div id="project-actions" class="header-actions hidden">
                 <button id="save-btn" class="btn">Save</button>
@@ -215,11 +284,23 @@
     <!-- 3D Canvas -->
     <div id="webgl-canvas"></div>
 
+    <!-- Live Code Viewer Box -->
+    <div id="code-viewer-panel">
+        <div class="viewer-header">
+            <span>⚡ Live Three.js Code</span>
+            <div class="viewer-controls">
+                <button id="copy-code-btn" class="viewer-btn">Copy</button>
+                <button id="close-viewer-btn" class="viewer-btn">✕</button>
+            </div>
+        </div>
+        <pre id="code-content">// Generated 3D Three.js code will appear here in real-time...</pre>
+    </div>
+
     <!-- AI Chat Box -->
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">Ready. Type your idea to build in 3D.</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a cyberpunk car or sci-fi building..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build a sports car or low-poly house..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -242,8 +323,8 @@
     <!-- Continue / New Project Modal -->
     <div id="menu-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Welcome to ApexGen</h2>
-            <p class="modal-desc">You have a saved 3D project. What would you like to do?</p>
+            <h2 class="modal-title">Welcome Back</h2>
+            <p class="modal-desc">You have a saved 3D project. How would you like to continue?</p>
             <div class="modal-btns">
                 <button id="btn-continue" class="btn btn-primary">Continue</button>
                 <button id="btn-new" class="btn">New Project</button>
@@ -251,10 +332,10 @@
         </div>
     </div>
 
-    <!-- Install Modal -->
+    <!-- Install / Download Modal -->
     <div id="install-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Install / Download</h2>
+            <h2 class="modal-title">Install / Download App</h2>
             <p class="modal-desc">Set a name and icon for your standalone 3D web app.</p>
             <div class="input-group">
                 <label>App Name</label>
@@ -275,6 +356,14 @@
         let scene, camera, renderer, controls;
         let createdObjects = [];
         let executionHistory = [];
+
+        // Fallback Models list to prevent "High Demand" or 503 errors
+        const AI_MODELS = [
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-1.5-pro"
+        ];
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
@@ -324,6 +413,61 @@
             createdObjects.forEach(obj => scene.remove(obj));
             createdObjects = [];
             executionHistory = [];
+            document.getElementById('code-content').innerText = "// Ready for new code...";
+        }
+
+        // Call Gemini with Automatic Model Fallback
+        async function fetchAIWithFallback(promptText, apiKey) {
+            const systemPrompt = `You are an expert Three.js 3D developer for ApexGen.
+Generate clean, working Three.js JavaScript code to construct the requested 3D model.
+Rules:
+1. Variables 'scene' and 'THREE' are already initialized.
+2. Group all created meshes in a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
+3. Use MeshStandardMaterial with bright, vibrant colors.
+4. Output ONLY valid JS code inside markdown: \`\`\`javascript ... \`\`\`. Do not include explanations.`;
+
+            let lastErrorMessage = "Failed to connect to AI.";
+
+            // Try each model sequentially if one is experiencing high demand (503/429)
+            for (let model of AI_MODELS) {
+                try {
+                    const status = document.getElementById('status-indicator');
+                    status.innerText = `Connecting via ${model}...`;
+
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: systemPrompt },
+                                    { text: `User request: ${promptText}` }
+                                ]
+                            }]
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) return text;
+                    } else {
+                        const errData = await res.json().catch(() => ({}));
+                        lastErrorMessage = errData?.error?.message || res.statusText || `HTTP ${res.status}`;
+                        console.warn(`Model ${model} returned error: ${lastErrorMessage}. Trying next fallback...`);
+                    }
+                } catch (e) {
+                    lastErrorMessage = e.message;
+                    console.warn(`Fetch error on ${model}: ${e.message}`);
+                }
+            }
+
+            throw new Error(lastErrorMessage);
         }
 
         async function sendToAI(promptText) {
@@ -334,51 +478,23 @@
             }
 
             const status = document.getElementById('status-indicator');
-            status.innerText = "ApexGen AI is building 3D asset...";
-
-            const systemPrompt = `You are an expert Three.js developer for ApexGen.
-Create JavaScript code using Three.js to construct what the user asked for.
-Rules:
-1. Variables 'scene' and 'THREE' are already initialized.
-2. Group all created meshes inside a THREE.Group called 'currentGroup' and call scene.add(currentGroup).
-3. Use MeshStandardMaterial with bright and aesthetic colors.
-4. Output ONLY valid JS code inside \`\`\`javascript ... \`\`\`. Do not include comments or explanations outside the code block.`;
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+            status.innerText = "Building 3D asset...";
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-goog-api-key': apiKey
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: systemPrompt },
-                                { text: `User request: ${promptText}` }
-                            ]
-                        }]
-                    })
-                });
+                const responseText = await fetchAIWithFallback(promptText, apiKey);
+                const match = responseText.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const codeToRun = match ? match[1].trim() : responseText;
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    const msg = errData?.error?.message || response.statusText || ("HTTP " + response.status);
-                    throw new Error(msg);
-                }
+                // Update Code Viewer Window with the generated code
+                document.getElementById('code-content').innerText = codeToRun;
+                document.getElementById('code-viewer-panel').classList.remove('hidden');
 
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const codeToRun = match ? match[1].trim() : text;
-
+                // Execute in 3D Scene
                 const buildFunc = new Function('scene', 'THREE', codeToRun);
                 buildFunc(scene, THREE);
 
                 executionHistory.push(codeToRun);
-                status.innerText = "Built successfully!";
+                status.innerText = "Built successfully! Check live code window.";
                 document.getElementById('project-actions').classList.remove('hidden');
 
             } catch (err) {
@@ -389,17 +505,15 @@ Rules:
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
-            // Check API Key
             if (!localStorage.getItem('apexgen_api_key')) {
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
-            // Check Saved Project
             if (localStorage.getItem('apexgen_saved_code')) {
                 document.getElementById('menu-modal').classList.remove('hidden');
             }
 
-            // Key Settings
+            // Key settings
             document.getElementById('key-btn').addEventListener('click', () => {
                 document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
                 document.getElementById('api-modal').classList.remove('hidden');
@@ -414,6 +528,21 @@ Rules:
                 }
             });
 
+            // Code viewer handlers
+            document.getElementById('toggle-code-btn').addEventListener('click', () => {
+                const panel = document.getElementById('code-viewer-panel');
+                panel.classList.toggle('hidden');
+            });
+
+            document.getElementById('close-viewer-btn').addEventListener('click', () => {
+                document.getElementById('code-viewer-panel').classList.add('hidden');
+            });
+
+            document.getElementById('copy-code-btn').addEventListener('click', () => {
+                const text = document.getElementById('code-content').innerText;
+                navigator.clipboard.writeText(text).then(() => alert("Code copied to clipboard!"));
+            });
+
             // Menu Handlers
             document.getElementById('btn-continue').addEventListener('click', () => {
                 document.getElementById('menu-modal').classList.add('hidden');
@@ -426,6 +555,9 @@ Rules:
                             new Function('scene', 'THREE', code)(scene, THREE);
                         } catch(e) {}
                     });
+                    if (executionHistory.length > 0) {
+                        document.getElementById('code-content').innerText = executionHistory[executionHistory.length - 1];
+                    }
                     document.getElementById('project-actions').classList.remove('hidden');
                     document.getElementById('status-indicator').innerText = "Project restored!";
                 }
