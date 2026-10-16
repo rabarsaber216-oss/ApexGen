@@ -202,7 +202,7 @@
             box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
         }
 
-        /* Modals */
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -289,7 +289,7 @@
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">ApexGen Cloud AI Ready. Type any 3D asset idea!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an animated robot, sports car, soldier, or dragon..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="Try: robot, car, soldier, fox, horse, helmet..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -317,7 +317,6 @@
         let clock = new THREE.Clock();
         const gltfLoader = new THREE.GLTFLoader();
 
-        // High-Quality Online Open 3D GLB Catalog (Free & CORS-enabled)
         const CLOUD_ASSETS = {
             "robot": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
             "car": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/ToyCar/glTF-Binary/ToyCar.glb",
@@ -325,9 +324,6 @@
             "helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
             "fox": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb",
             "horse": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Horse.glb",
-            "drone": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb",
-            "flight helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/FlightHelmet/glTF/FlightHelmet.gltf",
-            "spaceship": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
             "buggy": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Buggy/glTF-Binary/Buggy.glb"
         };
 
@@ -354,7 +350,6 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 + 0.05;
 
             setupLighting();
 
@@ -374,16 +369,12 @@
             const dirLight = new THREE.DirectionalLight(0xfff5ea, 1.8);
             dirLight.position.set(10, 20, 10);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
-            dirLight.shadow.bias = -0.0001;
             scene.add(dirLight);
 
             const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
             rimLight.position.set(-10, 8, -10);
             scene.add(rimLight);
 
-            // High-end glossy pedestal
             const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.4 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -399,19 +390,14 @@
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
-            
-            for (let mixer of activeMixers) {
-                mixer.update(delta);
-            }
-
+            for (let mixer of activeMixers) mixer.update(delta);
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // Automatic Global GLB Loader from Cloud URL
         window.loadCloudGLB = function(url, scale = 1, pos = {x:0, y:0, z:0}) {
             const status = document.getElementById('status-indicator');
-            status.innerText = "⚡ Fetching 3D GLB directly from cloud...";
+            status.innerText = "⚡ Loading 3D model directly from cloud...";
 
             gltfLoader.load(url, (gltf) => {
                 const model = gltf.scene;
@@ -428,97 +414,67 @@
                 scene.add(model);
                 currentModels.push(model);
 
-                // Start all embedded skeletal animations automatically!
                 if (gltf.animations && gltf.animations.length > 0) {
                     const mixer = new THREE.AnimationMixer(model);
                     gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
                     activeMixers.push(mixer);
                 }
 
-                status.innerText = "✨ Ultra HD GLB Model Loaded & Animated!";
+                status.innerText = "✨ HD Model Loaded & Animated Successfully!";
             }, undefined, (err) => {
                 status.innerText = "Failed loading GLB: " + err.message;
             });
         };
 
-        // System Prompt that instructs AI to auto-pick from cloud or generate code
-        const SYSTEM_PROMPT = `You are the master AI Director for ApexGen 3D Studio.
-You have access to a Cloud 3D Catalog with real GLB models:
-- Robot (fully animated): "${CLOUD_ASSETS.robot}"
-- Toy Car / Vehicle: "${CLOUD_ASSETS.car}"
-- Soldier (rigged/animated): "${CLOUD_ASSETS.soldier}"
-- Combat Sci-fi Helmet: "${CLOUD_ASSETS.helmet}"
-- Animated Fox: "${CLOUD_ASSETS.fox}"
-- Galloping Horse: "${CLOUD_ASSETS.horse}"
-- Armored Buggy: "${CLOUD_ASSETS.buggy}"
+        async function handleExecution(promptText) {
+            const status = document.getElementById('status-indicator');
+            const codeContent = document.getElementById('code-content');
+            const lower = promptText.toLowerCase().trim();
 
-RULES:
-1. When user asks for a character, car, robot, soldier, animal, or helmet: Call window.loadCloudGLB(url, scale, pos) using the closest matching cloud model URL above!
-2. You can also build surrounding environments, add glowing lights, or procedurally generate extra Three.js objects into 'scene'.
-3. Output ONLY valid executable JavaScript inside \`\`\`javascript ... \`\`\`.`;
+            // Direct Fast Match: Works instantly without needing API!
+            for (let key in CLOUD_ASSETS) {
+                if (lower.includes(key)) {
+                    codeContent.innerText = `// Direct Cloud GLB Match: ${key}\nwindow.loadCloudGLB("${CLOUD_ASSETS[key]}", 1.5, {x:0, y:0, z:0});`;
+                    document.getElementById('code-viewer-panel').classList.remove('hidden');
+                    window.loadCloudGLB(CLOUD_ASSETS[key], (key === 'car' ? 25 : key === 'fox' ? 0.04 : 1.5), {x:0, y:0, z:0});
+                    return;
+                }
+            }
 
-        async function sendToAI(promptText) {
+            // Fallback to Gemini AI if it's a custom prompt
             const apiKey = localStorage.getItem('apexgen_api_key');
             if (!apiKey) {
                 document.getElementById('api-modal').classList.remove('hidden');
                 return;
             }
 
-            const status = document.getElementById('status-indicator');
-            const codePanel = document.getElementById('code-viewer-panel');
-            const codeContent = document.getElementById('code-content');
-
-            codePanel.classList.remove('hidden');
-            codeContent.innerText = "// AI is finding 3D GLB model and setting up scene...\n";
-            status.innerText = "Connecting to 3D Cloud...";
-
+            status.innerText = "Connecting to Gemini AI...";
             try {
-                // Check if user directly asked for a keyword in local catalog first
-                const lower = promptText.toLowerCase();
-                let matchedKey = Object.keys(CLOUD_ASSETS).find(k => lower.includes(k));
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "You are a Three.js expert. Output only valid JS code inside ```javascript ... ``` to construct the user request in scene." },
+                                { text: `User request: ${promptText}` }
+                            ]
+                        }]
+                    })
+                });
 
-                let promptToSend = promptText;
-                if (matchedKey) {
-                    promptToSend += ` (Match found in catalog: ${matchedKey} -> ${CLOUD_ASSETS[matchedKey]})`;
-                }
+                if (!res.ok) throw new Error("API call failed. Check key or try keyword like 'robot' or 'car'.");
 
-                const models = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-flash-latest"];
-                let responseText = "";
-
-                for (let model of models) {
-                    try {
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: SYSTEM_PROMPT },
-                                        { text: `User request: ${promptToSend}` }
-                                    ]
-                                }]
-                            })
-                        });
-
-                        if (res.ok) {
-                            const data = await res.json();
-                            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                            if (responseText) break;
-                        }
-                    } catch(e) {}
-                }
-
-                if (!responseText) throw new Error("Connection failed. Check API key.");
-
-                const match = responseText.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const codeToRun = match ? match[1].trim() : responseText;
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const codeToRun = match ? match[1].trim() : text;
 
                 codeContent.innerText = codeToRun;
-
-                const runFunc = new Function('scene', 'THREE', codeToRun);
-                runFunc(scene, THREE);
-
+                document.getElementById('code-viewer-panel').classList.remove('hidden');
+                new Function('scene', 'THREE', codeToRun)(scene, THREE);
+                status.innerText = "✨ Done!";
             } catch (err) {
                 status.innerText = "Error: " + err.message;
             }
@@ -526,10 +482,6 @@ RULES:
 
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
-
-            if (!localStorage.getItem('apexgen_api_key')) {
-                document.getElementById('api-modal').classList.remove('hidden');
-            }
 
             document.getElementById('key-btn').addEventListener('click', () => {
                 document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
@@ -571,7 +523,7 @@ RULES:
             const handleSend = () => {
                 const prompt = aiInput.value.trim();
                 if (prompt) {
-                    sendToAI(prompt);
+                    handleExecution(prompt);
                     aiInput.value = '';
                 }
             };
