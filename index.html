@@ -290,7 +290,7 @@
     <div class="chat-container">
         <div id="status-indicator" class="chat-status">Infinite Universe Ready. Type anything to search, download & build!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="Type literally anything: Kratos, Batman, Cyberpunk Car, Castle..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="Type literally anything: Toyota, Kratos, Batman, Ferrari..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
@@ -302,7 +302,7 @@
             <p class="modal-desc">Enter Sketchfab API Token to auto-download 3D models.</p>
             
             <div class="input-group">
-                <label>Sketchfab API Token (Free from sketchfab.com/settings/password)</label>
+                <label>Sketchfab API Token</label>
                 <input type="text" id="sketchfab-token-input" placeholder="Paste Sketchfab token here..." />
             </div>
 
@@ -324,7 +324,6 @@
         let currentModels = [];
         let infiniteFloor, infiniteGrid;
         let clock = new THREE.Clock();
-        const gltfLoader = new THREE.GLTFLoader();
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
@@ -332,9 +331,9 @@
             scene.background = new THREE.Color(0x060913);
 
             // Deep Atmospheric Infinite Horizon Fog
-            scene.fog = new THREE.FogExp2(0x060913, 0.004);
+            scene.fog = new THREE.FogExp2(0x060913, 0.0035);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 4000);
             camera.position.set(0, 8, 18);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -351,7 +350,7 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxDistance = 600;
+            controls.maxDistance = 800;
             controls.maxPolarAngle = Math.PI / 2 + 0.01;
 
             setupInfiniteMap();
@@ -366,9 +365,9 @@
             animate();
         }
 
-        // TRUE INFINITE MAP (Dynamically moves with camera)
+        // TRUE INFINITE MAP
         function setupInfiniteMap() {
-            const groundGeo = new THREE.PlaneGeometry(10000, 10000);
+            const groundGeo = new THREE.PlaneGeometry(12000, 12000);
             const groundMat = new THREE.MeshStandardMaterial({
                 color: 0x080d1a,
                 roughness: 0.8,
@@ -380,7 +379,6 @@
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
-            // Infinite Cyber Grid Helper
             infiniteGrid = new THREE.GridHelper(3000, 300, 0x38bdf8, 0x1e293b);
             infiniteGrid.position.y = 0.02;
             scene.add(infiniteGrid);
@@ -396,11 +394,11 @@
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
             sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 200;
-            sunLight.shadow.camera.left = -30;
-            sunLight.shadow.camera.right = 30;
-            sunLight.shadow.camera.top = 30;
-            sunLight.shadow.camera.bottom = -30;
+            sunLight.shadow.camera.far = 250;
+            sunLight.shadow.camera.left = -35;
+            sunLight.shadow.camera.right = 35;
+            sunLight.shadow.camera.top = 35;
+            sunLight.shadow.camera.bottom = -35;
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
 
@@ -413,7 +411,6 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // Make floor & grid infinitely follow the player camera
             if (infiniteFloor && infiniteGrid) {
                 infiniteFloor.position.x = camera.position.x;
                 infiniteFloor.position.z = camera.position.z;
@@ -429,7 +426,7 @@
             renderer.render(scene, camera);
         }
 
-        // AUTO-DOWNLOAD FROM SKETCHFAB AND SPAWN ON INFINITE MAP
+        // FIXED UNZIP & GLTF BUFFER LOADER
         async function fetchAndDownloadFromSketchfab(searchQuery, token) {
             const status = document.getElementById('status-indicator');
             const codeContent = document.getElementById('code-content');
@@ -437,7 +434,6 @@
             codeContent.innerText = `// Connecting to Sketchfab API...\n// Query: ${searchQuery}\n`;
             document.getElementById('code-viewer-panel').classList.remove('hidden');
 
-            // 1. Search downloadable models on Sketchfab
             const searchUrl = `https://api.sketchfab.com/v3/search?type=models&downloadable=true&q=${encodeURIComponent(searchQuery)}&sort_by=-likeCount`;
             
             const searchRes = await fetch(searchUrl, {
@@ -454,111 +450,139 @@
             }
 
             const bestModel = searchData.results[0];
-            codeContent.innerText += `// Found 3D Model: "${bestModel.name}" by ${bestModel.user.username}\n// Model UID: ${bestModel.uid}\n// Requesting download URL...\n`;
+            codeContent.innerText += `// Found Model: "${bestModel.name}" by ${bestModel.user.username}\n// Model UID: ${bestModel.uid}\n// Requesting download link...\n`;
             status.innerText = `⏳ Requesting download for "${bestModel.name}"...`;
 
-            // 2. Request download URL for this model
             const downloadUrlEndpoint = `https://api.sketchfab.com/v3/models/${bestModel.uid}/download`;
             const downloadRes = await fetch(downloadUrlEndpoint, {
                 headers: { 'Authorization': `Token ${token}` }
             });
 
             if (!downloadRes.ok) {
-                throw new Error("Download request denied by Sketchfab. Model may have special license.");
+                throw new Error("Download request denied by Sketchfab.");
             }
 
             const downloadData = await downloadRes.json();
             const gltfInfo = downloadData.gltf;
             if (!gltfInfo || !gltfInfo.url) {
-                throw new Error("glTF/GLB download link not available for this model.");
+                throw new Error("Download link not available for this model.");
             }
 
-            // 3. Download the actual file into memory
-            status.innerText = `📥 Downloading "${bestModel.name}" from Sketchfab (Please wait)...`;
-            codeContent.innerText += `// Downloading 3D archive (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...\n`;
+            status.innerText = `📥 Downloading "${bestModel.name}" (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...`;
+            codeContent.innerText += `// Downloading archive (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...\n`;
 
             const fileRes = await fetch(gltfInfo.url);
             const arrayBuffer = await fileRes.arrayBuffer();
 
-            codeContent.innerText += `// Download complete! Unzipping & preparing textures...\n`;
-            status.innerText = `⚙️ Building "${bestModel.name}" onto Infinite Map...`;
+            codeContent.innerText += `// Download complete! Unpacking buffers & textures...\n`;
+            status.innerText = `⚙️ Preparing textures & buffers...`;
 
-            // 4. Unzip and load with JSZip + GLTFLoader
             const zip = await JSZip.loadAsync(arrayBuffer);
             const fileMap = {};
-            const objectUrls = [];
 
-            // Create memory blobs for all internal textures and .bin files
-            for (let filename in zip.files) {
-                const file = zip.files[filename];
+            // Unpack all files and map them by both relative path and direct filename
+            for (let path in zip.files) {
+                const file = zip.files[path];
                 if (!file.dir) {
                     const blob = await file.async("blob");
-                    const url = URL.createObjectURL(blob);
-                    fileMap[filename] = url;
-                    objectUrls.push(url);
+                    const blobUrl = URL.createObjectURL(blob);
+                    fileMap[path] = blobUrl;
+                    
+                    const simpleFilename = path.split('/').pop();
+                    fileMap[simpleFilename] = blobUrl;
                 }
             }
 
-            // Find the main .gltf file
-            const gltfFilename = Object.keys(fileMap).find(name => name.endsWith('.gltf') || name.endsWith('.glb'));
-            if (!gltfFilename) {
-                throw new Error("Corrupted archive: No .gltf file found.");
+            // Check if there is a direct single .glb inside
+            const glbPath = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.glb'));
+            const customLoader = new THREE.GLTFLoader();
+
+            if (glbPath) {
+                const buffer = await zip.files[glbPath].async("arraybuffer");
+                customLoader.parse(buffer, '', (gltf) => {
+                    handleModelSuccess(gltf, bestModel);
+                }, (err) => {
+                    throw new Error("Error parsing GLB: " + err.message);
+                });
+                return;
             }
 
-            // Setup loading manager to redirect relative paths to in-memory blobs
+            // If it's a standard glTF (scene.gltf + scene.bin + textures)
+            const gltfPath = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.gltf'));
+            if (!gltfPath) {
+                throw new Error("Corrupted archive: No .gltf or .glb found.");
+            }
+
+            const gltfText = await zip.files[gltfPath].async("string");
+
+            // Setup bulletproof manager to resolve scene.bin and all textures directly from memory
             const manager = new THREE.LoadingManager();
             manager.setURLModifier((url) => {
-                const cleanName = url.replace(/^(\.\/|\/)/, '');
-                for (let key in fileMap) {
-                    if (key.endsWith(cleanName)) return fileMap[key];
+                const decoded = decodeURIComponent(url);
+                const name1 = url.split('/').pop().split('?')[0];
+                const name2 = decoded.split('/').pop().split('?')[0];
+
+                if (fileMap[name1]) return fileMap[name1];
+                if (fileMap[name2]) return fileMap[name2];
+                if (fileMap[url]) return fileMap[url];
+                if (fileMap[decoded]) return fileMap[decoded];
+
+                for (let k in fileMap) {
+                    if (k.endsWith(name1) || k.endsWith(name2) || decoded.endsWith(k)) {
+                        return fileMap[k];
+                    }
                 }
                 return url;
             });
 
-            const customLoader = new THREE.GLTFLoader(manager);
-            customLoader.load(fileMap[gltfFilename], (gltf) => {
-                const model = gltf.scene;
-
-                // Auto-center and normalize scale for the infinite world
-                const box = new THREE.Box3().setFromObject(model);
-                const size = new THREE.Vector3();
-                box.getSize(size);
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const targetScale = 6.0 / (maxDim || 1);
-                model.scale.set(targetScale, targetScale, targetScale);
-
-                // Re-calculate bounding box to place firmly on the infinite floor
-                box.setFromObject(model);
-                model.position.y = -box.min.y;
-
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                    }
-                });
-
-                scene.add(model);
-                currentModels.push(model);
-
-                // Play all character animations automatically
-                if (gltf.animations && gltf.animations.length > 0) {
-                    const mixer = new THREE.AnimationMixer(model);
-                    gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
-                    activeMixers.push(mixer);
-                }
-
-                controls.target.set(0, 3, 0);
-                camera.position.set(0, 6, 14);
-
-                codeContent.innerText += `\n// ✨ MODEL SUCCESSFULLY BUILT ON INFINITE MAP!\n// Title: ${bestModel.name}\n// Animations: ${gltf.animations ? gltf.animations.length : 0} clips active.`;
-                status.innerText = `✨ Successfully downloaded & built: "${bestModel.name}"!`;
-            }, undefined, (err) => {
+            const robustLoader = new THREE.GLTFLoader(manager);
+            robustLoader.parse(gltfText, '', (gltf) => {
+                handleModelSuccess(gltf, bestModel);
+            }, (err) => {
                 status.innerText = "Error loading unpacked model: " + err.message;
             });
         }
 
-        // Fallback procedural AI builder (if user didn't enter Sketchfab token)
+        function handleModelSuccess(gltf, bestModel) {
+            const status = document.getElementById('status-indicator');
+            const codeContent = document.getElementById('code-content');
+            const model = gltf.scene;
+
+            // Auto-center and normalize scale for the infinite world
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetScale = 6.0 / (maxDim || 1);
+            model.scale.set(targetScale, targetScale, targetScale);
+
+            box.setFromObject(model);
+            model.position.y = -box.min.y;
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            scene.add(model);
+            currentModels.push(model);
+
+            if (gltf.animations && gltf.animations.length > 0) {
+                const mixer = new THREE.AnimationMixer(model);
+                gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
+                activeMixers.push(mixer);
+            }
+
+            controls.target.set(0, 3, 0);
+            camera.position.set(0, 7, 16);
+
+            codeContent.innerText += `\n// ✨ MODEL SUCCESSFULLY BUILT ON INFINITE MAP!\n// Title: ${bestModel.name}\n// Animations: ${gltf.animations ? gltf.animations.length : 0} clips active.`;
+            status.innerText = `✨ Successfully built: "${bestModel.name}"!`;
+        }
+
+        // Procedural AI Fallback
         async function buildProceduralAI(promptText, geminiKey) {
             const status = document.getElementById('status-indicator');
             const codeContent = document.getElementById('code-content');
@@ -609,9 +633,8 @@
             } catch (err) {
                 console.warn(err);
                 document.getElementById('status-indicator').innerText = "Error: " + err.message;
-                // If Sketchfab fails or no token, try fallback to Gemini AI if key exists
                 if (geminiKey && sketchfabToken) {
-                    document.getElementById('status-indicator').innerText = "Sketchfab model missed. Trying Gemini AI fallback...";
+                    document.getElementById('status-indicator').innerText = "Sketchfab missed. Trying Gemini AI fallback...";
                     await buildProceduralAI(promptText, geminiKey);
                 }
             }
