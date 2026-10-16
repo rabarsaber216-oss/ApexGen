@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - Auto AI 3D Cloud Studio</title>
-    <!-- Three.js, Controls & GLTFLoader -->
+    <title>ApexGen - Infinite 3D Universe</title>
+    <!-- Three.js, Controls, Loaders & JSZip for Auto-Download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -89,7 +90,7 @@
             display: none !important;
         }
 
-        /* Live Code Viewer */
+        /* Live Code & Downloader Panel */
         #code-viewer-panel {
             position: absolute;
             top: 65px;
@@ -202,7 +203,7 @@
             box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
         }
 
-        /* Modal */
+        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -273,38 +274,45 @@
 
     <div id="webgl-canvas"></div>
 
-    <!-- Live Code Viewer -->
+    <!-- Live Status & Code Inspector -->
     <div id="code-viewer-panel">
         <div class="viewer-header">
-            <span>⚡ Live Three.js & Cloud GLB</span>
+            <span>⚡ Sketchfab Downloader & Scene Code</span>
             <div class="viewer-controls">
                 <button id="copy-code-btn" class="viewer-btn">Copy</button>
                 <button id="close-viewer-btn" class="viewer-btn">✕</button>
             </div>
         </div>
-        <pre id="code-content">// 3D Cloud Auto-Fetcher Ready...</pre>
+        <pre id="code-content">// Infinite Map ready. Type ANY prompt to download from Sketchfab & build...</pre>
     </div>
 
     <!-- AI Chat Box -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">ApexGen Cloud AI Ready. Type any 3D asset idea!</div>
+        <div id="status-indicator" class="chat-status">Infinite Universe Ready. Type anything to search, download & build!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="Try: robot, car, soldier, fox, horse, helmet..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="Type literally anything: Kratos, Batman, Cyberpunk Car, Castle..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
 
-    <!-- API Key Modal -->
+    <!-- API Keys Modal -->
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">Gemini API Key</h2>
-            <p class="modal-desc">Paste your Gemini API key to activate Auto-3D fetching.</p>
+            <h2 class="modal-title">API Key Settings</h2>
+            <p class="modal-desc">Enter Sketchfab API Token to auto-download 3D models.</p>
+            
             <div class="input-group">
-                <label>API Key</label>
-                <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
+                <label>Sketchfab API Token (Free from sketchfab.com/settings/password)</label>
+                <input type="text" id="sketchfab-token-input" placeholder="Paste Sketchfab token here..." />
             </div>
+
+            <div class="input-group">
+                <label>Gemini API Key (Optional AI Fallback)</label>
+                <input type="text" id="gemini-key-input" placeholder="Paste Gemini key here..." />
+            </div>
+
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="btn-save-key" class="btn btn-primary">Save Key</button>
+                <button id="btn-save-key" class="btn btn-primary">Save Settings</button>
                 <button id="btn-close-key" class="btn">Cancel</button>
             </div>
         </div>
@@ -314,27 +322,20 @@
         let scene, camera, renderer, controls;
         let activeMixers = [];
         let currentModels = [];
+        let infiniteFloor, infiniteGrid;
         let clock = new THREE.Clock();
         const gltfLoader = new THREE.GLTFLoader();
-
-        const CLOUD_ASSETS = {
-            "robot": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
-            "car": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/ToyCar/glTF-Binary/ToyCar.glb",
-            "soldier": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb",
-            "helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
-            "fox": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb",
-            "horse": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Horse.glb",
-            "buggy": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Buggy/glTF-Binary/Buggy.glb"
-        };
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x060913);
-            scene.fog = new THREE.FogExp2(0x060913, 0.025);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 9);
+            // Deep Atmospheric Infinite Horizon Fog
+            scene.fog = new THREE.FogExp2(0x060913, 0.004);
+
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(0, 8, 18);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -350,7 +351,10 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.maxDistance = 600;
+            controls.maxPolarAngle = Math.PI / 2 + 0.01;
 
+            setupInfiniteMap();
             setupLighting();
 
             window.addEventListener('resize', () => {
@@ -362,47 +366,170 @@
             animate();
         }
 
+        // TRUE INFINITE MAP (Dynamically moves with camera)
+        function setupInfiniteMap() {
+            const groundGeo = new THREE.PlaneGeometry(10000, 10000);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0x080d1a,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            infiniteFloor = new THREE.Mesh(groundGeo, groundMat);
+            infiniteFloor.rotation.x = -Math.PI / 2;
+            infiniteFloor.position.y = 0;
+            infiniteFloor.receiveShadow = true;
+            scene.add(infiniteFloor);
+
+            // Infinite Cyber Grid Helper
+            infiniteGrid = new THREE.GridHelper(3000, 300, 0x38bdf8, 0x1e293b);
+            infiniteGrid.position.y = 0.02;
+            scene.add(infiniteGrid);
+        }
+
         function setupLighting() {
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0x111827, 0.9);
             scene.add(hemiLight);
 
-            const dirLight = new THREE.DirectionalLight(0xfff5ea, 1.8);
-            dirLight.position.set(10, 20, 10);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
+            const sunLight = new THREE.DirectionalLight(0xfff5ea, 2.0);
+            sunLight.position.set(25, 40, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 200;
+            sunLight.shadow.camera.left = -30;
+            sunLight.shadow.camera.right = 30;
+            sunLight.shadow.camera.top = 30;
+            sunLight.shadow.camera.bottom = -30;
+            sunLight.shadow.bias = -0.0001;
+            scene.add(sunLight);
 
             const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
-            rimLight.position.set(-10, 8, -10);
+            rimLight.position.set(-20, 15, -20);
             scene.add(rimLight);
-
-            const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.4 });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.position.y = -0.15;
-            ground.receiveShadow = true;
-            scene.add(ground);
-
-            const grid = new THREE.GridHelper(26, 26, 0x38bdf8, 0x1e293b);
-            grid.position.y = 0.01;
-            scene.add(grid);
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
-            for (let mixer of activeMixers) mixer.update(delta);
+
+            // Make floor & grid infinitely follow the player camera
+            if (infiniteFloor && infiniteGrid) {
+                infiniteFloor.position.x = camera.position.x;
+                infiniteFloor.position.z = camera.position.z;
+                infiniteGrid.position.x = Math.floor(camera.position.x / 10) * 10;
+                infiniteGrid.position.z = Math.floor(camera.position.z / 10) * 10;
+            }
+
+            for (let mixer of activeMixers) {
+                mixer.update(delta);
+            }
+
             controls.update();
             renderer.render(scene, camera);
         }
 
-        window.loadCloudGLB = function(url, scale = 1, pos = {x:0, y:0, z:0}) {
+        // AUTO-DOWNLOAD FROM SKETCHFAB AND SPAWN ON INFINITE MAP
+        async function fetchAndDownloadFromSketchfab(searchQuery, token) {
             const status = document.getElementById('status-indicator');
-            status.innerText = "⚡ Loading 3D model directly from cloud...";
+            const codeContent = document.getElementById('code-content');
+            status.innerText = `🔍 Searching Sketchfab for: "${searchQuery}"...`;
+            codeContent.innerText = `// Connecting to Sketchfab API...\n// Query: ${searchQuery}\n`;
+            document.getElementById('code-viewer-panel').classList.remove('hidden');
 
-            gltfLoader.load(url, (gltf) => {
+            // 1. Search downloadable models on Sketchfab
+            const searchUrl = `https://api.sketchfab.com/v3/search?type=models&downloadable=true&q=${encodeURIComponent(searchQuery)}&sort_by=-likeCount`;
+            
+            const searchRes = await fetch(searchUrl, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+
+            if (!searchRes.ok) {
+                throw new Error("Sketchfab API authentication failed. Check your API token.");
+            }
+
+            const searchData = await searchRes.json();
+            if (!searchData.results || searchData.results.length === 0) {
+                throw new Error(`No downloadable 3D model found on Sketchfab for: "${searchQuery}"`);
+            }
+
+            const bestModel = searchData.results[0];
+            codeContent.innerText += `// Found 3D Model: "${bestModel.name}" by ${bestModel.user.username}\n// Model UID: ${bestModel.uid}\n// Requesting download URL...\n`;
+            status.innerText = `⏳ Requesting download for "${bestModel.name}"...`;
+
+            // 2. Request download URL for this model
+            const downloadUrlEndpoint = `https://api.sketchfab.com/v3/models/${bestModel.uid}/download`;
+            const downloadRes = await fetch(downloadUrlEndpoint, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+
+            if (!downloadRes.ok) {
+                throw new Error("Download request denied by Sketchfab. Model may have special license.");
+            }
+
+            const downloadData = await downloadRes.json();
+            const gltfInfo = downloadData.gltf;
+            if (!gltfInfo || !gltfInfo.url) {
+                throw new Error("glTF/GLB download link not available for this model.");
+            }
+
+            // 3. Download the actual file into memory
+            status.innerText = `📥 Downloading "${bestModel.name}" from Sketchfab (Please wait)...`;
+            codeContent.innerText += `// Downloading 3D archive (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...\n`;
+
+            const fileRes = await fetch(gltfInfo.url);
+            const arrayBuffer = await fileRes.arrayBuffer();
+
+            codeContent.innerText += `// Download complete! Unzipping & preparing textures...\n`;
+            status.innerText = `⚙️ Building "${bestModel.name}" onto Infinite Map...`;
+
+            // 4. Unzip and load with JSZip + GLTFLoader
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            const fileMap = {};
+            const objectUrls = [];
+
+            // Create memory blobs for all internal textures and .bin files
+            for (let filename in zip.files) {
+                const file = zip.files[filename];
+                if (!file.dir) {
+                    const blob = await file.async("blob");
+                    const url = URL.createObjectURL(blob);
+                    fileMap[filename] = url;
+                    objectUrls.push(url);
+                }
+            }
+
+            // Find the main .gltf file
+            const gltfFilename = Object.keys(fileMap).find(name => name.endsWith('.gltf') || name.endsWith('.glb'));
+            if (!gltfFilename) {
+                throw new Error("Corrupted archive: No .gltf file found.");
+            }
+
+            // Setup loading manager to redirect relative paths to in-memory blobs
+            const manager = new THREE.LoadingManager();
+            manager.setURLModifier((url) => {
+                const cleanName = url.replace(/^(\.\/|\/)/, '');
+                for (let key in fileMap) {
+                    if (key.endsWith(cleanName)) return fileMap[key];
+                }
+                return url;
+            });
+
+            const customLoader = new THREE.GLTFLoader(manager);
+            customLoader.load(fileMap[gltfFilename], (gltf) => {
                 const model = gltf.scene;
-                model.scale.set(scale, scale, scale);
-                model.position.set(pos.x, pos.y, pos.z);
+
+                // Auto-center and normalize scale for the infinite world
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const targetScale = 6.0 / (maxDim || 1);
+                model.scale.set(targetScale, targetScale, targetScale);
+
+                // Re-calculate bounding box to place firmly on the infinite floor
+                box.setFromObject(model);
+                model.position.y = -box.min.y;
 
                 model.traverse((child) => {
                     if (child.isMesh) {
@@ -414,77 +541,92 @@
                 scene.add(model);
                 currentModels.push(model);
 
+                // Play all character animations automatically
                 if (gltf.animations && gltf.animations.length > 0) {
                     const mixer = new THREE.AnimationMixer(model);
                     gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
                     activeMixers.push(mixer);
                 }
 
-                status.innerText = "✨ HD Model Loaded & Animated Successfully!";
-            }, undefined, (err) => {
-                status.innerText = "Failed loading GLB: " + err.message;
-            });
-        };
+                controls.target.set(0, 3, 0);
+                camera.position.set(0, 6, 14);
 
-        async function handleExecution(promptText) {
+                codeContent.innerText += `\n// ✨ MODEL SUCCESSFULLY BUILT ON INFINITE MAP!\n// Title: ${bestModel.name}\n// Animations: ${gltf.animations ? gltf.animations.length : 0} clips active.`;
+                status.innerText = `✨ Successfully downloaded & built: "${bestModel.name}"!`;
+            }, undefined, (err) => {
+                status.innerText = "Error loading unpacked model: " + err.message;
+            });
+        }
+
+        // Fallback procedural AI builder (if user didn't enter Sketchfab token)
+        async function buildProceduralAI(promptText, geminiKey) {
             const status = document.getElementById('status-indicator');
             const codeContent = document.getElementById('code-content');
-            const lower = promptText.toLowerCase().trim();
+            status.innerText = "Building 3D world with Gemini AI...";
 
-            // Direct Fast Match: Works instantly without needing API!
-            for (let key in CLOUD_ASSETS) {
-                if (lower.includes(key)) {
-                    codeContent.innerText = `// Direct Cloud GLB Match: ${key}\nwindow.loadCloudGLB("${CLOUD_ASSETS[key]}", 1.5, {x:0, y:0, z:0});`;
-                    document.getElementById('code-viewer-panel').classList.remove('hidden');
-                    window.loadCloudGLB(CLOUD_ASSETS[key], (key === 'car' ? 25 : key === 'fox' ? 0.04 : 1.5), {x:0, y:0, z:0});
-                    return;
-                }
-            }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "You are a Three.js expert. Output ONLY valid JS code inside ```javascript ... ``` to construct the user request on the infinite map. Set castShadow=true on meshes." },
+                            { text: `Build: ${promptText}` }
+                        ]
+                    }]
+                })
+            });
 
-            // Fallback to Gemini AI if it's a custom prompt
-            const apiKey = localStorage.getItem('apexgen_api_key');
-            if (!apiKey) {
+            if (!res.ok) throw new Error("Gemini AI error. Check key.");
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
+            const codeToRun = match ? match[1].trim() : text;
+
+            codeContent.innerText = codeToRun;
+            document.getElementById('code-viewer-panel').classList.remove('hidden');
+            new Function('scene', 'THREE', codeToRun)(scene, THREE);
+            status.innerText = "✨ Built on Infinite Map!";
+        }
+
+        // Main Execution Entrypoint
+        async function handleUserInput(promptText) {
+            const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
+            const geminiKey = localStorage.getItem('apexgen_gemini_key');
+
+            if (!sketchfabToken && !geminiKey) {
                 document.getElementById('api-modal').classList.remove('hidden');
                 return;
             }
 
-            status.innerText = "Connecting to Gemini AI...";
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: "You are a Three.js expert. Output only valid JS code inside ```javascript ... ``` to construct the user request in scene." },
-                                { text: `User request: ${promptText}` }
-                            ]
-                        }]
-                    })
-                });
-
-                if (!res.ok) throw new Error("API call failed. Check key or try keyword like 'robot' or 'car'.");
-
-                const data = await res.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const codeToRun = match ? match[1].trim() : text;
-
-                codeContent.innerText = codeToRun;
-                document.getElementById('code-viewer-panel').classList.remove('hidden');
-                new Function('scene', 'THREE', codeToRun)(scene, THREE);
-                status.innerText = "✨ Done!";
+                if (sketchfabToken) {
+                    await fetchAndDownloadFromSketchfab(promptText, sketchfabToken);
+                } else {
+                    await buildProceduralAI(promptText, geminiKey);
+                }
             } catch (err) {
-                status.innerText = "Error: " + err.message;
+                console.warn(err);
+                document.getElementById('status-indicator').innerText = "Error: " + err.message;
+                // If Sketchfab fails or no token, try fallback to Gemini AI if key exists
+                if (geminiKey && sketchfabToken) {
+                    document.getElementById('status-indicator').innerText = "Sketchfab model missed. Trying Gemini AI fallback...";
+                    await buildProceduralAI(promptText, geminiKey);
+                }
             }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
+            if (!localStorage.getItem('apexgen_sketchfab_token') && !localStorage.getItem('apexgen_gemini_key')) {
+                document.getElementById('api-modal').classList.remove('hidden');
+            }
+
             document.getElementById('key-btn').addEventListener('click', () => {
-                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
+                document.getElementById('sketchfab-token-input').value = localStorage.getItem('apexgen_sketchfab_token') || '';
+                document.getElementById('gemini-key-input').value = localStorage.getItem('apexgen_gemini_key') || '';
                 document.getElementById('api-modal').classList.remove('hidden');
             });
 
@@ -493,19 +635,19 @@
             });
 
             document.getElementById('btn-save-key').addEventListener('click', () => {
-                const key = document.getElementById('api-key-input').value.trim();
-                if (key) {
-                    localStorage.setItem('apexgen_api_key', key);
-                    document.getElementById('api-modal').classList.add('hidden');
-                    document.getElementById('status-indicator').innerText = "API Key saved!";
-                }
+                const skToken = document.getElementById('sketchfab-token-input').value.trim();
+                const gmKey = document.getElementById('gemini-key-input').value.trim();
+                if (skToken) localStorage.setItem('apexgen_sketchfab_token', skToken);
+                if (gmKey) localStorage.setItem('apexgen_gemini_key', gmKey);
+                document.getElementById('api-modal').classList.add('hidden');
+                document.getElementById('status-indicator').innerText = "Keys saved! Type ANY prompt to download & build.";
             });
 
             document.getElementById('clear-btn').addEventListener('click', () => {
                 currentModels.forEach(m => scene.remove(m));
                 currentModels = [];
                 activeMixers = [];
-                document.getElementById('status-indicator').innerText = "Canvas cleared.";
+                document.getElementById('status-indicator').innerText = "Infinite universe cleared.";
             });
 
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
@@ -515,7 +657,7 @@
                 document.getElementById('code-viewer-panel').classList.add('hidden');
             });
             document.getElementById('copy-code-btn').addEventListener('click', () => {
-                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Code copied!"));
+                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Copied!"));
             });
 
             const aiInput = document.getElementById('ai-input');
@@ -523,7 +665,7 @@
             const handleSend = () => {
                 const prompt = aiInput.value.trim();
                 if (prompt) {
-                    handleExecution(prompt);
+                    handleUserInput(prompt);
                     aiInput.value = '';
                 }
             };
