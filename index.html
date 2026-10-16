@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - Infinite 3D Universe</title>
-    <!-- Three.js, Controls, Loaders & JSZip for Auto-Download -->
+    <title>ApexGen - Controllable 3D Universe</title>
+    <!-- Three.js, Controls & Dependencies -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -16,6 +16,7 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         body, html {
             width: 100%;
@@ -40,25 +41,24 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 15;
+            z-index: 20;
             background: linear-gradient(to bottom, rgba(5, 8, 17, 0.95), transparent);
             pointer-events: none;
         }
         .brand {
-            font-size: 1.35rem;
+            font-size: 1.3rem;
             font-weight: 800;
-            letter-spacing: 1px;
             color: #38bdf8;
-            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
             pointer-events: auto;
         }
         .header-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             pointer-events: auto;
             align-items: center;
         }
@@ -66,44 +66,29 @@
             background: rgba(30, 41, 59, 0.85);
             color: #f8fafc;
             border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 7px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
             backdrop-filter: blur(8px);
-            transition: all 0.2s ease;
         }
-        .btn:hover {
-            background: #334155;
-            border-color: #38bdf8;
-        }
-        .btn-primary {
-            background: #0284c7;
-            border-color: #38bdf8;
-        }
-        .btn-code {
-            border-color: #a855f7;
-            color: #d8b4fe;
-        }
-        .hidden {
-            display: none !important;
-        }
+        .btn-primary { background: #0284c7; border-color: #38bdf8; }
+        .hidden { display: none !important; }
 
-        /* Live Code & Downloader Panel */
+        /* Code Viewer */
         #code-viewer-panel {
             position: absolute;
-            top: 65px;
-            right: 15px;
+            top: 60px;
+            right: 12px;
             width: 90%;
-            max-width: 380px;
-            height: 280px;
+            max-width: 360px;
+            height: 240px;
             background: rgba(9, 14, 28, 0.96);
             border: 1px solid #8b5cf6;
             border-radius: 12px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(14px);
-            z-index: 25;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+            z-index: 30;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -112,73 +97,91 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: rgba(30, 41, 59, 0.9);
-            border-bottom: 1px solid #334155;
-            font-size: 0.78rem;
-            font-weight: 700;
+            font-size: 0.75rem;
             color: #c7d2fe;
-        }
-        .viewer-controls {
-            display: flex;
-            gap: 6px;
-        }
-        .viewer-btn {
-            background: #334155;
-            border: none;
-            color: #f8fafc;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            cursor: pointer;
+            font-weight: bold;
         }
         #code-content {
-            padding: 10px;
-            margin: 0;
-            font-family: "Courier New", Courier, monospace;
-            font-size: 0.75rem;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 0.72rem;
             color: #38bdf8;
             background: #030712;
             overflow-y: auto;
             flex: 1;
             white-space: pre-wrap;
             word-break: break-all;
-            user-select: text;
         }
 
-        /* Bottom AI Chat Bar */
+        /* Mobile Virtual Touch Controls (D-Pad) */
+        #mobile-controller {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            z-index: 25;
+            display: grid;
+            grid-template-columns: repeat(3, 48px);
+            grid-template-rows: repeat(3, 48px);
+            gap: 6px;
+        }
+        .ctrl-btn {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+        .ctrl-btn:active {
+            background: rgba(2, 132, 199, 0.9);
+            transform: scale(0.95);
+        }
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
+        /* Bottom Search & AI Bar */
         .chat-container {
             position: absolute;
-            bottom: 18px;
+            bottom: 14px;
             left: 50%;
             transform: translateX(-50%);
             width: 94%;
             max-width: 650px;
-            z-index: 10;
+            z-index: 20;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
         .chat-status {
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             color: #94a3b8;
             background: rgba(10, 15, 29, 0.92);
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 6px;
             align-self: flex-start;
             backdrop-filter: blur(8px);
-            max-width: 100%;
-            word-break: break-word;
             border-left: 3px solid #38bdf8;
+            max-width: 100%;
         }
         .chat-bar {
             display: flex;
             background: rgba(10, 15, 29, 0.92);
             border: 1px solid rgba(56, 189, 248, 0.35);
             border-radius: 12px;
-            padding: 6px 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(12px);
+            padding: 5px 8px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+            align-items: center;
+            gap: 6px;
         }
         .chat-input {
             flex: 1;
@@ -186,24 +189,22 @@
             border: none;
             outline: none;
             color: #ffffff;
-            font-size: 0.92rem;
-            padding: 8px 12px;
+            font-size: 0.88rem;
+            padding: 6px 8px;
         }
-        .chat-input::placeholder {
-            color: #64748b;
-        }
-        .btn-send {
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 8px 18px;
+        .btn-img-upload {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 6px 10px;
             border-radius: 8px;
-            font-weight: 600;
+            font-size: 0.95rem;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+            display: flex;
+            align-items: center;
         }
 
-        /* Modals */
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -211,7 +212,6 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -220,44 +220,21 @@
         .modal-card {
             background: #0b1120;
             border: 1px solid #1e293b;
-            padding: 24px;
+            padding: 22px;
             border-radius: 16px;
             width: 90%;
             max-width: 400px;
             text-align: center;
-            box-shadow: 0 20px 45px rgba(0,0,0,0.7);
         }
-        .modal-title {
-            font-size: 1.25rem;
-            color: #38bdf8;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-        .modal-desc {
-            font-size: 0.82rem;
-            color: #94a3b8;
-            margin-bottom: 16px;
-            line-height: 1.4;
-        }
-        .input-group {
-            text-align: left;
-            margin-bottom: 14px;
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.78rem;
-            color: #94a3b8;
-            margin-bottom: 5px;
-        }
-        .input-group input {
+        .modal-card input {
             width: 100%;
             background: #1e293b;
             border: 1px solid #334155;
             color: white;
-            padding: 9px 12px;
+            padding: 8px 12px;
             border-radius: 6px;
-            outline: none;
-            font-size: 0.85rem;
+            margin-top: 4px;
+            margin-bottom: 12px;
         }
     </style>
 </head>
@@ -266,7 +243,7 @@
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
-            <button id="toggle-code-btn" class="btn btn-code">Code &lt;/&gt;</button>
+            <button id="toggle-code-btn" class="btn">Code &lt;/&gt;</button>
             <button id="key-btn" class="btn">Key ⚙️</button>
             <button id="clear-btn" class="btn">Clear</button>
         </div>
@@ -274,46 +251,49 @@
 
     <div id="webgl-canvas"></div>
 
-    <!-- Live Status & Code Inspector -->
-    <div id="code-viewer-panel">
+    <!-- On-screen D-Pad Controls for Driving / Moving -->
+    <div id="mobile-controller">
+        <button id="btn-up" class="ctrl-btn">⬆️</button>
+        <button id="btn-left" class="ctrl-btn">⬅️</button>
+        <button id="btn-down" class="ctrl-btn">⬇️</button>
+        <button id="btn-right" class="ctrl-btn">➡️</button>
+    </div>
+
+    <!-- Code Viewer -->
+    <div id="code-viewer-panel" class="hidden">
         <div class="viewer-header">
-            <span>⚡ Sketchfab Downloader & Scene Code</span>
-            <div class="viewer-controls">
-                <button id="copy-code-btn" class="viewer-btn">Copy</button>
-                <button id="close-viewer-btn" class="viewer-btn">✕</button>
-            </div>
+            <span>⚡ AI Downloader & Scene Code</span>
+            <button id="close-viewer-btn" class="btn" style="padding: 2px 6px;">✕</button>
         </div>
-        <pre id="code-content">// Infinite Map ready. Type ANY prompt to download from Sketchfab & build...</pre>
+        <pre id="code-content">// Search & Download logs will appear here...</pre>
     </div>
 
-    <!-- AI Chat Box -->
+    <!-- AI Bar -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Infinite Universe Ready. Type anything to search, download & build!</div>
+        <div id="status-indicator" class="chat-status">Ready. Describe in Kurdish/English or upload an image!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="Type literally anything: Toyota, Kratos, Batman, Ferrari..." />
-            <button id="ai-send" class="btn-send">Generate</button>
+            <!-- Hidden Image Input -->
+            <input type="file" id="image-file-input" accept="image/*" style="display:none;" />
+            <button id="btn-pick-image" class="btn-img-upload" title="Search with Image">📷</button>
+
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. گوندێکی بچووک, Ferrari, Kratos, Batman..." />
+            <button id="ai-send" class="btn btn-primary">Build</button>
         </div>
     </div>
 
-    <!-- API Keys Modal -->
+    <!-- Settings Modal -->
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">API Key Settings</h2>
-            <p class="modal-desc">Enter Sketchfab API Token to auto-download 3D models.</p>
-            
-            <div class="input-group">
-                <label>Sketchfab API Token</label>
-                <input type="text" id="sketchfab-token-input" placeholder="Paste Sketchfab token here..." />
+            <h3 style="color:#38bdf8; margin-bottom: 10px;">API Keys</h3>
+            <div style="text-align: left; font-size: 0.8rem; color: #94a3b8;">
+                <label>Sketchfab Token (from sketchfab.com/settings/password)</label>
+                <input type="text" id="sketchfab-token-input" placeholder="Paste Token..." />
+                <label>Gemini API Key (Required for Image Search & Kurdish Translation)</label>
+                <input type="text" id="gemini-key-input" placeholder="Paste Gemini Key..." />
             </div>
-
-            <div class="input-group">
-                <label>Gemini API Key (Optional AI Fallback)</label>
-                <input type="text" id="gemini-key-input" placeholder="Paste Gemini key here..." />
-            </div>
-
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="btn-save-key" class="btn btn-primary">Save Settings</button>
-                <button id="btn-close-key" class="btn">Cancel</button>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button id="btn-save-key" class="btn btn-primary">Save</button>
+                <button id="btn-close-key" class="btn">Close</button>
             </div>
         </div>
     </div>
@@ -321,20 +301,22 @@
     <script>
         let scene, camera, renderer, controls;
         let activeMixers = [];
-        let currentModels = [];
-        let infiniteFloor, infiniteGrid;
+        let loadedModels = [];
+        let controlledModel = null;
         let clock = new THREE.Clock();
+        let infiniteFloor, infiniteGrid;
+
+        // Controller state
+        const moveState = { forward: false, backward: false, left: false, right: false };
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x060913);
-
-            // Deep Atmospheric Infinite Horizon Fog
             scene.fog = new THREE.FogExp2(0x060913, 0.0035);
 
             camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 4000);
-            camera.position.set(0, 8, 18);
+            camera.position.set(0, 10, 22);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -350,11 +332,12 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxDistance = 800;
+            controls.maxDistance = 1000;
             controls.maxPolarAngle = Math.PI / 2 + 0.01;
 
             setupInfiniteMap();
             setupLighting();
+            setupTouchController();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -365,17 +348,11 @@
             animate();
         }
 
-        // TRUE INFINITE MAP
         function setupInfiniteMap() {
             const groundGeo = new THREE.PlaneGeometry(12000, 12000);
-            const groundMat = new THREE.MeshStandardMaterial({
-                color: 0x080d1a,
-                roughness: 0.8,
-                metalness: 0.2
-            });
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x080d1a, roughness: 0.8, metalness: 0.2 });
             infiniteFloor = new THREE.Mesh(groundGeo, groundMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
-            infiniteFloor.position.y = 0;
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
@@ -389,16 +366,10 @@
             scene.add(hemiLight);
 
             const sunLight = new THREE.DirectionalLight(0xfff5ea, 2.0);
-            sunLight.position.set(25, 40, 20);
+            sunLight.position.set(30, 50, 25);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 250;
-            sunLight.shadow.camera.left = -35;
-            sunLight.shadow.camera.right = 35;
-            sunLight.shadow.camera.top = 35;
-            sunLight.shadow.camera.bottom = -35;
             sunLight.shadow.bias = -0.0001;
             scene.add(sunLight);
 
@@ -407,9 +378,43 @@
             scene.add(rimLight);
         }
 
+        function setupTouchController() {
+            const bindBtn = (id, key) => {
+                const el = document.getElementById(id);
+                const start = (e) => { e.preventDefault(); moveState[key] = true; };
+                const end = (e) => { e.preventDefault(); moveState[key] = false; };
+                el.addEventListener('touchstart', start);
+                el.addEventListener('touchend', end);
+                el.addEventListener('mousedown', start);
+                el.addEventListener('mouseup', end);
+                el.addEventListener('mouseleave', end);
+            };
+            bindBtn('btn-up', 'forward');
+            bindBtn('btn-down', 'backward');
+            bindBtn('btn-left', 'left');
+            bindBtn('btn-right', 'right');
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+
+            // Handle driving / movement of the active model
+            if (controlledModel) {
+                const speed = 12 * delta;
+                const rotSpeed = 2.5 * delta;
+
+                if (moveState.left) controlledModel.rotation.y += rotSpeed;
+                if (moveState.right) controlledModel.rotation.y -= rotSpeed;
+
+                const dir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), controlledModel.rotation.y);
+
+                if (moveState.forward) controlledModel.position.addScaledVector(dir, speed);
+                if (moveState.backward) controlledModel.position.addScaledVector(dir, -speed);
+
+                // Camera follows controlled model smoothly
+                controls.target.lerp(controlledModel.position, 0.08);
+            }
 
             if (infiniteFloor && infiniteGrid) {
                 infiniteFloor.position.x = camera.position.x;
@@ -418,146 +423,183 @@
                 infiniteGrid.position.z = Math.floor(camera.position.z / 10) * 10;
             }
 
-            for (let mixer of activeMixers) {
-                mixer.update(delta);
-            }
-
+            for (let mixer of activeMixers) mixer.update(delta);
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // FIXED UNZIP & GLTF BUFFER LOADER
-        async function fetchAndDownloadFromSketchfab(searchQuery, token) {
+        // SMART TRANSLATOR & KEYWORD EXTRACTOR
+        async function translateToEnglishSearch(query, geminiKey) {
+            if (!geminiKey) return query;
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `Extract ONLY 2 to 3 precise English 3D search keywords for Sketchfab from this user query (which might be in Kurdish or English). 
+Do NOT include filler words like "make", "build", "download".
+Examples:
+"گوندێکی بچوک" -> "small medieval village"
+"سەیارەیەکی وەرزشی" -> "sports car"
+"ڕۆبۆت" -> "robot"
+User query: "${query}"
+Output ONLY the keywords:`
+                            }]
+                        }]
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const cleanText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                    if (cleanText) return cleanText.replace(/["\n\r]/g, '');
+                }
+            } catch(e) {}
+            return query;
+        }
+
+        // IMAGE-TO-SKETCHFAB AI ANALYZER
+        async function analyzeImageWithGemini(file, geminiKey) {
+            const base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "Identify the main object in this picture and output ONLY 2-3 English search keywords to find its 3D model on Sketchfab (e.g. 'police car', 'wooden cabin', 'iron man'). Output nothing else:" },
+                            { inline_data: { mime_type: file.type || "image/jpeg", data: base64Data } }
+                        ]
+                    }]
+                })
+            });
+
+            if (!res.ok) throw new Error("Could not analyze image with Gemini Vision.");
+            const data = await res.json();
+            return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/["\n\r]/g, '') || "car";
+        }
+
+        // DOWLOAD AND SCALE INTELLIGENTLY
+        async function fetchAndDownloadModel(searchQuery, token) {
             const status = document.getElementById('status-indicator');
             const codeContent = document.getElementById('code-content');
             status.innerText = `🔍 Searching Sketchfab for: "${searchQuery}"...`;
-            codeContent.innerText = `// Connecting to Sketchfab API...\n// Query: ${searchQuery}\n`;
+            codeContent.innerText = `// Keyword: "${searchQuery}"\n`;
             document.getElementById('code-viewer-panel').classList.remove('hidden');
 
             const searchUrl = `https://api.sketchfab.com/v3/search?type=models&downloadable=true&q=${encodeURIComponent(searchQuery)}&sort_by=-likeCount`;
-            
-            const searchRes = await fetch(searchUrl, {
-                headers: { 'Authorization': `Token ${token}` }
-            });
-
-            if (!searchRes.ok) {
-                throw new Error("Sketchfab API authentication failed. Check your API token.");
-            }
+            const searchRes = await fetch(searchUrl, { headers: { 'Authorization': `Token ${token}` } });
+            if (!searchRes.ok) throw new Error("Sketchfab API Token invalid or expired.");
 
             const searchData = await searchRes.json();
             if (!searchData.results || searchData.results.length === 0) {
-                throw new Error(`No downloadable 3D model found on Sketchfab for: "${searchQuery}"`);
+                throw new Error(`No 3D model found for "${searchQuery}".`);
             }
 
             const bestModel = searchData.results[0];
-            codeContent.innerText += `// Found Model: "${bestModel.name}" by ${bestModel.user.username}\n// Model UID: ${bestModel.uid}\n// Requesting download link...\n`;
+            codeContent.innerText += `// Match: "${bestModel.name}" by ${bestModel.user.username}\n// Requesting download URL...\n`;
             status.innerText = `⏳ Requesting download for "${bestModel.name}"...`;
 
             const downloadUrlEndpoint = `https://api.sketchfab.com/v3/models/${bestModel.uid}/download`;
-            const downloadRes = await fetch(downloadUrlEndpoint, {
-                headers: { 'Authorization': `Token ${token}` }
-            });
-
-            if (!downloadRes.ok) {
-                throw new Error("Download request denied by Sketchfab.");
-            }
+            const downloadRes = await fetch(downloadUrlEndpoint, { headers: { 'Authorization': `Token ${token}` } });
+            if (!downloadRes.ok) throw new Error("Sketchfab download permission denied.");
 
             const downloadData = await downloadRes.json();
             const gltfInfo = downloadData.gltf;
-            if (!gltfInfo || !gltfInfo.url) {
-                throw new Error("Download link not available for this model.");
-            }
+            if (!gltfInfo || !gltfInfo.url) throw new Error("glTF format unavailable for this model.");
 
-            status.innerText = `📥 Downloading "${bestModel.name}" (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...`;
-            codeContent.innerText += `// Downloading archive (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...\n`;
-
+            status.innerText = `📥 Downloading archive (${(gltfInfo.size / (1024*1024)).toFixed(1)} MB)...`;
             const fileRes = await fetch(gltfInfo.url);
             const arrayBuffer = await fileRes.arrayBuffer();
 
-            codeContent.innerText += `// Download complete! Unpacking buffers & textures...\n`;
-            status.innerText = `⚙️ Preparing textures & buffers...`;
-
+            status.innerText = `⚙️ Unpacking textures & buffers...`;
             const zip = await JSZip.loadAsync(arrayBuffer);
             const fileMap = {};
 
-            // Unpack all files and map them by both relative path and direct filename
             for (let path in zip.files) {
                 const file = zip.files[path];
                 if (!file.dir) {
                     const blob = await file.async("blob");
                     const blobUrl = URL.createObjectURL(blob);
                     fileMap[path] = blobUrl;
-                    
                     const simpleFilename = path.split('/').pop();
                     fileMap[simpleFilename] = blobUrl;
                 }
             }
 
-            // Check if there is a direct single .glb inside
             const glbPath = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.glb'));
             const customLoader = new THREE.GLTFLoader();
 
             if (glbPath) {
                 const buffer = await zip.files[glbPath].async("arraybuffer");
                 customLoader.parse(buffer, '', (gltf) => {
-                    handleModelSuccess(gltf, bestModel);
-                }, (err) => {
-                    throw new Error("Error parsing GLB: " + err.message);
+                    handleRealisticPlacement(gltf, bestModel, searchQuery);
                 });
                 return;
             }
 
-            // If it's a standard glTF (scene.gltf + scene.bin + textures)
             const gltfPath = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.gltf'));
-            if (!gltfPath) {
-                throw new Error("Corrupted archive: No .gltf or .glb found.");
-            }
+            if (!gltfPath) throw new Error("No .gltf found in archive.");
 
             const gltfText = await zip.files[gltfPath].async("string");
-
-            // Setup bulletproof manager to resolve scene.bin and all textures directly from memory
             const manager = new THREE.LoadingManager();
             manager.setURLModifier((url) => {
-                const decoded = decodeURIComponent(url);
-                const name1 = url.split('/').pop().split('?')[0];
-                const name2 = decoded.split('/').pop().split('?')[0];
-
-                if (fileMap[name1]) return fileMap[name1];
-                if (fileMap[name2]) return fileMap[name2];
-                if (fileMap[url]) return fileMap[url];
-                if (fileMap[decoded]) return fileMap[decoded];
-
-                for (let k in fileMap) {
-                    if (k.endsWith(name1) || k.endsWith(name2) || decoded.endsWith(k)) {
-                        return fileMap[k];
-                    }
-                }
-                return url;
+                const clean = url.split('/').pop().split('?')[0];
+                return fileMap[clean] || fileMap[url] || url;
             });
 
             const robustLoader = new THREE.GLTFLoader(manager);
             robustLoader.parse(gltfText, '', (gltf) => {
-                handleModelSuccess(gltf, bestModel);
-            }, (err) => {
-                status.innerText = "Error loading unpacked model: " + err.message;
+                handleRealisticPlacement(gltf, bestModel, searchQuery);
             });
         }
 
-        function handleModelSuccess(gltf, bestModel) {
+        // REALISTIC SCALING & POSITIONING LOGIC
+        function handleRealisticPlacement(gltf, bestModel, query) {
             const status = document.getElementById('status-indicator');
             const codeContent = document.getElementById('code-content');
             const model = gltf.scene;
 
-            // Auto-center and normalize scale for the infinite world
+            // 1. Calculate raw dimensions
             const box = new THREE.Box3().setFromObject(model);
             const size = new THREE.Vector3();
             box.getSize(size);
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const targetScale = 6.0 / (maxDim || 1);
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+            // 2. Intelligent Scaling based on category
+            const lower = (query + " " + bestModel.name).toLowerCase();
+            let desiredWorldSize = 4.5; // Default: Vehicle size
+
+            if (lower.match(/village|town|city|castle|terrain|island|map|park|building|house/)) {
+                desiredWorldSize = 65.0; // Huge environmental scale
+            } else if (lower.match(/car|truck|ferrari|toyota|bmw|vehicle|police|tank|plane/)) {
+                desiredWorldSize = 4.8;  // Real vehicle size (~4.8 meters)
+            } else if (lower.match(/kratos|batman|roxy|character|girl|boy|man|soldier|npc|warrior|robot|human/)) {
+                desiredWorldSize = 2.0;  // Real human height (~2 meters)
+            } else if (lower.match(/sword|gun|helmet|apple|chair|box/)) {
+                desiredWorldSize = 1.0;  // Small prop scale
+            }
+
+            const targetScale = desiredWorldSize / maxDim;
             model.scale.set(targetScale, targetScale, targetScale);
 
+            // Re-calculate after scale to put exactly on ground
             box.setFromObject(model);
             model.position.y = -box.min.y;
+
+            // Place next to existing models (so they don't stack on top of each other!)
+            if (loadedModels.length > 0) {
+                const offset = (loadedModels.length) * 8;
+                model.position.x += offset;
+            }
 
             model.traverse((child) => {
                 if (child.isMesh) {
@@ -567,7 +609,8 @@
             });
 
             scene.add(model);
-            currentModels.push(model);
+            loadedModels.push(model);
+            controlledModel = model; // Automatically set as active controllable object!
 
             if (gltf.animations && gltf.animations.length > 0) {
                 const mixer = new THREE.AnimationMixer(model);
@@ -575,75 +618,31 @@
                 activeMixers.push(mixer);
             }
 
-            controls.target.set(0, 3, 0);
-            camera.position.set(0, 7, 16);
+            controls.target.copy(model.position);
+            camera.position.set(model.position.x, model.position.y + 4, model.position.z + 10);
 
-            codeContent.innerText += `\n// ✨ MODEL SUCCESSFULLY BUILT ON INFINITE MAP!\n// Title: ${bestModel.name}\n// Animations: ${gltf.animations ? gltf.animations.length : 0} clips active.`;
-            status.innerText = `✨ Successfully built: "${bestModel.name}"!`;
+            codeContent.innerText += `\n// ✨ MODEL BUILT REALISTICALLY!\n// Name: ${bestModel.name}\n// Real Category Scale: ${desiredWorldSize}m\n// Use D-Pad buttons below to DRIVE / MOVE!`;
+            status.innerText = `✨ Built: "${bestModel.name}". Use D-Pad (⬆️⬇️⬅️➡️) to control!`;
         }
 
-        // Procedural AI Fallback
-        async function buildProceduralAI(promptText, geminiKey) {
-            const status = document.getElementById('status-indicator');
-            const codeContent = document.getElementById('code-content');
-            status.innerText = "Building 3D world with Gemini AI...";
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`;
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: "You are a Three.js expert. Output ONLY valid JS code inside ```javascript ... ``` to construct the user request on the infinite map. Set castShadow=true on meshes." },
-                            { text: `Build: ${promptText}` }
-                        ]
-                    }]
-                })
-            });
-
-            if (!res.ok) throw new Error("Gemini AI error. Check key.");
-            const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
-            const codeToRun = match ? match[1].trim() : text;
-
-            codeContent.innerText = codeToRun;
-            document.getElementById('code-viewer-panel').classList.remove('hidden');
-            new Function('scene', 'THREE', codeToRun)(scene, THREE);
-            status.innerText = "✨ Built on Infinite Map!";
-        }
-
-        // Main Execution Entrypoint
-        async function handleUserInput(promptText) {
+        async function processPrompt(rawInput) {
             const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
             const geminiKey = localStorage.getItem('apexgen_gemini_key');
 
-            if (!sketchfabToken && !geminiKey) {
+            if (!sketchfabToken) {
                 document.getElementById('api-modal').classList.remove('hidden');
                 return;
             }
 
-            try {
-                if (sketchfabToken) {
-                    await fetchAndDownloadFromSketchfab(promptText, sketchfabToken);
-                } else {
-                    await buildProceduralAI(promptText, geminiKey);
-                }
-            } catch (err) {
-                console.warn(err);
-                document.getElementById('status-indicator').innerText = "Error: " + err.message;
-                if (geminiKey && sketchfabToken) {
-                    document.getElementById('status-indicator').innerText = "Sketchfab missed. Trying Gemini AI fallback...";
-                    await buildProceduralAI(promptText, geminiKey);
-                }
-            }
+            document.getElementById('status-indicator').innerText = "Translating & analyzing query...";
+            const englishSearch = await translateToEnglishSearch(rawInput, geminiKey);
+            await fetchAndDownloadModel(englishSearch, sketchfabToken);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
-            if (!localStorage.getItem('apexgen_sketchfab_token') && !localStorage.getItem('apexgen_gemini_key')) {
+            if (!localStorage.getItem('apexgen_sketchfab_token')) {
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
@@ -658,19 +657,20 @@
             });
 
             document.getElementById('btn-save-key').addEventListener('click', () => {
-                const skToken = document.getElementById('sketchfab-token-input').value.trim();
-                const gmKey = document.getElementById('gemini-key-input').value.trim();
-                if (skToken) localStorage.setItem('apexgen_sketchfab_token', skToken);
-                if (gmKey) localStorage.setItem('apexgen_gemini_key', gmKey);
+                const sk = document.getElementById('sketchfab-token-input').value.trim();
+                const gm = document.getElementById('gemini-key-input').value.trim();
+                if (sk) localStorage.setItem('apexgen_sketchfab_token', sk);
+                if (gm) localStorage.setItem('apexgen_gemini_key', gm);
                 document.getElementById('api-modal').classList.add('hidden');
-                document.getElementById('status-indicator').innerText = "Keys saved! Type ANY prompt to download & build.";
+                document.getElementById('status-indicator').innerText = "Settings saved!";
             });
 
             document.getElementById('clear-btn').addEventListener('click', () => {
-                currentModels.forEach(m => scene.remove(m));
-                currentModels = [];
+                loadedModels.forEach(m => scene.remove(m));
+                loadedModels = [];
                 activeMixers = [];
-                document.getElementById('status-indicator').innerText = "Infinite universe cleared.";
+                controlledModel = null;
+                document.getElementById('status-indicator').innerText = "Universe cleared.";
             });
 
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
@@ -679,16 +679,41 @@
             document.getElementById('close-viewer-btn').addEventListener('click', () => {
                 document.getElementById('code-viewer-panel').classList.add('hidden');
             });
-            document.getElementById('copy-code-btn').addEventListener('click', () => {
-                navigator.clipboard.writeText(document.getElementById('code-content').innerText).then(() => alert("Copied!"));
+
+            // Camera / Image Upload handler
+            const fileInput = document.getElementById('image-file-input');
+            document.getElementById('btn-pick-image').addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const geminiKey = localStorage.getItem('apexgen_gemini_key');
+                const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
+
+                if (!geminiKey || !sketchfabToken) {
+                    alert("Please set both Sketchfab Token and Gemini Key in Key ⚙️ first!");
+                    document.getElementById('api-modal').classList.remove('hidden');
+                    return;
+                }
+
+                document.getElementById('status-indicator').innerText = "📷 Analyzing image with AI...";
+                try {
+                    const detectedKeyword = await analyzeImageWithGemini(file, geminiKey);
+                    document.getElementById('ai-input').value = detectedKeyword;
+                    await fetchAndDownloadModel(detectedKeyword, sketchfabToken);
+                } catch(err) {
+                    document.getElementById('status-indicator').innerText = "Image error: " + err.message;
+                }
             });
 
+            // Text send
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleSend = () => {
                 const prompt = aiInput.value.trim();
                 if (prompt) {
-                    handleUserInput(prompt);
+                    processPrompt(prompt);
                     aiInput.value = '';
                 }
             };
