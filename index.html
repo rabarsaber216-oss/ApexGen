@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - HD 3D & GLB Studio</title>
+    <title>ApexGen - Auto AI 3D Cloud Studio</title>
     <!-- Three.js, Controls & GLTFLoader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -238,11 +238,6 @@
             margin-bottom: 16px;
             line-height: 1.4;
         }
-        .modal-btns {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
         .input-group {
             text-align: left;
             margin-bottom: 14px;
@@ -253,7 +248,7 @@
             color: #94a3b8;
             margin-bottom: 5px;
         }
-        .input-group select, .input-group input {
+        .input-group input {
             width: 100%;
             background: #1e293b;
             border: 1px solid #334155;
@@ -270,16 +265,9 @@
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
-            <!-- Direct Local GLB Upload -->
-            <label for="glb-file-input" class="btn" style="display:flex; align-items:center; cursor:pointer;">Load 📁</label>
-            <input type="file" id="glb-file-input" accept=".glb,.gltf" style="display:none;" />
-
             <button id="toggle-code-btn" class="btn btn-code">Code &lt;/&gt;</button>
             <button id="key-btn" class="btn">Key ⚙️</button>
-            <div id="project-actions" class="header-actions hidden">
-                <button id="save-btn" class="btn">Save</button>
-                <button id="install-btn" class="btn btn-primary">Install</button>
-            </div>
+            <button id="clear-btn" class="btn">Clear</button>
         </div>
     </header>
 
@@ -288,42 +276,34 @@
     <!-- Live Code Viewer -->
     <div id="code-viewer-panel">
         <div class="viewer-header">
-            <span>⚡ Live Three.js & GLB Code</span>
+            <span>⚡ Live Three.js & Cloud GLB</span>
             <div class="viewer-controls">
                 <button id="copy-code-btn" class="viewer-btn">Copy</button>
                 <button id="close-viewer-btn" class="viewer-btn">✕</button>
             </div>
         </div>
-        <pre id="code-content">// 3D Scene and GLB integration ready...</pre>
+        <pre id="code-content">// 3D Cloud Auto-Fetcher Ready...</pre>
     </div>
 
     <!-- AI Chat Box -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">ApexGen GLB Ready. Type prompt or use 'Load' button.</div>
+        <div id="status-indicator" class="chat-status">ApexGen Cloud AI Ready. Type any 3D asset idea!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Load model.glb and set red lights..." />
+            <input type="text" id="ai-input" class="chat-input" placeholder="e.g. Build an animated robot, sports car, soldier, or dragon..." />
             <button id="ai-send" class="btn-send">Generate</button>
         </div>
     </div>
 
-    <!-- API Key & Provider Modal -->
+    <!-- API Key Modal -->
     <div id="api-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2 class="modal-title">AI Engine Settings</h2>
-            <p class="modal-desc">Select AI provider and paste your API key.</p>
+            <h2 class="modal-title">Gemini API Key</h2>
+            <p class="modal-desc">Paste your Gemini API key to activate Auto-3D fetching.</p>
             <div class="input-group">
-                <label>AI Provider</label>
-                <select id="provider-select">
-                    <option value="gemini">Google Gemini</option>
-                    <option value="openai">OpenAI (ChatGPT)</option>
-                    <option value="claude">Anthropic Claude</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label id="key-label">Gemini API Key</label>
+                <label>API Key</label>
                 <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
             </div>
-            <div class="modal-btns">
+            <div style="display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-save-key" class="btn btn-primary">Save Key</button>
                 <button id="btn-close-key" class="btn">Cancel</button>
             </div>
@@ -333,9 +313,23 @@
     <script>
         let scene, camera, renderer, controls;
         let activeMixers = [];
-        let currentObjects = [];
+        let currentModels = [];
         let clock = new THREE.Clock();
         const gltfLoader = new THREE.GLTFLoader();
+
+        // High-Quality Online Open 3D GLB Catalog (Free & CORS-enabled)
+        const CLOUD_ASSETS = {
+            "robot": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+            "car": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/ToyCar/glTF-Binary/ToyCar.glb",
+            "soldier": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb",
+            "helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+            "fox": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb",
+            "horse": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Horse.glb",
+            "drone": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb",
+            "flight helmet": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/FlightHelmet/glTF/FlightHelmet.gltf",
+            "spaceship": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
+            "buggy": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Buggy/glTF-Binary/Buggy.glb"
+        };
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
@@ -350,7 +344,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 1.25;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -385,11 +379,11 @@
             dirLight.shadow.bias = -0.0001;
             scene.add(dirLight);
 
-            const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.1);
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
             rimLight.position.set(-10, 8, -10);
             scene.add(rimLight);
 
-            // Ground Stage
+            // High-end glossy pedestal
             const groundGeo = new THREE.CylinderGeometry(14, 14, 0.3, 64);
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.4 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -406,7 +400,6 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             
-            // Update active animations inside GLB models
             for (let mixer of activeMixers) {
                 mixer.update(delta);
             }
@@ -415,10 +408,10 @@
             renderer.render(scene, camera);
         }
 
-        // Global Helper: Loads any GLB model, adjusts scale, shadows, and starts animations
-        window.loadGLB = function(url, scale = 1, pos = {x:0, y:0, z:0}) {
+        // Automatic Global GLB Loader from Cloud URL
+        window.loadCloudGLB = function(url, scale = 1, pos = {x:0, y:0, z:0}) {
             const status = document.getElementById('status-indicator');
-            status.innerText = "Loading 3D GLB Model...";
+            status.innerText = "⚡ Fetching 3D GLB directly from cloud...";
 
             gltfLoader.load(url, (gltf) => {
                 const model = gltf.scene;
@@ -433,44 +426,39 @@
                 });
 
                 scene.add(model);
-                currentObjects.push(model);
+                currentModels.push(model);
 
-                // Play all embedded animations if present
+                // Start all embedded skeletal animations automatically!
                 if (gltf.animations && gltf.animations.length > 0) {
                     const mixer = new THREE.AnimationMixer(model);
                     gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
                     activeMixers.push(mixer);
                 }
 
-                status.innerText = "✨ Model loaded & animated successfully!";
-                document.getElementById('project-actions').classList.remove('hidden');
-            }, undefined, (error) => {
-                status.innerText = "Error loading GLB: " + error.message;
+                status.innerText = "✨ Ultra HD GLB Model Loaded & Animated!";
+            }, undefined, (err) => {
+                status.innerText = "Failed loading GLB: " + err.message;
             });
         };
 
-        // System prompt: informs AI how to use loadGLB
-        const SYSTEM_PROMPT = `You are a 3D master developer for ApexGen.
-You can construct 3D scenes using Three.js OR load high-definition GLB models.
-AVAILABLE GLB ASSET: 'model.glb' (or any filename specified by the user).
+        // System Prompt that instructs AI to auto-pick from cloud or generate code
+        const SYSTEM_PROMPT = `You are the master AI Director for ApexGen 3D Studio.
+You have access to a Cloud 3D Catalog with real GLB models:
+- Robot (fully animated): "${CLOUD_ASSETS.robot}"
+- Toy Car / Vehicle: "${CLOUD_ASSETS.car}"
+- Soldier (rigged/animated): "${CLOUD_ASSETS.soldier}"
+- Combat Sci-fi Helmet: "${CLOUD_ASSETS.helmet}"
+- Animated Fox: "${CLOUD_ASSETS.fox}"
+- Galloping Horse: "${CLOUD_ASSETS.horse}"
+- Armored Buggy: "${CLOUD_ASSETS.buggy}"
+
 RULES:
-1. To load a model, use: window.loadGLB('model.glb', 1, {x:0, y:0, z:0});
-2. You can also add cinematic lighting, particle effects, or stage elements using Three.js.
-3. Group elements in 'currentGroup' if building geometry.
-4. Output ONLY valid executable JavaScript inside \`\`\`javascript ... \`\`\`.`;
+1. When user asks for a character, car, robot, soldier, animal, or helmet: Call window.loadCloudGLB(url, scale, pos) using the closest matching cloud model URL above!
+2. You can also build surrounding environments, add glowing lights, or procedurally generate extra Three.js objects into 'scene'.
+3. Output ONLY valid executable JavaScript inside \`\`\`javascript ... \`\`\`.`;
 
-        // Direct Local File Input (Load button)
-        document.getElementById('glb-file-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const blobUrl = URL.createObjectURL(file);
-                window.loadGLB(blobUrl, 1.5, {x:0, y:0, z:0});
-            }
-        });
-
-        // AI Fetch & Fallback logic
         async function sendToAI(promptText) {
-            const apiKey = localStorage.getItem('apexgen_key_gemini');
+            const apiKey = localStorage.getItem('apexgen_api_key');
             if (!apiKey) {
                 document.getElementById('api-modal').classList.remove('hidden');
                 return;
@@ -481,10 +469,19 @@ RULES:
             const codeContent = document.getElementById('code-content');
 
             codePanel.classList.remove('hidden');
-            codeContent.innerText = "// AI is directing the 3D scene...\n";
-            status.innerText = "ApexGen AI is processing...";
+            codeContent.innerText = "// AI is finding 3D GLB model and setting up scene...\n";
+            status.innerText = "Connecting to 3D Cloud...";
 
             try {
+                // Check if user directly asked for a keyword in local catalog first
+                const lower = promptText.toLowerCase();
+                let matchedKey = Object.keys(CLOUD_ASSETS).find(k => lower.includes(k));
+
+                let promptToSend = promptText;
+                if (matchedKey) {
+                    promptToSend += ` (Match found in catalog: ${matchedKey} -> ${CLOUD_ASSETS[matchedKey]})`;
+                }
+
                 const models = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-flash-latest"];
                 let responseText = "";
 
@@ -498,7 +495,7 @@ RULES:
                                 contents: [{
                                     parts: [
                                         { text: SYSTEM_PROMPT },
-                                        { text: `User request: ${promptText}` }
+                                        { text: `User request: ${promptToSend}` }
                                     ]
                                 }]
                             })
@@ -512,7 +509,7 @@ RULES:
                     } catch(e) {}
                 }
 
-                if (!responseText) throw new Error("Could not connect. Check quota or key.");
+                if (!responseText) throw new Error("Connection failed. Check API key.");
 
                 const match = responseText.match(/```(?:javascript|js)?([\s\S]*?)```/);
                 const codeToRun = match ? match[1].trim() : responseText;
@@ -522,7 +519,6 @@ RULES:
                 const runFunc = new Function('scene', 'THREE', codeToRun);
                 runFunc(scene, THREE);
 
-                status.innerText = "✨ Done!";
             } catch (err) {
                 status.innerText = "Error: " + err.message;
             }
@@ -531,12 +527,12 @@ RULES:
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
 
-            if (!localStorage.getItem('apexgen_key_gemini')) {
+            if (!localStorage.getItem('apexgen_api_key')) {
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
             document.getElementById('key-btn').addEventListener('click', () => {
-                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_key_gemini') || '';
+                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
                 document.getElementById('api-modal').classList.remove('hidden');
             });
 
@@ -547,10 +543,17 @@ RULES:
             document.getElementById('btn-save-key').addEventListener('click', () => {
                 const key = document.getElementById('api-key-input').value.trim();
                 if (key) {
-                    localStorage.setItem('apexgen_key_gemini', key);
+                    localStorage.setItem('apexgen_api_key', key);
                     document.getElementById('api-modal').classList.add('hidden');
                     document.getElementById('status-indicator').innerText = "API Key saved!";
                 }
+            });
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                currentModels.forEach(m => scene.remove(m));
+                currentModels = [];
+                activeMixers = [];
+                document.getElementById('status-indicator').innerText = "Canvas cleared.";
             });
 
             document.getElementById('toggle-code-btn').addEventListener('click', () => {
