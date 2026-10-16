@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AAA 3D Interactive Engine</title>
+    <title>ApexGen - Cinematic Combat & Physics Engine</title>
     <!-- Three.js, Controls & JSZip -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -35,7 +35,7 @@
             touch-action: none;
         }
 
-        /* 1. CINEMATIC PS5 INTRO */
+        /* 1. CINEMATIC INTRO */
         #boot-intro {
             position: fixed;
             top: 0;
@@ -147,10 +147,15 @@
             border-color: #fb7185;
             color: white;
         }
+        .btn-warning {
+            background: rgba(217, 119, 6, 0.85);
+            border-color: #f59e0b;
+            color: white;
+        }
         .btn-primary { background: #0284c7; border-color: #38bdf8; }
         .hidden { display: none !important; }
 
-        /* 2. ANALOG JOYSTICK (Refined Touch Engine) */
+        /* 2. REFINED ANALOG JOYSTICK */
         #joystick-zone {
             position: absolute;
             bottom: 85px;
@@ -195,7 +200,7 @@
             border-radius: 50%;
         }
 
-        /* 3. ACTION BUTTONS (Jump, Attack, Sprint) */
+        /* 3. COMBAT & ACTION BUTTONS */
         #action-buttons-zone {
             position: absolute;
             bottom: 90px;
@@ -233,14 +238,14 @@
         }
         .action-btn-attack {
             border-color: #f43f5e;
-            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+            box-shadow: 0 0 18px rgba(244, 63, 94, 0.5);
         }
         .action-btn-sprint {
             border-color: #eab308;
             box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
         }
 
-        /* 4. MODEL SELECTION PICKER MODAL (Full Smooth Scrolling) */
+        /* 4. SELECTION PICKER MODAL */
         #picker-modal {
             position: fixed;
             top: 0;
@@ -431,10 +436,11 @@
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
-            <!-- Chase Cam Exit Button -->
-            <button id="exit-control-btn" class="btn btn-danger hidden">Exit Control ✕</button>
+            <!-- Undo & Clean buttons -->
+            <button id="undo-btn" class="btn btn-warning" title="Remove Last Item">Undo ↩️</button>
+            <button id="clear-btn" class="btn btn-danger" title="Clean All">Clear 🗑️</button>
+            <button id="exit-control-btn" class="btn btn-danger hidden">Exit ✕</button>
             <button id="key-btn" class="btn">Key ⚙️</button>
-            <button id="clear-btn" class="btn">Clear</button>
         </div>
     </header>
 
@@ -498,7 +504,7 @@
     </div>
 
     <script>
-        // WEB AUDIO PROCEDURAL SOUND ENGINE
+        // PROCEDURAL AUDIO ENGINE
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -523,16 +529,13 @@
 
                 this.engineOsc.type = 'sawtooth';
                 this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
-
                 this.filter.type = 'lowpass';
                 this.filter.frequency.setValueAtTime(260, this.ctx.currentTime);
-
                 this.engineGain.gain.setValueAtTime(0.09, this.ctx.currentTime);
 
                 this.engineOsc.connect(this.filter);
                 this.filter.connect(this.engineGain);
                 this.engineGain.connect(this.ctx.destination);
-
                 this.engineOsc.start();
                 this.isEngineRunning = true;
             }
@@ -555,34 +558,35 @@
             playFootstep() {
                 this.init();
                 const now = performance.now();
-                if (now - this.lastStepTime < 320) return;
+                if (now - this.lastStepTime < 300) return;
                 this.lastStepTime = now;
 
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(80, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(25, this.ctx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(95, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(28, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
                 osc.start();
                 osc.stop(this.ctx.currentTime + 0.09);
             }
-            playAttack() {
+            playAttack(comboLevel = 1) {
                 this.init();
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(380, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.18);
-                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+                osc.type = 'sawtooth';
+                const startFreq = 260 + comboLevel * 70;
+                osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.22);
+                gain.gain.setValueAtTime(0.28, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
                 osc.start();
-                osc.stop(this.ctx.currentTime + 0.2);
+                osc.stop(this.ctx.currentTime + 0.23);
             }
             playJump() {
                 this.init();
@@ -590,8 +594,8 @@
                 const gain = this.ctx.createGain();
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(320, this.ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(340, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -604,17 +608,20 @@
 
         let scene, camera, renderer, controls;
         let activeMixers = [];
-        let loadedModels = [];
-        let staticColliders = []; // Solid collision barriers to prevent walking through walls
+        let loadedModels = []; // Stack for undo functionality
+        let staticColliders = [];
         let controlledEntity = null;
         let clock = new THREE.Clock();
         let infiniteFloor, infiniteGrid;
 
-        // Controller input state
-        const joystick = { x: 0, y: 0, active: false };
-        const actionState = { sprint: false, jump: false, attack: false };
+        // Camera Shake State
+        let cameraShakeIntensity = 0;
 
-        // 1. BOOT INTRO WITH PARTICLES
+        // Joystick & Action Input State
+        const joystick = { x: 0, y: 0, active: false };
+        const actionState = { sprint: false, jump: false, attack: false, combo: 1 };
+
+        // 1. BOOT INTRO
         function initBootIntro() {
             const canvas = document.getElementById('intro-stars-canvas');
             const ctx = canvas.getContext('2d');
@@ -668,7 +675,7 @@
             }, 9200);
         }
 
-        // 2. THREE.JS ENGINE SETUP
+        // 2. THREE.JS SCENE SETUP
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
@@ -739,7 +746,7 @@
             scene.add(rimLight);
         }
 
-        // 3. GLITCH-FREE MULTI-TOUCH JOYSTICK
+        // 3. MULTI-TOUCH ANALOG JOYSTICK
         function setupAnalogJoystick() {
             const base = document.getElementById('joystick-base');
             const thumb = document.getElementById('joystick-thumb');
@@ -759,7 +766,7 @@
 
                 thumb.style.transform = `translate(${dx}px, ${dy}px)`;
                 joystick.x = dx / maxRadius;
-                joystick.y = -dy / maxRadius; // Up is positive
+                joystick.y = -dy / maxRadius;
             };
 
             const reset = () => {
@@ -803,7 +810,7 @@
             window.addEventListener('touchcancel', endTouch);
         }
 
-        // 4. ACTION BUTTONS SETUP
+        // 4. ACTION BUTTONS (ATTACK COMBO & JUMP)
         function setupActionButtons() {
             const jumpBtn = document.getElementById('btn-jump');
             const sprintBtn = document.getElementById('btn-sprint');
@@ -823,30 +830,74 @@
 
             attackBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                audio.playAttack();
-                if (controlledEntity && controlledEntity.actions && controlledEntity.actions.attack) {
-                    controlledEntity.actions.attack.reset().play();
-                } else if (controlledEntity && controlledEntity.model) {
-                    // Quick physical thrust animation if model has no attack clip
-                    const initialZ = controlledEntity.model.rotation.z;
-                    controlledEntity.model.rotation.z += 0.35;
-                    setTimeout(() => { controlledEntity.model.rotation.z = initialZ; }, 180);
-                }
+                triggerCombatAttack();
             });
         }
 
-        // 5. COLLISION CHECK (Prevent walking through walls/buildings)
+        // TRIGGER COMBO ATTACK & CAMERA SHAKE
+        function triggerCombatAttack() {
+            if (!controlledEntity || !controlledEntity.model) return;
+
+            const combo = actionState.combo;
+            actionState.combo = (combo % 3) + 1; // 1 -> 2 -> 3 -> 1
+
+            audio.playAttack(combo);
+            cameraShakeIntensity = 0.45;
+
+            // Visual slash spark particle burst
+            createSlashSpark(controlledEntity.model.position);
+
+            if (controlledEntity.actions && controlledEntity.actions.attack) {
+                controlledEntity.actions.attack.stop();
+                controlledEntity.actions.attack.fadeIn(0.1).play();
+            } else {
+                // Physical strike recoil
+                const m = controlledEntity.model;
+                const origZ = m.rotation.z;
+                const origX = m.rotation.x;
+                m.rotation.z += (combo === 1 ? 0.35 : -0.35);
+                m.rotation.x += 0.2;
+                setTimeout(() => {
+                    m.rotation.z = origZ;
+                    m.rotation.x = origX;
+                }, 160);
+            }
+        }
+
+        function createSlashSpark(pos) {
+            const sparkGeo = new THREE.BufferGeometry();
+            const count = 18;
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 1.5;
+            }
+            sparkGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const sparkMat = new THREE.PointsMaterial({ color: 0xf59e0b, size: 0.18, transparent: true, opacity: 1 });
+            const sparks = new THREE.Points(sparkGeo, sparkMat);
+            sparks.position.set(pos.x, pos.y + 1.2, pos.z);
+            scene.add(sparks);
+
+            let life = 1.0;
+            const fade = () => {
+                life -= 0.08;
+                sparkMat.opacity = life;
+                if (life > 0) requestAnimationFrame(fade);
+                else scene.remove(sparks);
+            };
+            fade();
+        }
+
         function checkCollision(nextPos, radius = 0.8) {
             for (let obs of staticColliders) {
                 const dist = Math.hypot(nextPos.x - obs.position.x, nextPos.z - obs.position.z);
                 if (dist < (obs.radius + radius)) {
-                    return true; // Solid obstacle detected!
+                    return true;
                 }
             }
             return false;
         }
 
-        // 6. MAIN PHYSICS & CHASE CAM UPDATE LOOP
+        // 5. MAIN ANIMATION & CAMERA LOOP
         function animate() {
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.1);
@@ -855,12 +906,9 @@
                 const { model, type, wheels, actions, velocity } = controlledEntity;
 
                 if (type === 'vehicle') {
-                    // REALISTIC VEHICLE DRIVING PHYSICS
                     const turnInput = -joystick.x;
                     const driveInput = joystick.y;
-                    const speedRatio = driveInput;
-
-                    audio.setEngineSpeed(speedRatio);
+                    audio.setEngineSpeed(driveInput);
 
                     if (Math.abs(driveInput) > 0.05) {
                         model.rotation.y += turnInput * 2.8 * delta * (driveInput >= 0 ? 1 : -1);
@@ -874,17 +922,14 @@
                         model.position.copy(nextPos);
                     }
 
-                    // Spin wheels
                     if (wheels && wheels.length > 0) {
                         wheels.forEach(w => w.rotation.x += currentSpeed * delta * 1.5);
                     }
 
-                    // Suspension pitch tilt
                     const pitchTarget = -driveInput * 0.08;
                     model.rotation.x = THREE.MathUtils.lerp(model.rotation.x, pitchTarget, 0.1);
 
                 } else if (type === 'character') {
-                    // REALISTIC HUMAN SKELETAL & PHYSICS MOVEMENT
                     const inputMag = Math.hypot(joystick.x, joystick.y);
                     const speedMultiplier = actionState.sprint ? 2.2 : 1.0;
                     const moveSpeed = inputMag * 6.5 * speedMultiplier;
@@ -916,8 +961,7 @@
                         }
                     }
 
-                    // Gravity & Jumping physics
-                    velocity.y -= 28.0 * delta; // Gravity
+                    velocity.y -= 28.0 * delta;
                     model.position.y += velocity.y * delta;
 
                     if (model.position.y <= controlledEntity.baseY) {
@@ -927,7 +971,7 @@
                     }
                 }
 
-                // 7. CINEMATIC CHASE CAMERA (Strictly behind the player like GTA/God of War)
+                // CHASE CAMERA & CAMERA SHAKE
                 controls.enabled = false;
                 const targetPos = model.position;
                 const isCar = type === 'vehicle';
@@ -936,6 +980,13 @@
 
                 const camOffset = new THREE.Vector3(0, camHeight, -camDistance);
                 camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y + Math.PI);
+
+                // Add shake if attack happened
+                if (cameraShakeIntensity > 0) {
+                    camOffset.x += (Math.random() - 0.5) * cameraShakeIntensity;
+                    camOffset.y += (Math.random() - 0.5) * cameraShakeIntensity;
+                    cameraShakeIntensity = Math.max(0, cameraShakeIntensity - 0.04);
+                }
 
                 const desiredCamPos = targetPos.clone().add(camOffset);
                 camera.position.lerp(desiredCamPos, 0.12);
@@ -947,7 +998,6 @@
                 controls.enabled = true;
             }
 
-            // Keep infinite floor following camera
             if (infiniteFloor && infiniteGrid) {
                 infiniteFloor.position.x = camera.position.x;
                 infiniteFloor.position.z = camera.position.z;
@@ -960,57 +1010,81 @@
             renderer.render(scene, camera);
         }
 
-        // 8. SMART SCENE MANIPULATION OR SEARCH DISPATCHER
-        async function handleAIPrompt(userQuery) {
-            const geminiKey = localStorage.getItem('apexgen_gemini_key');
-            const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
-            const status = document.getElementById('status-indicator');
+        // 6. UNDO (STEP-BY-STEP REMOVAL) & CLEAN ALL
+        function undoLastItem() {
+            if (loadedModels.length === 0) {
+                document.getElementById('status-indicator').innerText = "Nothing to undo.";
+                return;
+            }
 
-            // Check if user wants to move, delete, or modify an existing model
-            const lower = userQuery.toLowerCase();
-            if (lower.includes('move') || lower.includes('ببە') || lower.includes('بگۆڕە') || lower.includes('لاببە') || lower.includes('scale')) {
-                if (loadedModels.length > 0 && geminiKey) {
-                    status.innerText = "Directing scene with AI...";
-                    await executeSceneModification(userQuery, geminiKey);
-                    return;
+            const lastItem = loadedModels.pop();
+            scene.remove(lastItem.model);
+
+            // Remove corresponding mixer
+            if (lastItem.mixer) {
+                const idx = activeMixers.indexOf(lastItem.mixer);
+                if (idx !== -1) activeMixers.splice(idx, 1);
+            }
+
+            // Remove collider if it was static
+            if (lastItem.collider) {
+                const cIdx = staticColliders.indexOf(lastItem.collider);
+                if (cIdx !== -1) staticColliders.splice(cIdx, 1);
+            }
+
+            // If the undone model was the controlled entity, switch to previous or exit
+            if (controlledEntity && controlledEntity.model === lastItem.model) {
+                exitControl();
+                const previousControllable = loadedModels.slice().reverse().find(m => m.type === 'vehicle' || m.type === 'character');
+                if (previousControllable) {
+                    switchToControl(previousControllable);
                 }
             }
 
-            // Otherwise, search & open selection picker
-            await searchAndOpenPicker(userQuery);
+            document.getElementById('status-indicator').innerText = "↩️ Last model removed (Undo).";
         }
 
-        // AI Scene Modifier
-        async function executeSceneModification(command, apiKey) {
-            const status = document.getElementById('status-indicator');
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: `You are an AI scene director for Three.js.
-Existing models are in array 'loadedModels'. Last active model is 'loadedModels[loadedModels.length - 1]'.
-User command: "${command}"
-Generate ONLY JavaScript to modify position, scale, or rotation of the model. Example: loadedModels[loadedModels.length - 1].position.x += 10;
-Output code inside \`\`\`javascript ... \`\`\`.`
-                            }]
-                        }]
-                    })
-                });
-                const data = await res.json();
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
-                const code = match ? match[1].trim() : text;
-                new Function('loadedModels', 'scene', 'THREE', code)(loadedModels, scene, THREE);
-                status.innerText = "✨ Model adjusted successfully!";
-            } catch(e) {
-                status.innerText = "Modification error: " + e.message;
+        function clearAllItems() {
+            loadedModels.forEach(item => scene.remove(item.model));
+            loadedModels = [];
+            activeMixers = [];
+            staticColliders = [];
+            exitControl();
+            document.getElementById('status-indicator').innerText = "🗑️ Entire universe cleared.";
+        }
+
+        function switchToControl(item) {
+            controlledEntity = {
+                model: item.model,
+                type: item.type,
+                wheels: item.wheels,
+                actions: item.actions,
+                currentAction: 'idle',
+                velocity: new THREE.Vector3(0, 0, 0),
+                baseY: item.baseY,
+                isGrounded: true
+            };
+            document.getElementById('joystick-zone').classList.remove('hidden');
+            document.getElementById('exit-control-btn').classList.remove('hidden');
+            if (item.type === 'character') {
+                document.getElementById('action-buttons-zone').classList.remove('hidden');
+            } else {
+                document.getElementById('action-buttons-zone').classList.add('hidden');
+                audio.startEngine();
             }
         }
 
-        // 9. SEARCH SKETCHFAB & DISPLAY SCROLLABLE PICKER
+        function exitControl() {
+            controlledEntity = null;
+            document.getElementById('joystick-zone').classList.add('hidden');
+            document.getElementById('action-buttons-zone').classList.add('hidden');
+            document.getElementById('exit-control-btn').classList.add('hidden');
+            audio.stopEngine();
+            controls.enabled = true;
+            document.getElementById('status-indicator').innerText = "Exited control mode.";
+        }
+
+        // 7. SMART SKETCHFAB SEARCH & PICKER
         async function searchAndOpenPicker(userQuery) {
             const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
             const geminiKey = localStorage.getItem('apexgen_gemini_key');
@@ -1056,7 +1130,7 @@ Output code inside \`\`\`javascript ... \`\`\`.`
             const pickerGrid = document.getElementById('picker-grid');
             pickerGrid.innerHTML = '';
 
-            searchData.results.slice(0, 12).forEach((item) => {
+            searchData.results.slice(0, 16).forEach((item) => {
                 const thumbUrl = item.thumbnails?.images?.[0]?.url || 'https://via.placeholder.com/150';
                 const card = document.createElement('div');
                 card.className = 'model-item';
@@ -1077,10 +1151,10 @@ Output code inside \`\`\`javascript ... \`\`\`.`
             });
 
             document.getElementById('picker-modal').classList.remove('hidden');
-            status.innerText = `Select your preferred style from the popup window!`;
+            status.innerText = `Scroll and select your preferred style!`;
         }
 
-        // 10. DOWNLOAD, UNPACK & BUILD
+        // 8. DOWNLOAD, UNPACK & SETUP ENTITY
         async function downloadAndBuildModel(item, token, queryKeyword) {
             const status = document.getElementById('status-indicator');
             status.innerText = `⏳ Requesting download for "${item.name}"...`;
@@ -1139,7 +1213,7 @@ Output code inside \`\`\`javascript ... \`\`\`.`
             });
         }
 
-        // 11. REALISTIC ENTITY SCALING & SOUND/PHYSICS SETUP
+        // 9. REALISTIC PLACEMENT & CONTROLLER ENABLING
         function handleEntitySetup(gltf, item, query) {
             const status = document.getElementById('status-indicator');
             const model = gltf.scene;
@@ -1154,13 +1228,13 @@ Output code inside \`\`\`javascript ... \`\`\`.`
             let entityType = 'static';
 
             if (lower.match(/village|town|city|castle|terrain|island|map|park|building|house|cabin/)) {
-                desiredSize = 75.0; // Large world environment
+                desiredSize = 75.0;
                 entityType = 'static';
             } else if (lower.match(/car|truck|ferrari|toyota|bmw|vehicle|police|tank|motorcycle|bike/)) {
-                desiredSize = 4.8;  // Real vehicle size
+                desiredSize = 4.8;
                 entityType = 'vehicle';
             } else if (lower.match(/kratos|batman|character|girl|boy|man|soldier|npc|warrior|robot|human|roxy/)) {
-                desiredSize = 1.95; // Human height
+                desiredSize = 1.95;
                 entityType = 'character';
             }
 
@@ -1175,15 +1249,12 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 model.position.x += loadedModels.length * 7;
             }
 
-            // Register obstacle collider if static to prevent passing through
+            let colliderObj = null;
             if (entityType === 'static') {
-                staticColliders.push({
-                    position: model.position,
-                    radius: desiredSize * 0.45
-                });
+                colliderObj = { position: model.position, radius: desiredSize * 0.45 };
+                staticColliders.push(colliderObj);
             }
 
-            // Find car wheels for physics spin
             const wheels = [];
             model.traverse((child) => {
                 if (child.isMesh) {
@@ -1195,12 +1266,12 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 }
             });
 
-            // Parse animations
             const actions = {};
+            let modelMixer = null;
             if (gltf.animations && gltf.animations.length > 0) {
-                const mixer = new THREE.AnimationMixer(model);
+                modelMixer = new THREE.AnimationMixer(model);
                 gltf.animations.forEach((clip) => {
-                    const action = mixer.clipAction(clip);
+                    const action = modelMixer.clipAction(clip);
                     const name = clip.name.toLowerCase();
                     if (name.includes('walk') || name.includes('run')) actions.walk = action;
                     else if (name.includes('attack') || name.includes('slash') || name.includes('punch')) actions.attack = action;
@@ -1209,58 +1280,30 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 });
 
                 if (actions.idle) actions.idle.play();
-                activeMixers.push(mixer);
+                activeMixers.push(modelMixer);
             }
 
             scene.add(model);
-            loadedModels.push(model);
 
-            const joystickZone = document.getElementById('joystick-zone');
-            const actionZone = document.getElementById('action-buttons-zone');
-            const exitBtn = document.getElementById('exit-control-btn');
+            const record = {
+                model,
+                type: entityType,
+                wheels,
+                actions,
+                mixer: modelMixer,
+                collider: colliderObj,
+                baseY
+            };
+
+            loadedModels.push(record);
 
             if (entityType === 'vehicle' || entityType === 'character') {
-                controlledEntity = {
-                    model,
-                    type: entityType,
-                    wheels,
-                    actions,
-                    currentAction: 'idle',
-                    velocity: new THREE.Vector3(0, 0, 0),
-                    baseY,
-                    isGrounded: true
-                };
-
-                joystickZone.classList.remove('hidden');
-                exitBtn.classList.remove('hidden');
-
-                if (entityType === 'character') {
-                    actionZone.classList.remove('hidden');
-                } else {
-                    actionZone.classList.add('hidden');
-                    audio.startEngine(); // Start realistic engine sound
-                }
-
-                status.innerText = `✨ Controlling "${item.name}". Chase Cam & Physics active!`;
+                switchToControl(record);
+                status.innerText = `✨ Controlling "${item.name}". Real Combat & Physics active!`;
             } else {
-                controlledEntity = null;
-                joystickZone.classList.add('hidden');
-                actionZone.classList.add('hidden');
-                exitBtn.classList.add('hidden');
-                audio.stopEngine();
+                exitControl();
                 status.innerText = `✨ Built "${item.name}" on the infinite map.`;
             }
-        }
-
-        // 12. EXIT CONTROL HANDLER
-        function exitControl() {
-            controlledEntity = null;
-            document.getElementById('joystick-zone').classList.add('hidden');
-            document.getElementById('action-buttons-zone').classList.add('hidden');
-            document.getElementById('exit-control-btn').classList.add('hidden');
-            audio.stopEngine();
-            controls.enabled = true;
-            document.getElementById('status-indicator').innerText = "Exited control mode. Free Orbit Cam active.";
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1271,6 +1314,8 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
+            document.getElementById('undo-btn').addEventListener('click', undoLastItem);
+            document.getElementById('clear-btn').addEventListener('click', clearAllItems);
             document.getElementById('exit-control-btn').addEventListener('click', exitControl);
 
             document.getElementById('key-btn').addEventListener('click', () => {
@@ -1292,15 +1337,6 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 document.getElementById('status-indicator').innerText = "Settings saved!";
             });
 
-            document.getElementById('clear-btn').addEventListener('click', () => {
-                loadedModels.forEach(m => scene.remove(m));
-                loadedModels = [];
-                staticColliders = [];
-                activeMixers = [];
-                exitControl();
-                document.getElementById('status-indicator').innerText = "Universe cleared.";
-            });
-
             document.getElementById('picker-close-btn').addEventListener('click', () => {
                 document.getElementById('picker-modal').classList.add('hidden');
             });
@@ -1311,7 +1347,7 @@ Output code inside \`\`\`javascript ... \`\`\`.`
                 const prompt = aiInput.value.trim();
                 if (prompt) {
                     try {
-                        await handleAIPrompt(prompt);
+                        await searchAndOpenPicker(prompt);
                     } catch (err) {
                         document.getElementById('status-indicator').innerText = "Error: " + err.message;
                     }
