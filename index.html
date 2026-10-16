@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - Cinematic 3D Studio</title>
+    <title>ApexGen - AAA 3D Interactive Engine</title>
     <!-- Three.js, Controls & JSZip -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -35,7 +35,7 @@
             touch-action: none;
         }
 
-        /* 1. CINEMATIC BOOT INTRO OVERLAY */
+        /* 1. CINEMATIC PS5 INTRO */
         #boot-intro {
             position: fixed;
             top: 0;
@@ -48,8 +48,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            transition: opacity 1.2s ease, visibility 1.2s ease;
-            overflow: hidden;
+            transition: opacity 1s ease, visibility 1s ease;
         }
         #intro-stars-canvas {
             position: absolute;
@@ -84,15 +83,14 @@
             color: #38bdf8;
             text-shadow: 0 0 35px rgba(56, 189, 248, 0.8), 0 0 70px rgba(56, 189, 248, 0.4);
             opacity: 0;
-            transform: scale(0.9);
-            animation: revealBrand 4.5s 3s forwards ease-out;
+            animation: revealBrand 4.5s 2.5s forwards ease-out;
         }
         .intro-enter-btn {
             margin-top: 15px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.1));
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.15));
             color: #f8fafc;
             border: 1px solid #38bdf8;
-            padding: 10px 28px;
+            padding: 10px 30px;
             border-radius: 30px;
             font-size: 0.9rem;
             font-weight: 700;
@@ -100,28 +98,11 @@
             cursor: pointer;
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
             opacity: 0;
-            animation: fadeInBtn 1.5s 6.8s forwards ease;
+            animation: fadeInBtn 1.5s 5.5s forwards ease;
         }
-        .intro-enter-btn:active {
-            transform: scale(0.96);
-            background: rgba(56, 189, 248, 0.5);
-        }
-
-        @keyframes fadeInWelcome {
-            0% { opacity: 0; transform: translateY(-8px); }
-            40% { opacity: 0.85; transform: translateY(0); }
-            80% { opacity: 0.85; }
-            100% { opacity: 0; transform: translateY(-8px); }
-        }
-        @keyframes revealBrand {
-            0% { opacity: 0; transform: scale(0.88); filter: blur(8px); }
-            60% { opacity: 1; transform: scale(1.02); filter: blur(0); }
-            100% { opacity: 1; transform: scale(1); filter: blur(0); }
-        }
-        @keyframes fadeInBtn {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInWelcome { 0% { opacity: 0; } 50% { opacity: 0.9; } 100% { opacity: 0.9; } }
+        @keyframes revealBrand { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes fadeInBtn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
         /* Top Header */
         header {
@@ -161,16 +142,21 @@
             cursor: pointer;
             backdrop-filter: blur(8px);
         }
+        .btn-danger {
+            background: rgba(225, 29, 72, 0.85);
+            border-color: #fb7185;
+            color: white;
+        }
         .btn-primary { background: #0284c7; border-color: #38bdf8; }
         .hidden { display: none !important; }
 
-        /* 2. ANALOG JOYSTICK */
+        /* 2. ANALOG JOYSTICK (Refined Touch Engine) */
         #joystick-zone {
             position: absolute;
-            bottom: 78px;
-            left: 24px;
-            width: 120px;
-            height: 120px;
+            bottom: 85px;
+            left: 20px;
+            width: 130px;
+            height: 130px;
             z-index: 50;
             touch-action: none;
         }
@@ -178,24 +164,23 @@
             position: relative;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle, #333945 0%, #1a1e27 60%, #0d1016 100%);
+            background: radial-gradient(circle, #384152 0%, #1e2430 65%, #0f131a 100%);
             border: 4px solid #475569;
             border-radius: 50%;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.8), inset 0 3px 8px rgba(255,255,255,0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 2px 6px rgba(255,255,255,0.2);
             display: flex;
             justify-content: center;
             align-items: center;
         }
         .joystick-thumb {
             position: absolute;
-            width: 52px;
-            height: 52px;
+            width: 55px;
+            height: 55px;
             background: radial-gradient(circle, #64748b 0%, #334155 70%, #1e293b 100%);
             border: 2px solid #94a3b8;
             border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.9), inset 0 2px 4px rgba(255,255,255,0.3);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.9), inset 0 2px 5px rgba(255,255,255,0.4);
             pointer-events: none;
-            transition: transform 0.05s linear;
         }
         .joystick-thumb::after {
             content: "";
@@ -203,22 +188,67 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             background: #1e293b;
             border: 1px solid #475569;
             border-radius: 50%;
         }
 
-        /* 3. MODEL SELECTION PICKER MODAL */
+        /* 3. ACTION BUTTONS (Jump, Attack, Sprint) */
+        #action-buttons-zone {
+            position: absolute;
+            bottom: 90px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        .action-row {
+            display: flex;
+            gap: 12px;
+        }
+        .action-btn {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid #38bdf8;
+            color: white;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 12px rgba(56, 189, 248, 0.3);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            touch-action: none;
+        }
+        .action-btn:active {
+            transform: scale(0.9);
+            background: rgba(2, 132, 199, 0.9);
+            box-shadow: 0 0 20px #38bdf8;
+        }
+        .action-btn-attack {
+            border-color: #f43f5e;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        }
+        .action-btn-sprint {
+            border-color: #eab308;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
+        }
+
+        /* 4. MODEL SELECTION PICKER MODAL (Full Smooth Scrolling) */
         #picker-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(3, 7, 18, 0.88);
-            backdrop-filter: blur(10px);
+            background: rgba(3, 7, 18, 0.9);
+            backdrop-filter: blur(12px);
             z-index: 100;
             display: flex;
             justify-content: center;
@@ -228,16 +258,16 @@
             background: #0b1120;
             border: 1px solid #1e293b;
             border-radius: 16px;
-            width: 92%;
-            max-width: 440px;
-            max-height: 80vh;
+            width: 94%;
+            max-width: 450px;
+            max-height: 85vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.9);
         }
         .picker-header {
-            padding: 12px 16px;
+            padding: 14px 18px;
             background: #0f172a;
             border-bottom: 1px solid #1e293b;
             display: flex;
@@ -250,20 +280,21 @@
             font-weight: 700;
         }
         .picker-grid {
-            padding: 12px;
+            padding: 14px;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            overflow-y: auto;
-            max-height: calc(80vh - 60px);
+            gap: 12px;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            max-height: calc(85vh - 65px);
+            padding-bottom: 35px;
         }
         .model-item {
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
         }
@@ -273,18 +304,18 @@
         }
         .model-thumb {
             width: 100%;
-            height: 95px;
+            height: 105px;
             object-fit: cover;
             background: #0f172a;
         }
         .model-info {
-            padding: 8px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
         .model-name {
-            font-size: 0.76rem;
+            font-size: 0.78rem;
             font-weight: 700;
             color: #f8fafc;
             white-space: nowrap;
@@ -294,9 +325,6 @@
         .model-author {
             font-size: 0.68rem;
             color: #94a3b8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         /* Bottom Search & AI Bar */
@@ -354,45 +382,6 @@
             align-items: center;
         }
 
-        /* Code Viewer */
-        #code-viewer-panel {
-            position: absolute;
-            top: 60px;
-            right: 12px;
-            width: 90%;
-            max-width: 360px;
-            height: 240px;
-            background: rgba(9, 14, 28, 0.96);
-            border: 1px solid #8b5cf6;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
-            z-index: 30;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .viewer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 10px;
-            background: rgba(30, 41, 59, 0.9);
-            font-size: 0.75rem;
-            color: #c7d2fe;
-            font-weight: bold;
-        }
-        #code-content {
-            padding: 8px;
-            font-family: monospace;
-            font-size: 0.72rem;
-            color: #38bdf8;
-            background: #030712;
-            overflow-y: auto;
-            flex: 1;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
         /* Settings Modal */
         .modal-overlay {
             position: fixed;
@@ -429,7 +418,7 @@
 </head>
 <body>
 
-    <!-- 1. CINEMATIC BOOT INTRO (PlayStation Style) -->
+    <!-- 1. INTRO SCREEN -->
     <div id="boot-intro">
         <canvas id="intro-stars-canvas"></canvas>
         <div class="intro-content">
@@ -442,7 +431,8 @@
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
-            <button id="toggle-code-btn" class="btn">Code &lt;/&gt;</button>
+            <!-- Chase Cam Exit Button -->
+            <button id="exit-control-btn" class="btn btn-danger hidden">Exit Control ✕</button>
             <button id="key-btn" class="btn">Key ⚙️</button>
             <button id="clear-btn" class="btn">Clear</button>
         </div>
@@ -450,42 +440,41 @@
 
     <div id="webgl-canvas"></div>
 
-    <!-- 2. MODERN CIRCULAR ANALOG JOYSTICK (Hidden by default, shown only for drivable models) -->
+    <!-- 2. ANALOG JOYSTICK -->
     <div id="joystick-zone" class="hidden">
         <div class="joystick-base" id="joystick-base">
             <div class="joystick-thumb" id="joystick-thumb"></div>
         </div>
     </div>
 
-    <!-- 3. MODEL SELECTION PICKER MODAL -->
+    <!-- 3. ACTION BUTTONS (ATTACK, JUMP, SPRINT) -->
+    <div id="action-buttons-zone" class="hidden">
+        <div class="action-row">
+            <button id="btn-attack" class="action-btn action-btn-attack" title="Attack">⚔️</button>
+        </div>
+        <div class="action-row">
+            <button id="btn-sprint" class="action-btn action-btn-sprint" title="Sprint">⚡</button>
+            <button id="btn-jump" class="action-btn" title="Jump">🦘</button>
+        </div>
+    </div>
+
+    <!-- 4. MODEL SELECTION PICKER MODAL -->
     <div id="picker-modal" class="hidden">
         <div class="picker-card">
             <div class="picker-header">
                 <span class="picker-title">Select Style to Download</span>
                 <button id="picker-close-btn" class="btn" style="padding: 2px 6px;">✕</button>
             </div>
-            <div id="picker-grid" class="picker-grid">
-                <!-- Dynamically populated cards with thumbnails -->
-            </div>
+            <div id="picker-grid" class="picker-grid"></div>
         </div>
     </div>
 
-    <!-- Live Code Viewer -->
-    <div id="code-viewer-panel" class="hidden">
-        <div class="viewer-header">
-            <span>⚡ Downloader & Physics Code</span>
-            <button id="close-viewer-btn" class="btn" style="padding: 2px 6px;">✕</button>
-        </div>
-        <pre id="code-content">// Search & Physics info will be logged here...</pre>
-    </div>
-
-    <!-- Search Bar with "make something" placeholder -->
+    <!-- Search Bar -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Describe your idea or tap 📷 to build!</div>
+        <div id="status-indicator" class="chat-status">Ready. Type your idea to build!</div>
         <div class="chat-bar">
             <input type="file" id="image-file-input" accept="image/*" style="display:none;" />
             <button id="btn-pick-image" class="btn-img-upload" title="Search with Image">📷</button>
-
             <input type="text" id="ai-input" class="chat-input" placeholder="make something" />
             <button id="ai-send" class="btn btn-primary">Build</button>
         </div>
@@ -498,7 +487,7 @@
             <div style="text-align: left; font-size: 0.8rem; color: #94a3b8;">
                 <label>Sketchfab Token (from sketchfab.com/settings/password)</label>
                 <input type="text" id="sketchfab-token-input" placeholder="Paste Token..." />
-                <label>Gemini API Key (For Smart Search & Image Vision)</label>
+                <label>Gemini API Key</label>
                 <input type="text" id="gemini-key-input" placeholder="Paste Gemini Key..." />
             </div>
             <div style="display: flex; gap: 8px; justify-content: center;">
@@ -509,17 +498,123 @@
     </div>
 
     <script>
+        // WEB AUDIO PROCEDURAL SOUND ENGINE
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.engineGain = null;
+                this.engineOsc = null;
+                this.isEngineRunning = false;
+                this.lastStepTime = 0;
+            }
+            init() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            }
+            startEngine() {
+                this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                if (this.isEngineRunning) return;
+
+                this.engineOsc = this.ctx.createOscillator();
+                this.engineGain = this.ctx.createGain();
+                this.filter = this.ctx.createBiquadFilter();
+
+                this.engineOsc.type = 'sawtooth';
+                this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
+
+                this.filter.type = 'lowpass';
+                this.filter.frequency.setValueAtTime(260, this.ctx.currentTime);
+
+                this.engineGain.gain.setValueAtTime(0.09, this.ctx.currentTime);
+
+                this.engineOsc.connect(this.filter);
+                this.filter.connect(this.engineGain);
+                this.engineGain.connect(this.ctx.destination);
+
+                this.engineOsc.start();
+                this.isEngineRunning = true;
+            }
+            setEngineSpeed(speedRatio) {
+                if (!this.isEngineRunning || !this.engineOsc) return;
+                const freq = 45 + Math.abs(speedRatio) * 115;
+                this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.05);
+                this.filter.frequency.setTargetAtTime(240 + Math.abs(speedRatio) * 450, this.ctx.currentTime, 0.05);
+            }
+            stopEngine() {
+                if (!this.isEngineRunning) return;
+                try {
+                    this.engineGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    setTimeout(() => {
+                        if (this.engineOsc) this.engineOsc.stop();
+                        this.isEngineRunning = false;
+                    }, 300);
+                } catch(e) { this.isEngineRunning = false; }
+            }
+            playFootstep() {
+                this.init();
+                const now = performance.now();
+                if (now - this.lastStepTime < 320) return;
+                this.lastStepTime = now;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(25, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.09);
+            }
+            playAttack() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(70, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+            playJump() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(320, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.23);
+            }
+        }
+
+        const audio = new SoundEngine();
+
         let scene, camera, renderer, controls;
         let activeMixers = [];
         let loadedModels = [];
-        let controlledEntity = null; // { model, type: 'vehicle'|'character', wheels: [], actions: { walk, idle }, currentAction }
+        let staticColliders = []; // Solid collision barriers to prevent walking through walls
+        let controlledEntity = null;
         let clock = new THREE.Clock();
         let infiniteFloor, infiniteGrid;
 
-        // Joystick analog values (-1 to 1)
+        // Controller input state
         const joystick = { x: 0, y: 0, active: false };
+        const actionState = { sprint: false, jump: false, attack: false };
 
-        // 1. BOOT INTRO ANIMATION WITH DUST PARTICLES
+        // 1. BOOT INTRO WITH PARTICLES
         function initBootIntro() {
             const canvas = document.getElementById('intro-stars-canvas');
             const ctx = canvas.getContext('2d');
@@ -560,26 +655,20 @@
             }
             draw();
 
-            const enterBtn = document.getElementById('intro-enter-btn');
             const closeIntro = () => {
+                audio.init();
                 const introEl = document.getElementById('boot-intro');
                 introEl.style.opacity = '0';
-                setTimeout(() => {
-                    introEl.style.display = 'none';
-                }, 1200);
+                setTimeout(() => { introEl.style.display = 'none'; }, 1000);
             };
 
-            enterBtn.addEventListener('click', closeIntro);
-
-            // Auto-enter after 9.5 seconds if user didn't tap
+            document.getElementById('intro-enter-btn').addEventListener('click', closeIntro);
             setTimeout(() => {
-                if (document.getElementById('boot-intro').style.display !== 'none') {
-                    closeIntro();
-                }
-            }, 9500);
+                if (document.getElementById('boot-intro').style.display !== 'none') closeIntro();
+            }, 9200);
         }
 
-        // 2. THREE.JS SCENE SETUP
+        // 2. THREE.JS ENGINE SETUP
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
@@ -609,6 +698,7 @@
             setupInfiniteMap();
             setupLighting();
             setupAnalogJoystick();
+            setupActionButtons();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -649,28 +739,17 @@
             scene.add(rimLight);
         }
 
-        // 3. MODERN ANALOG JOYSTICK ENGINE
+        // 3. GLITCH-FREE MULTI-TOUCH JOYSTICK
         function setupAnalogJoystick() {
-            const zone = document.getElementById('joystick-zone');
             const base = document.getElementById('joystick-base');
             const thumb = document.getElementById('joystick-thumb');
+            const maxRadius = 38;
+            let touchId = null;
+            let center = { x: 0, y: 0 };
 
-            let maxRadius = 38;
-            let startPos = { x: 0, y: 0 };
-
-            const handleStart = (e) => {
-                const touch = e.touches ? e.touches[0] : e;
-                const rect = base.getBoundingClientRect();
-                startPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                joystick.active = true;
-                handleMove(e);
-            };
-
-            const handleMove = (e) => {
-                if (!joystick.active) return;
-                const touch = e.touches ? e.touches[0] : e;
-                let dx = touch.clientX - startPos.x;
-                let dy = touch.clientY - startPos.y;
+            const updatePos = (clientX, clientY) => {
+                let dx = clientX - center.x;
+                let dy = clientY - center.y;
                 let dist = Math.hypot(dx, dy);
 
                 if (dist > maxRadius) {
@@ -680,89 +759,195 @@
 
                 thumb.style.transform = `translate(${dx}px, ${dy}px)`;
                 joystick.x = dx / maxRadius;
-                joystick.y = -dy / maxRadius; // invert Y so up is positive
+                joystick.y = -dy / maxRadius; // Up is positive
             };
 
-            const handleEnd = () => {
+            const reset = () => {
+                touchId = null;
                 joystick.active = false;
                 joystick.x = 0;
                 joystick.y = 0;
                 thumb.style.transform = `translate(0px, 0px)`;
             };
 
-            base.addEventListener('touchstart', handleStart, { passive: false });
-            window.addEventListener('touchmove', handleMove, { passive: false });
-            window.addEventListener('touchend', handleEnd);
+            base.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const t = e.changedTouches[0];
+                touchId = t.identifier;
+                const rect = base.getBoundingClientRect();
+                center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                joystick.active = true;
+                updatePos(t.clientX, t.clientY);
+            }, { passive: false });
 
-            base.addEventListener('mousedown', handleStart);
-            window.addEventListener('mousemove', handleMove);
-            window.addEventListener('mouseup', handleEnd);
+            window.addEventListener('touchmove', (e) => {
+                if (!joystick.active) return;
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchId) {
+                        updatePos(t.clientX, t.clientY);
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            const endTouch = (e) => {
+                if (!joystick.active) return;
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchId) {
+                        reset();
+                        break;
+                    }
+                }
+            };
+            window.addEventListener('touchend', endTouch);
+            window.addEventListener('touchcancel', endTouch);
         }
 
-        // 4. PHYSICS & SKELETAL ANIMATION UPDATE LOOP
+        // 4. ACTION BUTTONS SETUP
+        function setupActionButtons() {
+            const jumpBtn = document.getElementById('btn-jump');
+            const sprintBtn = document.getElementById('btn-sprint');
+            const attackBtn = document.getElementById('btn-attack');
+
+            jumpBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (controlledEntity && controlledEntity.isGrounded) {
+                    controlledEntity.velocity.y = 11.5;
+                    controlledEntity.isGrounded = false;
+                    audio.playJump();
+                }
+            });
+
+            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); actionState.sprint = true; });
+            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); actionState.sprint = false; });
+
+            attackBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                audio.playAttack();
+                if (controlledEntity && controlledEntity.actions && controlledEntity.actions.attack) {
+                    controlledEntity.actions.attack.reset().play();
+                } else if (controlledEntity && controlledEntity.model) {
+                    // Quick physical thrust animation if model has no attack clip
+                    const initialZ = controlledEntity.model.rotation.z;
+                    controlledEntity.model.rotation.z += 0.35;
+                    setTimeout(() => { controlledEntity.model.rotation.z = initialZ; }, 180);
+                }
+            });
+        }
+
+        // 5. COLLISION CHECK (Prevent walking through walls/buildings)
+        function checkCollision(nextPos, radius = 0.8) {
+            for (let obs of staticColliders) {
+                const dist = Math.hypot(nextPos.x - obs.position.x, nextPos.z - obs.position.z);
+                if (dist < (obs.radius + radius)) {
+                    return true; // Solid obstacle detected!
+                }
+            }
+            return false;
+        }
+
+        // 6. MAIN PHYSICS & CHASE CAM UPDATE LOOP
         function animate() {
             requestAnimationFrame(animate);
-            const delta = clock.getDelta();
+            const delta = Math.min(clock.getDelta(), 0.1);
 
             if (controlledEntity && controlledEntity.model) {
-                const { model, type, wheels, actions } = controlledEntity;
+                const { model, type, wheels, actions, velocity } = controlledEntity;
 
                 if (type === 'vehicle') {
-                    // VEHICLE PHYSICS & DRIVE
+                    // REALISTIC VEHICLE DRIVING PHYSICS
                     const turnInput = -joystick.x;
                     const driveInput = joystick.y;
-                    const moveMagnitude = Math.abs(driveInput);
+                    const speedRatio = driveInput;
 
-                    if (moveMagnitude > 0.05) {
+                    audio.setEngineSpeed(speedRatio);
+
+                    if (Math.abs(driveInput) > 0.05) {
                         model.rotation.y += turnInput * 2.8 * delta * (driveInput >= 0 ? 1 : -1);
                     }
 
                     const forwardVector = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                    const speed = driveInput * 16.0;
-                    model.position.addScaledVector(forwardVector, speed * delta);
+                    const currentSpeed = driveInput * 18.0;
+                    const nextPos = model.position.clone().addScaledVector(forwardVector, currentSpeed * delta);
 
-                    // Realistic wheel rotation
-                    if (wheels && wheels.length > 0) {
-                        wheels.forEach(w => w.rotation.x += speed * delta * 1.5);
+                    if (!checkCollision(nextPos, 1.6)) {
+                        model.position.copy(nextPos);
                     }
 
-                    // Realistic suspension tilt & bounce on stopping
+                    // Spin wheels
+                    if (wheels && wheels.length > 0) {
+                        wheels.forEach(w => w.rotation.x += currentSpeed * delta * 1.5);
+                    }
+
+                    // Suspension pitch tilt
                     const pitchTarget = -driveInput * 0.08;
                     model.rotation.x = THREE.MathUtils.lerp(model.rotation.x, pitchTarget, 0.1);
 
                 } else if (type === 'character') {
-                    // CHARACTER MOVEMENT & SKELETAL ANIMATION
+                    // REALISTIC HUMAN SKELETAL & PHYSICS MOVEMENT
                     const inputMag = Math.hypot(joystick.x, joystick.y);
+                    const speedMultiplier = actionState.sprint ? 2.2 : 1.0;
+                    const moveSpeed = inputMag * 6.5 * speedMultiplier;
 
                     if (inputMag > 0.15) {
-                        // Calculate target movement angle
-                        const moveAngle = Math.atan2(joystick.x, joystick.y);
-                        model.rotation.y = THREE.MathUtils.lerp(model.rotation.y, moveAngle, 0.2);
+                        const targetAngle = Math.atan2(joystick.x, joystick.y);
+                        model.rotation.y = THREE.MathUtils.lerp(model.rotation.y, targetAngle, 0.2);
 
                         const forwardVector = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                        model.position.addScaledVector(forwardVector, inputMag * 6.5 * delta);
+                        const nextPos = model.position.clone().addScaledVector(forwardVector, moveSpeed * delta);
 
-                        // Switch to Walk / Run Animation
+                        if (!checkCollision(nextPos, 0.7)) {
+                            model.position.x = nextPos.x;
+                            model.position.z = nextPos.z;
+                        }
+
+                        audio.playFootstep();
+
                         if (actions.walk && controlledEntity.currentAction !== 'walk') {
                             if (actions.idle) actions.idle.fadeOut(0.2);
                             actions.walk.reset().fadeIn(0.2).play();
                             controlledEntity.currentAction = 'walk';
                         }
                     } else {
-                        // Return to Idle Animation
                         if (actions.idle && controlledEntity.currentAction !== 'idle') {
                             if (actions.walk) actions.walk.fadeOut(0.25);
                             actions.idle.reset().fadeIn(0.25).play();
                             controlledEntity.currentAction = 'idle';
                         }
                     }
+
+                    // Gravity & Jumping physics
+                    velocity.y -= 28.0 * delta; // Gravity
+                    model.position.y += velocity.y * delta;
+
+                    if (model.position.y <= controlledEntity.baseY) {
+                        model.position.y = controlledEntity.baseY;
+                        velocity.y = 0;
+                        controlledEntity.isGrounded = true;
+                    }
                 }
 
-                // Smooth camera follow
-                controls.target.lerp(model.position, 0.08);
+                // 7. CINEMATIC CHASE CAMERA (Strictly behind the player like GTA/God of War)
+                controls.enabled = false;
+                const targetPos = model.position;
+                const isCar = type === 'vehicle';
+                const camDistance = isCar ? 9.5 : 5.8;
+                const camHeight = isCar ? 3.8 : 2.7;
+
+                const camOffset = new THREE.Vector3(0, camHeight, -camDistance);
+                camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y + Math.PI);
+
+                const desiredCamPos = targetPos.clone().add(camOffset);
+                camera.position.lerp(desiredCamPos, 0.12);
+
+                const lookTarget = targetPos.clone().add(new THREE.Vector3(0, isCar ? 1.3 : 1.6, 0));
+                camera.lookAt(lookTarget);
+
+            } else {
+                controls.enabled = true;
             }
 
-            // Infinite floor dynamic position
+            // Keep infinite floor following camera
             if (infiniteFloor && infiniteGrid) {
                 infiniteFloor.position.x = camera.position.x;
                 infiniteFloor.position.z = camera.position.z;
@@ -771,11 +956,61 @@
             }
 
             for (let mixer of activeMixers) mixer.update(delta);
-            controls.update();
+            if (controls.enabled) controls.update();
             renderer.render(scene, camera);
         }
 
-        // 5. SMART SKETCHFAB SEARCH & MODEL PICKER MODAL
+        // 8. SMART SCENE MANIPULATION OR SEARCH DISPATCHER
+        async function handleAIPrompt(userQuery) {
+            const geminiKey = localStorage.getItem('apexgen_gemini_key');
+            const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
+            const status = document.getElementById('status-indicator');
+
+            // Check if user wants to move, delete, or modify an existing model
+            const lower = userQuery.toLowerCase();
+            if (lower.includes('move') || lower.includes('ببە') || lower.includes('بگۆڕە') || lower.includes('لاببە') || lower.includes('scale')) {
+                if (loadedModels.length > 0 && geminiKey) {
+                    status.innerText = "Directing scene with AI...";
+                    await executeSceneModification(userQuery, geminiKey);
+                    return;
+                }
+            }
+
+            // Otherwise, search & open selection picker
+            await searchAndOpenPicker(userQuery);
+        }
+
+        // AI Scene Modifier
+        async function executeSceneModification(command, apiKey) {
+            const status = document.getElementById('status-indicator');
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `You are an AI scene director for Three.js.
+Existing models are in array 'loadedModels'. Last active model is 'loadedModels[loadedModels.length - 1]'.
+User command: "${command}"
+Generate ONLY JavaScript to modify position, scale, or rotation of the model. Example: loadedModels[loadedModels.length - 1].position.x += 10;
+Output code inside \`\`\`javascript ... \`\`\`.`
+                            }]
+                        }]
+                    })
+                });
+                const data = await res.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const match = text.match(/```(?:javascript|js)?([\s\S]*?)```/);
+                const code = match ? match[1].trim() : text;
+                new Function('loadedModels', 'scene', 'THREE', code)(loadedModels, scene, THREE);
+                status.innerText = "✨ Model adjusted successfully!";
+            } catch(e) {
+                status.innerText = "Modification error: " + e.message;
+            }
+        }
+
+        // 9. SEARCH SKETCHFAB & DISPLAY SCROLLABLE PICKER
         async function searchAndOpenPicker(userQuery) {
             const sketchfabToken = localStorage.getItem('apexgen_sketchfab_token');
             const geminiKey = localStorage.getItem('apexgen_gemini_key');
@@ -788,7 +1023,6 @@
             const status = document.getElementById('status-indicator');
             status.innerText = `🔍 Searching Sketchfab for "${userQuery}"...`;
 
-            // Smart Translation to English
             let englishKeyword = userQuery;
             if (geminiKey) {
                 try {
@@ -798,14 +1032,7 @@
                         body: JSON.stringify({
                             contents: [{
                                 parts: [{
-                                    text: `Extract ONLY 1 to 3 clean, specific English 3D search keywords for Sketchfab from this prompt (which may be in Kurdish or English). Do NOT write filler words.
-Examples:
-"کراتۆس" -> "Kratos God of War"
-"ڕۆکسی" -> "Roxanne Wolf FNAF"
-"سەیارەی تۆیۆتا" -> "Toyota car"
-"گوندێکی بچوک" -> "medieval village"
-Prompt: "${userQuery}"
-Output ONLY the keywords:`
+                                    text: `Extract ONLY 1 to 3 clean, specific English 3D search keywords for Sketchfab from this prompt: "${userQuery}". Output ONLY the keywords:`
                                 }]
                             }]
                         })
@@ -814,27 +1041,22 @@ Output ONLY the keywords:`
                         const data = await res.json();
                         englishKeyword = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/["\n\r]/g, '') || userQuery;
                     }
-                } catch (e) {}
+                } catch(e) {}
             }
 
-            // Query Sketchfab API with downloadable filter
             const searchUrl = `https://api.sketchfab.com/v3/search?type=models&downloadable=true&q=${encodeURIComponent(englishKeyword)}&sort_by=-likeCount`;
             const searchRes = await fetch(searchUrl, { headers: { 'Authorization': `Token ${sketchfabToken}` } });
 
-            if (!searchRes.ok) {
-                throw new Error("Sketchfab API Token invalid or rejected.");
-            }
-
+            if (!searchRes.ok) throw new Error("Sketchfab API token error.");
             const searchData = await searchRes.json();
             if (!searchData.results || searchData.results.length === 0) {
-                throw new Error(`No 3D models found for: "${englishKeyword}". Try another search term.`);
+                throw new Error(`No 3D models found for "${englishKeyword}". Try another keyword.`);
             }
 
-            // Populate the Selection Grid Modal
             const pickerGrid = document.getElementById('picker-grid');
             pickerGrid.innerHTML = '';
 
-            searchData.results.slice(0, 8).forEach((item) => {
+            searchData.results.slice(0, 12).forEach((item) => {
                 const thumbUrl = item.thumbnails?.images?.[0]?.url || 'https://via.placeholder.com/150';
                 const card = document.createElement('div');
                 card.className = 'model-item';
@@ -848,38 +1070,35 @@ Output ONLY the keywords:`
 
                 card.addEventListener('click', () => {
                     document.getElementById('picker-modal').classList.add('hidden');
-                    downloadAndBuildChosenModel(item, sketchfabToken, englishKeyword);
+                    downloadAndBuildModel(item, sketchfabToken, englishKeyword);
                 });
 
                 pickerGrid.appendChild(card);
             });
 
             document.getElementById('picker-modal').classList.remove('hidden');
-            status.innerText = `Choose your preferred style from the popup window!`;
+            status.innerText = `Select your preferred style from the popup window!`;
         }
 
-        // 6. DOWNLOAD, UNPACK & BUILD SELECTED MODEL
-        async function downloadAndBuildChosenModel(item, token, queryKeyword) {
+        // 10. DOWNLOAD, UNPACK & BUILD
+        async function downloadAndBuildModel(item, token, queryKeyword) {
             const status = document.getElementById('status-indicator');
-            const codeContent = document.getElementById('code-content');
             status.innerText = `⏳ Requesting download for "${item.name}"...`;
-            codeContent.innerText = `// Selected: "${item.name}"\n// UID: ${item.uid}\n`;
-            document.getElementById('code-viewer-panel').classList.remove('hidden');
 
             const downloadRes = await fetch(`https://api.sketchfab.com/v3/models/${item.uid}/download`, {
                 headers: { 'Authorization': `Token ${token}` }
             });
 
-            if (!downloadRes.ok) throw new Error("Sketchfab rejected download for this model.");
+            if (!downloadRes.ok) throw new Error("Download permission denied.");
             const downloadData = await downloadRes.json();
             const gltfInfo = downloadData.gltf;
-            if (!gltfInfo || !gltfInfo.url) throw new Error("glTF format not available for this model.");
+            if (!gltfInfo || !gltfInfo.url) throw new Error("glTF format unavailable for this model.");
 
             status.innerText = `📥 Downloading ${(gltfInfo.size / (1024*1024)).toFixed(1)} MB...`;
             const fileRes = await fetch(gltfInfo.url);
             const arrayBuffer = await fileRes.arrayBuffer();
 
-            status.innerText = `⚙️ Unpacking & preparing textures...`;
+            status.innerText = `⚙️ Preparing textures & colliders...`;
             const zip = await JSZip.loadAsync(arrayBuffer);
             const fileMap = {};
 
@@ -900,7 +1119,7 @@ Output ONLY the keywords:`
             if (glbPath) {
                 const buffer = await zip.files[glbPath].async("arraybuffer");
                 customLoader.parse(buffer, '', (gltf) => {
-                    handleRealisticEntityPlacement(gltf, item, queryKeyword);
+                    handleEntitySetup(gltf, item, queryKeyword);
                 });
                 return;
             }
@@ -916,52 +1135,55 @@ Output ONLY the keywords:`
             });
 
             new THREE.GLTFLoader(manager).parse(gltfText, '', (gltf) => {
-                handleRealisticEntityPlacement(gltf, item, queryKeyword);
+                handleEntitySetup(gltf, item, queryKeyword);
             });
         }
 
-        // 7. REALISTIC SCALING & SMART CONTROLLER ATTACHMENT
-        function handleRealisticEntityPlacement(gltf, item, query) {
+        // 11. REALISTIC ENTITY SCALING & SOUND/PHYSICS SETUP
+        function handleEntitySetup(gltf, item, query) {
             const status = document.getElementById('status-indicator');
-            const codeContent = document.getElementById('code-content');
             const model = gltf.scene;
 
-            // Compute Bounding Box
             const box = new THREE.Box3().setFromObject(model);
             const size = new THREE.Vector3();
             box.getSize(size);
             const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
             const lower = (query + " " + item.name).toLowerCase();
-
-            // Intelligent Realistic Scaling
-            let desiredWorldSize = 4.8; // default: vehicle
+            let desiredSize = 4.8;
             let entityType = 'static';
 
             if (lower.match(/village|town|city|castle|terrain|island|map|park|building|house|cabin/)) {
-                desiredWorldSize = 70.0; // Large environment
+                desiredSize = 75.0; // Large world environment
                 entityType = 'static';
-            } else if (lower.match(/car|truck|ferrari|toyota|bmw|vehicle|police|tank|motorcycle|bike|bicycle/)) {
-                desiredWorldSize = 4.8; // Real vehicle size (~4.8 meters)
+            } else if (lower.match(/car|truck|ferrari|toyota|bmw|vehicle|police|tank|motorcycle|bike/)) {
+                desiredSize = 4.8;  // Real vehicle size
                 entityType = 'vehicle';
             } else if (lower.match(/kratos|batman|character|girl|boy|man|soldier|npc|warrior|robot|human|roxy/)) {
-                desiredWorldSize = 1.95; // Real human height (~1.95 meters)
+                desiredSize = 1.95; // Human height
                 entityType = 'character';
-            } else {
-                desiredWorldSize = 2.0;
             }
 
-            const targetScale = desiredWorldSize / maxDim;
+            const targetScale = desiredSize / maxDim;
             model.scale.set(targetScale, targetScale, targetScale);
 
             box.setFromObject(model);
-            model.position.y = -box.min.y;
+            const baseY = -box.min.y;
+            model.position.y = baseY;
 
             if (loadedModels.length > 0 && entityType !== 'static') {
-                model.position.x += (loadedModels.length) * 7;
+                model.position.x += loadedModels.length * 7;
             }
 
-            // Find wheels for vehicle physics
+            // Register obstacle collider if static to prevent passing through
+            if (entityType === 'static') {
+                staticColliders.push({
+                    position: model.position,
+                    radius: desiredSize * 0.45
+                });
+            }
+
+            // Find car wheels for physics spin
             const wheels = [];
             model.traverse((child) => {
                 if (child.isMesh) {
@@ -973,20 +1195,17 @@ Output ONLY the keywords:`
                 }
             });
 
-            // Handle skeletal animation clips
+            // Parse animations
             const actions = {};
             if (gltf.animations && gltf.animations.length > 0) {
                 const mixer = new THREE.AnimationMixer(model);
                 gltf.animations.forEach((clip) => {
                     const action = mixer.clipAction(clip);
-                    const clipName = clip.name.toLowerCase();
-                    if (clipName.includes('walk') || clipName.includes('run')) {
-                        actions.walk = action;
-                    } else if (clipName.includes('idle') || clipName.includes('stand')) {
-                        actions.idle = action;
-                    } else if (!actions.idle) {
-                        actions.idle = action;
-                    }
+                    const name = clip.name.toLowerCase();
+                    if (name.includes('walk') || name.includes('run')) actions.walk = action;
+                    else if (name.includes('attack') || name.includes('slash') || name.includes('punch')) actions.attack = action;
+                    else if (name.includes('idle') || name.includes('stand')) actions.idle = action;
+                    else if (!actions.idle) actions.idle = action;
                 });
 
                 if (actions.idle) actions.idle.play();
@@ -996,67 +1215,52 @@ Output ONLY the keywords:`
             scene.add(model);
             loadedModels.push(model);
 
-            // CONTROL VISIBILITY RULE:
-            // Show Analog Joystick ONLY for vehicles or characters! Hide for houses/villages/props.
             const joystickZone = document.getElementById('joystick-zone');
+            const actionZone = document.getElementById('action-buttons-zone');
+            const exitBtn = document.getElementById('exit-control-btn');
+
             if (entityType === 'vehicle' || entityType === 'character') {
                 controlledEntity = {
                     model,
                     type: entityType,
                     wheels,
                     actions,
-                    currentAction: 'idle'
+                    currentAction: 'idle',
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    baseY,
+                    isGrounded: true
                 };
+
                 joystickZone.classList.remove('hidden');
-                status.innerText = `✨ Built: "${item.name}". Analog Joystick is active to drive/walk!`;
+                exitBtn.classList.remove('hidden');
+
+                if (entityType === 'character') {
+                    actionZone.classList.remove('hidden');
+                } else {
+                    actionZone.classList.add('hidden');
+                    audio.startEngine(); // Start realistic engine sound
+                }
+
+                status.innerText = `✨ Controlling "${item.name}". Chase Cam & Physics active!`;
             } else {
                 controlledEntity = null;
                 joystickZone.classList.add('hidden');
-                status.innerText = `✨ Built environment: "${item.name}".`;
+                actionZone.classList.add('hidden');
+                exitBtn.classList.add('hidden');
+                audio.stopEngine();
+                status.innerText = `✨ Built "${item.name}" on the infinite map.`;
             }
-
-            controls.target.copy(model.position);
-            camera.position.set(model.position.x, model.position.y + 4, model.position.z + 10);
-
-            codeContent.innerText += `\n// ✨ MODEL SUCCESSFULLY BUILT!\n// Title: ${item.name}\n// Type: ${entityType}\n// Scale: ${desiredWorldSize}m`;
         }
 
-        // IMAGE SEARCH HANDLER (Gemini Vision)
-        async function searchByImage(file) {
-            const geminiKey = localStorage.getItem('apexgen_gemini_key');
-            if (!geminiKey) {
-                alert("Please add Gemini Key in Key ⚙️ for Image Search!");
-                document.getElementById('api-modal').classList.remove('hidden');
-                return;
-            }
-
-            const status = document.getElementById('status-indicator');
-            status.innerText = "📷 Analyzing uploaded image with AI...";
-
-            const base64Data = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.readAsDataURL(file);
-            });
-
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(geminiKey)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: "Identify the main 3D object in this image. Output ONLY 2-3 English search keywords (e.g. 'police car', 'wooden cottage', 'spiderman'). Do not output sentences:" },
-                            { inline_data: { mime_type: file.type || "image/jpeg", data: base64Data } }
-                        ]
-                    }]
-                })
-            });
-
-            if (!res.ok) throw new Error("Gemini Image Vision failed.");
-            const data = await res.json();
-            const keyword = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/["\n\r]/g, '') || "car";
-            document.getElementById('ai-input').value = keyword;
-            await searchAndOpenPicker(keyword);
+        // 12. EXIT CONTROL HANDLER
+        function exitControl() {
+            controlledEntity = null;
+            document.getElementById('joystick-zone').classList.add('hidden');
+            document.getElementById('action-buttons-zone').classList.add('hidden');
+            document.getElementById('exit-control-btn').classList.add('hidden');
+            audio.stopEngine();
+            controls.enabled = true;
+            document.getElementById('status-indicator').innerText = "Exited control mode. Free Orbit Cam active.";
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1067,7 +1271,8 @@ Output ONLY the keywords:`
                 document.getElementById('api-modal').classList.remove('hidden');
             }
 
-            // Settings Modal
+            document.getElementById('exit-control-btn').addEventListener('click', exitControl);
+
             document.getElementById('key-btn').addEventListener('click', () => {
                 document.getElementById('sketchfab-token-input').value = localStorage.getItem('apexgen_sketchfab_token') || '';
                 document.getElementById('gemini-key-input').value = localStorage.getItem('apexgen_gemini_key') || '';
@@ -1087,51 +1292,26 @@ Output ONLY the keywords:`
                 document.getElementById('status-indicator').innerText = "Settings saved!";
             });
 
-            // Clear Scene
             document.getElementById('clear-btn').addEventListener('click', () => {
                 loadedModels.forEach(m => scene.remove(m));
                 loadedModels = [];
+                staticColliders = [];
                 activeMixers = [];
-                controlledEntity = null;
-                document.getElementById('joystick-zone').classList.add('hidden');
-                document.getElementById('status-indicator').innerText = "Scene cleared.";
+                exitControl();
+                document.getElementById('status-indicator').innerText = "Universe cleared.";
             });
 
-            // Code Window
-            document.getElementById('toggle-code-btn').addEventListener('click', () => {
-                document.getElementById('code-viewer-panel').classList.toggle('hidden');
-            });
-            document.getElementById('close-viewer-btn').addEventListener('click', () => {
-                document.getElementById('code-viewer-panel').classList.add('hidden');
-            });
-
-            // Picker Close
             document.getElementById('picker-close-btn').addEventListener('click', () => {
                 document.getElementById('picker-modal').classList.add('hidden');
             });
 
-            // Image Picker Trigger
-            const fileInput = document.getElementById('image-file-input');
-            document.getElementById('btn-pick-image').addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    try {
-                        await searchByImage(file);
-                    } catch (err) {
-                        document.getElementById('status-indicator').innerText = "Error: " + err.message;
-                    }
-                }
-            });
-
-            // Search execution
             const aiInput = document.getElementById('ai-input');
             const aiSend = document.getElementById('ai-send');
             const handleExecute = async () => {
                 const prompt = aiInput.value.trim();
                 if (prompt) {
                     try {
-                        await searchAndOpenPicker(prompt);
+                        await handleAIPrompt(prompt);
                     } catch (err) {
                         document.getElementById('status-indicator').innerText = "Error: " + err.message;
                     }
