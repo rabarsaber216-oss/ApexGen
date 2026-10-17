@@ -1,162 +1,525 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ku" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AI Studio Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexGen - AI 3D Game Engine</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            margin: 0; padding: 0; box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            user-select: none; -webkit-tap-highlight-color: transparent;
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050811;
+            color: #ffffff;
+            font-family: 'Vazirmatn', sans-serif;
+            user-select: none;
         }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #02040a; color: #ffffff; }
-        #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
-        /* HEADER HUD */
-        header {
-            position: absolute; top: 0; left: 0; width: 100%; padding: 14px 20px;
-            display: flex; justify-content: space-between; align-items: center; z-index: 20;
-            background: linear-gradient(to bottom, rgba(2,4,10,0.9), transparent); pointer-events: none;
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
         }
-        .brand { font-size: 1.3rem; font-weight: 900; color: #38bdf8; letter-spacing: 1.5px; pointer-events: auto; }
-        .header-actions { display: flex; gap: 8px; pointer-events: auto; }
-        .hud-btn {
-            background: rgba(15, 23, 42, 0.85); color: #f8fafc; border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 7px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-            backdrop-filter: blur(8px);
+        /* Glassmorphism */
+        .glass {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
         }
-        .btn-danger { background: rgba(225, 29, 72, 0.85); border-color: #fb7185; }
-
-        /* ANALOG JOYSTICK */
-        #joystick-zone {
-            position: absolute; bottom: 85px; left: 20px; width: 130px; height: 130px; z-index: 50; touch-action: none;
+        .neon-shadow {
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.35), inset 0 0 15px rgba(14, 165, 233, 0.15);
         }
-        .joystick-base {
-            width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(30,41,59,0.85) 0%, rgba(15,23,42,0.95) 100%);
-            border: 2px solid rgba(56, 189, 248, 0.4); border-radius: 50%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center;
-            position: relative;
+        /* Splash Animation */
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 20px #38bdf8, 0 0 40px #0284c7, 0 0 80px #0369a1; transform: scale(1); }
+            50% { text-shadow: 0 0 35px #a855f7, 0 0 70px #7e22ce, 0 0 110px #581c87; transform: scale(1.04); }
         }
-        .joystick-thumb {
-            width: 55px; height: 55px; background: linear-gradient(135deg, #38bdf8, #0284c7);
-            border-radius: 50%; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.6); position: absolute; pointer-events: none;
+        .welcome-text {
+            animation: pulseGlow 2.5s infinite ease-in-out;
         }
-
-        /* ACTION BUTTONS */
-        #action-buttons-zone {
-            position: absolute; bottom: 85px; right: 20px; z-index: 50; display: flex; flex-direction: column; gap: 12px; align-items: center;
-        }
-        .action-btn {
-            width: 55px; height: 55px; border-radius: 50%; background: rgba(15, 23, 42, 0.85);
-            border: 2px solid rgba(56, 189, 248, 0.5); color: white; font-size: 1.3rem;
-            display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.8);
-            cursor: pointer; backdrop-filter: blur(8px); touch-action: none;
-        }
-        .action-btn:active { transform: scale(0.9); background: #0284c7; }
-
-        /* COMMAND BAR */
-        .chat-container {
-            position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-            width: 94%; max-width: 650px; z-index: 20; display: flex; flex-direction: column; gap: 6px;
-        }
-        .chat-status {
-            font-size: 0.78rem; color: #38bdf8; background: rgba(15, 23, 42, 0.9);
-            padding: 5px 12px; border-radius: 6px; backdrop-filter: blur(8px); border-left: 3px solid #38bdf8; align-self: flex-start;
-        }
-        .chat-bar {
-            display: flex; background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(56, 189, 248, 0.4);
-            border-radius: 12px; padding: 5px 8px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); align-items: center; gap: 6px; backdrop-filter: blur(10px);
-        }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 0.9rem; padding: 6px; }
-
-        /* API SETTINGS MODAL */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 200;
-        }
-        .modal-card {
-            background: #0b1120; border: 1px solid #1e293b; padding: 22px; border-radius: 16px;
-            width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-        }
-        .modal-card input {
-            width: 100%; background: #1e293b; border: 1px solid #334155; color: white;
-            padding: 9px 12px; border-radius: 8px; margin-top: 5px; margin-bottom: 14px; outline: none; font-size: 0.85rem;
-        }
-        .hidden { display: none !important; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 3px; }
     </style>
 </head>
-<body>
+<body class="w-screen h-screen relative">
 
-    <header>
-        <div class="brand">ApexGen</div>
-        <div class="header-actions">
-            <button id="key-btn" class="hud-btn" style="border-color: #38bdf8; color: #38bdf8;">Key ⚙️</button>
-            <button id="undo-btn" class="hud-btn">Undo ↩️</button>
-            <button id="clear-btn" class="hud-btn btn-danger">Clear 🗑️</button>
-            <button id="exit-control-btn" class="hud-btn btn-danger hidden">Exit ✕</button>
-        </div>
-    </header>
-
-    <div id="webgl-canvas"></div>
-
-    <div id="joystick-zone" class="hidden">
-        <div class="joystick-base" id="joystick-base">
-            <div class="joystick-thumb" id="joystick-thumb"></div>
-        </div>
-    </div>
-
-    <div id="action-buttons-zone" class="hidden">
-        <button id="btn-attack" class="action-btn" style="border-color: #f43f5e;">⚔️</button>
-        <button id="btn-jump" class="action-btn">🦘</button>
-    </div>
-
-    <!-- API SETTINGS MODAL -->
-    <div id="api-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <h3 style="color:#38bdf8; margin-bottom: 12px;">AI & API Keys Setup</h3>
-            <div style="text-align: left; font-size: 0.8rem; color: #94a3b8;">
-                <label>Gemini / OpenAI / Claude API Key</label>
-                <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
+    <!-- 1. SPLASH SCREEN (Welcome to ApexGen) -->
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030712] transition-opacity duration-1000">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
+        <div class="relative z-10 text-center px-4">
+            <div class="inline-block p-4 rounded-full bg-sky-500/10 border border-sky-400/30 mb-6 animate-bounce">
+                <i class="fa-solid fa-cubes-stacked text-5xl text-sky-400"></i>
             </div>
-            <div style="display: flex; gap: 8px; justify-content: center;">
-                <button id="btn-save-key" class="hud-btn" style="background: #0284c7; border: none; padding: 8px 20px;">Save</button>
-                <button id="btn-close-key" class="hud-btn">Close</button>
+            <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider uppercase welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500" dir="ltr">
+                Welcome to ApexGen
+            </h1>
+            <p class="mt-5 text-slate-400 text-lg md:text-xl tracking-wide">
+                بزوێنەری زیرەکی دەستکرد بۆ دروستکردنی یاری 3D بە شێوەی ڕاستەوخۆ
+            </p>
+            <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
+                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2500ms] ease-out"></div>
             </div>
         </div>
     </div>
 
-    <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Click 'Key ⚙️' to add your API key, then build!</div>
-        <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="Type command..." />
-            <button id="ai-send" class="hud-btn" style="background: #0284c7; border: none; padding: 8px 18px;">Build</button>
+    <!-- 2. API KEY SETUP MODAL -->
+    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.15),transparent_60%)] pointer-events-none"></div>
+        
+        <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="font-cyber text-2xl md:text-3xl font-extrabold text-sky-400" dir="ltr">ApexGen Setup</h2>
+                    <p class="text-slate-400 text-sm mt-1">جۆری زیرەکی دەستکرد هەڵبژێرە و کلیلەکەت (API Key) دابنێ</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
+                    <i class="fa-solid fa-microchip text-2xl text-sky-400"></i>
+                </div>
+            </div>
+
+            <!-- AI Provider Selection -->
+            <label class="block text-sm font-semibold text-slate-300 mb-3">١. هەڵبژاردنی مۆدێلی AI:</label>
+            <div class="grid grid-cols-3 gap-3 mb-6" dir="ltr">
+                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-2xl text-sky-400 mb-1.5"></i>
+                    <span class="font-bold text-sm">Gemini</span>
+                    <span class="text-[10px] text-sky-300 mt-0.5">Google AI</span>
+                </button>
+                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-bolt text-2xl text-emerald-400 mb-1.5"></i>
+                    <span class="font-bold text-sm">OpenAI</span>
+                    <span class="text-[10px] text-slate-400 mt-0.5">GPT-4o</span>
+                </button>
+                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-brain text-2xl text-amber-400 mb-1.5"></i>
+                    <span class="font-bold text-sm">Claude</span>
+                    <span class="text-[10px] text-slate-400 mt-0.5">Anthropic</span>
+                </button>
+            </div>
+
+            <!-- API Key Input + Direct Link Button -->
+            <label class="block text-sm font-semibold text-slate-300 mb-2">٢. کلیلی تایبەت (API Key):</label>
+            <div class="flex items-center gap-2 mb-3">
+                <div class="relative flex-1">
+                    <input id="apiKeyInput" type="password" dir="ltr" placeholder="Paste your Gemini API Key here..." 
+                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-4 py-3.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
+                        oninput="handleKeyInput(this.value)">
+                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                        <i id="eyeIcon" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <!-- Small Button to take user to the chosen API Key page -->
+                <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank" title="بڕۆ بۆ هێنانی API Key"
+                    class="px-4 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
+                    <i class="fa-solid fa-key"></i>
+                    <span>هێنانی Key</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+
+            <!-- Status message -->
+            <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-center gap-2 min-h-[20px]">
+                <i class="fa-solid fa-circle-info text-sky-400"></i>
+                <span>هەر کە API Key لێرە دابنێیت، ڕاستەوخۆ پاشەکەوت دەبێت و پەیوەندی دەبەستێت.</span>
+            </div>
+
+            <!-- Connect Button -->
+            <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-4 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-plug-circle-bolt"></i>
+                <span>پەیوەندیکردن و کردنەوەی جیهانی 3D</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. MAIN 3D WORKSPACE -->
+    <div id="workspace" class="fixed inset-0 hidden">
+        <!-- Three.js Canvas Container -->
+        <div id="canvasContainer" class="w-full h-full"></div>
+
+        <!-- TOP NAVIGATION BAR -->
+        <div class="fixed top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+            <!-- Brand & Connection Badge -->
+            <div class="glass px-4 py-2.5 rounded-2xl flex items-center gap-3 pointer-events-auto shadow-lg">
+                <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
+                <span class="font-cyber font-bold text-lg text-sky-400" dir="ltr">ApexGen 3D</span>
+                <span id="activeProviderBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold" dir="ltr">Gemini</span>
+                <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white ml-1" title="گۆڕینی API Key">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+
+            <!-- Dynamic Game HUD / Object Counter -->
+            <div class="glass px-4 py-2 rounded-2xl hidden md:flex items-center gap-4 text-xs text-slate-300 pointer-events-auto">
+                <span><i class="fa-solid fa-cube text-sky-400 ml-1"></i> تەنە دروستکراوەکان: <strong id="objectCount" class="text-white">0</strong></span>
+                <span><i class="fa-solid fa-gamepad text-purple-400 ml-1"></i> جوڵان: <strong>WASD / ماوس</strong></span>
+                <button onclick="resetWorld()" class="text-rose-400 hover:text-rose-300 font-semibold">
+                    <i class="fa-solid fa-rotate-right ml-1"></i> پاککردنەوە
+                </button>
+            </div>
+
+            <!-- SAVE & INSTALL BUTTONS (Hidden until user builds something!) -->
+            <div id="actionButtons" class="hidden items-center gap-2.5 pointer-events-auto">
+                <button onclick="openProjectModal('save')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span dir="ltr">Save</span>
+                </button>
+                <button onclick="openProjectModal('install')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-download"></i>
+                    <span dir="ltr">Install</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- BOTTOM AI CHAT INTERFACE -->
+        <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-3xl pointer-events-auto">
+            <!-- Chat History Drawer -->
+            <div id="chatHistory" class="glass rounded-2xl p-4 mb-2.5 max-h-48 overflow-y-auto space-y-2.5 text-sm">
+                <div class="flex items-start gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 leading-relaxed">
+                        بەخێربێیت بۆ نەخشەی بێکۆتای <strong>ApexGen</strong>! پێم بڵێ چ یارییەک یان چ تەنێکی 3D دروست بکەم؟ (بۆ نموونە: <em>"ئۆتۆمبێلێکی سوور دروست بکە بە دوگمەکانی کیبۆرد لێبخوڕێت"</em> یان <em>"شارێکی گەورەی پڕ لە باڵەخانە و درەخت دروست بکە"</em>).
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <div class="glass neon-shadow rounded-2xl p-2 flex items-center gap-2">
+                <input id="promptInput" type="text" placeholder="لێرە بنووسە چ یارییەک یان چی دروست بکەم لەناو ماپەکە..." 
+                    class="flex-1 bg-transparent px-4 py-2.5 text-white placeholder-slate-400 text-sm outline-none"
+                    onkeydown="if(event.key === 'Enter') sendPromptToAI()">
+                <button id="sendBtn" onclick="sendPromptToAI()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm flex items-center gap-2 shrink-0 transition-all">
+                    <i id="sendIcon" class="fa-solid fa-paper-plane"></i>
+                    <span>دروستکردن</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. SAVE / INSTALL PROJECT MODAL (Name & Icon) -->
+    <div id="projectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div class="glass neon-shadow w-full max-w-md rounded-3xl p-6 md:p-8 border border-sky-500/30">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="modalTitle" class="text-xl font-extrabold text-sky-400">پاشەکەوتکردنی پڕۆژە (Save)</h3>
+                <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Project Name -->
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-slate-300 mb-2">ناوی پڕۆژە (یارییەکەت):</label>
+                <input id="projectNameInput" type="text" placeholder="بۆ نموونە: Super Car 3D" 
+                    class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-4 py-3 text-white text-sm outline-none">
+            </div>
+
+            <!-- Project Icon Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-slate-300 mb-2">ئایکۆنی پڕۆژە (Icon):</label>
+                <div class="flex items-center gap-4">
+                    <div id="iconPreviewBox" class="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden shrink-0">
+                        <i id="defaultIconPreview" class="fa-solid fa-gamepad text-2xl text-slate-500"></i>
+                        <img id="iconPreviewImg" src="" class="w-full h-full object-cover hidden" alt="Project Icon">
+                    </div>
+                    <label class="flex-1 cursor-pointer">
+                        <div class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-center text-slate-200 font-semibold transition-all">
+                            <i class="fa-solid fa-upload ml-1 text-sky-400"></i> هەڵبژاردنی وێنەی ئایکۆن
+                        </div>
+                        <input type="file" accept="image/*" class="hidden" onchange="handleIconUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Confirm Action Button -->
+            <button id="confirmProjectBtn" onclick="executeProjectAction()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span id="confirmProjectBtnText">پاشەکەوتکردن</span>
+            </button>
         </div>
     </div>
 
     <script>
-        let scene, camera, renderer, controls;
-        let loadedModels = [];
-        let staticColliders = [];
-        let controlledEntity = null;
-        let clock = new THREE.Clock();
-        let infiniteFloor, infiniteGrid;
+        /**************************************************************
+         * 1. STATE & API PROVIDER CONFIGURATION
+         **************************************************************/
+        const PROVIDERS = {
+            gemini: {
+                name: 'Gemini',
+                placeholder: 'Paste your Gemini API Key (AIzaSy...)',
+                keyUrl: 'https://aistudio.google.com/app/apikey',
+                storageKey: 'apexgen_key_gemini'
+            },
+            openai: {
+                name: 'OpenAI',
+                placeholder: 'Paste your OpenAI API Key (sk-...)',
+                keyUrl: 'https://platform.openai.com/api-keys',
+                storageKey: 'apexgen_key_openai'
+            },
+            claude: {
+                name: 'Claude',
+                placeholder: 'Paste your Claude API Key (sk-ant-...)',
+                keyUrl: 'https://console.anthropic.com/settings/keys',
+                storageKey: 'apexgen_key_claude'
+            }
+        };
 
-        const joystick = { x: 0, y: 0, active: false };
+        let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
+        let currentApiKey = '';
+        let projectScripts = []; // Stores all AI-generated 3D JS code blocks
+        let currentModalMode = 'save'; // 'save' or 'install'
+        let projectIconDataUrl = ''; // Base64 icon image
+        let autoConnectTimer = null;
 
-        function initScene() {
-            const container = document.getElementById('webgl-canvas');
+        /**************************************************************
+         * 2. INITIALIZATION & SPLASH SCREEN
+         **************************************************************/
+        window.addEventListener('DOMContentLoaded', () => {
+            // Animate splash progress bar
+            setTimeout(() => {
+                document.getElementById('splashProgress').style.width = '100%';
+            }, 100);
+
+            // Transition from Welcome screen to API Setup after 2.6 seconds
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.classList.add('hidden');
+                    const auth = document.getElementById('authScreen');
+                    auth.classList.remove('hidden');
+                    auth.classList.add('flex');
+                    selectProvider(currentProvider);
+                }, 800);
+            }, 2600);
+        });
+
+        function selectProvider(provider) {
+            currentProvider = provider;
+            localStorage.setItem('apexgen_provider', provider);
+
+            // Update UI Buttons
+            ['gemini', 'openai', 'claude'].forEach(p => {
+                const btn = document.getElementById(`btn-${p}`);
+                if (p === provider) {
+                    btn.className = 'provider-btn flex flex-col items-center p-3.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20';
+                } else {
+                    btn.className = 'provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
+                }
+            });
+
+            // Update Input & Get Key Link
+            const config = PROVIDERS[provider];
+            const input = document.getElementById('apiKeyInput');
+            input.placeholder = config.placeholder;
+            document.getElementById('getKeyLink').href = config.keyUrl;
+
+            // Load saved key if available
+            const savedKey = localStorage.getItem(config.storageKey) || '';
+            input.value = savedKey;
+            currentApiKey = savedKey;
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        }
+
+        // Auto-save key immediately and trigger connection when pasted/entered
+        function handleKeyInput(val) {
+            const trimmed = val.trim();
+            currentApiKey = trimmed;
+            localStorage.setItem(PROVIDERS[currentProvider].storageKey, trimmed);
+
+            const status = document.getElementById('authStatus');
+            if (trimmed.length > 20) {
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-emerald-400">کلیلەکە ڕاستەوخۆ پاشەکەوت کرا (Saved)! خەریکی پەیوەندیکردنە...</span>`;
+                clearTimeout(autoConnectTimer);
+                autoConnectTimer = setTimeout(() => {
+                    verifyAndConnect();
+                }, 900);
+            } else {
+                status.innerHTML = `<i class="fa-solid fa-circle-info text-sky-400"></i> <span>تکایە API Key تەواو دابنێ بۆ پەیوەندیکردن.</span>`;
+            }
+        }
+
+        async function verifyAndConnect() {
+            clearTimeout(autoConnectTimer);
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const status = document.getElementById('authStatus');
+            const btn = document.getElementById('connectBtn');
+
+            if (!key || key.length < 15) {
+                status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400"></i> <span class="text-rose-400">تکایە سەرەتا API Key دروست دابنێ!</span>`;
+                return;
+            }
+
+            currentApiKey = key;
+            localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>پشکنینی پەیوەندی لەگەڵ ${PROVIDERS[currentProvider].name}...</span>`;
+
+            try {
+                // Real live ping to verify the API Key works
+                await callAIProvider("Say 'OK'", true);
+
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-emerald-400">پەیوەندی سەرکەوتوو بوو! کردنەوەی جیهانی 3D...</span>`;
+                document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
+
+                setTimeout(() => {
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('authScreen').classList.remove('flex');
+                    document.getElementById('workspace').classList.remove('hidden');
+                    init3DWorld();
+                }, 500);
+            } catch (err) {
+                status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i> <span class="text-rose-400">هەڵە لە کلیلەکەدا هەیە: ${err.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>پەیوەندیکردن و کردنەوەی جیهانی 3D</span>`;
+            }
+        }
+
+        function openAuthSettings() {
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('authScreen').classList.add('flex');
+        }
+
+        /**************************************************************
+         * 3. REAL AI API CONNECTION (GEMINI, OPENAI, CLAUDE)
+         **************************************************************/
+        const ENGINE_SYSTEM_PROMPT = `
+You are the core 3D Game Engine AI of "ApexGen".
+The user is inside a live Three.js (r128) infinite 3D world.
+Available globals in the execution scope:
+- THREE (Three.js r128 library)
+- scene (THREE.Scene)
+- camera (THREE.PerspectiveCamera)
+- renderer (THREE.WebGLRenderer)
+- controls (THREE.OrbitControls)
+- window.updateFunctions (Array of functions: push any per-frame callback \`(delta, time) => {}\` here to animate objects, move cars/players, handle keyboard input, physics, or game loops)
+- window.keysPressed (Object tracking currently pressed keys in lowercase, e.g., \`window.keysPressed['w']\`, \`window.keysPressed['arrowup']\`)
+- window.createdObjects (Array: push every root THREE.Mesh or THREE.Group you add to \`scene\` into \`window.createdObjects\` as well so it can be tracked).
+
+Respond ONLY with a valid JSON object (no markdown fences around the JSON) in this exact format:
+{
+  "reply": "Short friendly explanation in Kurdish (Sorani) of what you built and how to interact with it.",
+  "code": "Executable JavaScript code using THREE, scene, camera, window.updateFunctions, window.keysPressed, and window.createdObjects. Do NOT redeclare scene or camera. Build rich, colorful, multi-part 3D meshes, lighting, and interactive game mechanics."
+}`;
+
+        async function callAIProvider(userPrompt, isPing = false) {
+            const promptText = isPing ? "Reply with valid JSON: {\"reply\":\"OK\",\"code\":\"\"}" : userPrompt;
+
+            if (currentProvider === 'gemini') {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: ENGINE_SYSTEM_PROMPT }] },
+                        contents: [{ parts: [{ text: promptText }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'Gemini API Error');
+                const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+                return parseAIJson(rawText);
+            }
+
+            if (currentProvider === 'openai') {
+                const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        response_format: { type: "json_object" },
+                        messages: [
+                            { role: 'system', content: ENGINE_SYSTEM_PROMPT },
+                            { role: 'user', content: promptText }
+                        ]
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'OpenAI API Error');
+                return parseAIJson(data.choices[0].message.content);
+            }
+
+            if (currentProvider === 'claude') {
+                const res = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': currentApiKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-5-sonnet-latest',
+                        max_tokens: 4000,
+                        system: ENGINE_SYSTEM_PROMPT,
+                        messages: [{ role: 'user', content: promptText }]
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'Claude API Error');
+                return parseAIJson(data.content[0].text);
+            }
+        }
+
+        function parseAIJson(text) {
+            try {
+                const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                return JSON.parse(cleaned);
+            } catch (e) {
+                // Fallback if model returned raw code
+                return { reply: "فەرمانەکەت جێبەجێ کرا!", code: text };
+            }
+        }
+
+        /**************************************************************
+         * 4. INFINITE 3D WORLD ENGINE (THREE.JS)
+         **************************************************************/
+        let scene, camera, renderer, controls, infiniteGrid, infiniteFloor, clock;
+        window.updateFunctions = [];
+        window.createdObjects = [];
+        window.keysPressed = {};
+
+        window.addEventListener('keydown', e => { window.keysPressed[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', e => { window.keysPressed[e.key.toLowerCase()] = false; });
+
+        function init3DWorld() {
+            if (renderer) return; // Already initialized
+
+            const container = document.getElementById('canvasContainer');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x02040a);
-            scene.fog = new THREE.FogExp2(0x02040a, 0.003);
+            scene.background = new THREE.Color(0x060b19);
+            scene.fog = new THREE.FogExp2(0x060b19, 0.0025);
 
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
-            camera.position.set(0, 8, 20);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 15, 35);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
@@ -165,26 +528,30 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-            const groundGeo = new THREE.PlaneGeometry(15000, 15000);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x050b18, roughness: 0.9 });
-            infiniteFloor = new THREE.Mesh(groundGeo, groundMat);
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+            dirLight.position.set(60, 120, 80);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Infinite Floor & Grid
+            const floorGeo = new THREE.PlaneGeometry(10000, 10000);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x091024, roughness: 0.85, metalness: 0.1 });
+            infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
-            infiniteGrid = new THREE.GridHelper(4000, 400, 0x38bdf8, 0x1e293b);
+            infiniteGrid = new THREE.GridHelper(2000, 200, 0x0ea5e9, 0x1e293b);
             infiniteGrid.position.y = 0.02;
             scene.add(infiniteGrid);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.5);
-            dirLight.position.set(40, 60, 30);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
-
-            setupJoystick();
-            setupButtons();
+            clock = new THREE.Clock();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -192,199 +559,285 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            animate();
+            animate3D();
         }
 
-        function setupJoystick() {
-            const base = document.getElementById('joystick-base');
-            const thumb = document.getElementById('joystick-thumb');
-            const maxRadius = 38;
-            let touchId = null, center = { x: 0, y: 0 };
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            const delta = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
 
-            base.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const t = e.changedTouches[0];
-                touchId = t.identifier;
-                const rect = base.getBoundingClientRect();
-                center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                joystick.active = true;
-            }, { passive: false });
+            // Keep Grid & Floor truly infinite by following camera X/Z
+            const snap = 10;
+            infiniteGrid.position.x = Math.floor(camera.position.x / snap) * snap;
+            infiniteGrid.position.z = Math.floor(camera.position.z / snap) * snap;
+            infiniteFloor.position.x = camera.position.x;
+            infiniteFloor.position.z = camera.position.z;
 
-            window.addEventListener('touchmove', (e) => {
-                if (!joystick.active) return;
-                for (let t of e.changedTouches) {
-                    if (t.identifier === touchId) {
-                        let dx = t.clientX - center.x, dy = t.clientY - center.y;
-                        let dist = Math.hypot(dx, dy);
-                        if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
-                        thumb.style.transform = `translate(${dx}px, ${dy}px)`;
-                        joystick.x = dx / maxRadius; joystick.y = -dy / maxRadius;
-                    }
+            // Run AI-generated game loop functions
+            for (let i = 0; i < window.updateFunctions.length; i++) {
+                try {
+                    window.updateFunctions[i](delta, elapsedTime);
+                } catch (e) {
+                    console.error("Error in AI update loop:", e);
                 }
-            }, { passive: false });
-
-            const end = () => {
-                touchId = null; joystick.active = false; joystick.x = 0; joystick.y = 0;
-                thumb.style.transform = `translate(0px, 0px)`;
-            };
-            window.addEventListener('touchend', end);
-        }
-
-        function setupButtons() {
-            document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (controlledEntity && controlledEntity.isGrounded) {
-                    controlledEntity.velocity.y = 12;
-                    controlledEntity.isGrounded = false;
-                }
-            });
-        }
-
-        function spawnEntity(query) {
-            const q = query.toLowerCase();
-            const group = new THREE.Group();
-            let type = 'character';
-
-            if (q.includes('car') || q.includes('سەیارە')) {
-                type = 'vehicle';
-                const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 4.6), new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8 }));
-                body.position.y = 0.6; body.castShadow = true; group.add(body);
-            } else if (q.includes('castle') || q.includes('خانوو')) {
-                type = 'static';
-                const base = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 9), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-                base.position.y = 3; base.castShadow = true; group.add(base);
-                staticColliders.push({ position: group.position, radius: 5 });
-            } else {
-                type = 'character';
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.3, 0.5), new THREE.MeshStandardMaterial({ color: 0xf43f5e }));
-                body.position.y = 1.3; body.castShadow = true; group.add(body);
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({ color: 0xfde047 }));
-                head.position.y = 2.1; group.add(head);
             }
 
-            if (loadedModels.length > 0 && type !== 'static') group.position.x += loadedModels.length * 6;
-            scene.add(group);
-
-            const record = { model: group, type, velocity: new THREE.Vector3(), baseY: 0, isGrounded: true };
-            loadedModels.push(record);
-
-            if (type !== 'static') {
-                controlledEntity = record;
-                document.getElementById('joystick-zone').classList.remove('hidden');
-                document.getElementById('exit-control-btn').classList.remove('hidden');
-                if (type === 'character') document.getElementById('action-buttons-zone').classList.remove('hidden');
-            }
-            document.getElementById('status-indicator').innerText = `✨ Successfully built: "${query}"!`;
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = Math.min(clock.getDelta(), 0.1);
-
-            if (controlledEntity && controlledEntity.model) {
-                const { model, type, velocity } = controlledEntity;
-
-                if (type === 'vehicle') {
-                    if (Math.abs(joystick.y) > 0.05) {
-                        model.rotation.y -= joystick.x * 3.0 * delta * Math.sign(joystick.y);
-                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                        model.position.addScaledVector(fwd, joystick.y * 18 * delta);
-                    }
-                } else if (type === 'character') {
-                    const mag = Math.hypot(joystick.x, joystick.y);
-                    if (mag > 0.15) {
-                        model.rotation.y = Math.atan2(joystick.x, joystick.y);
-                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                        model.position.addScaledVector(fwd, mag * 7 * delta);
-                    }
-                    velocity.y -= 25 * delta;
-                    model.position.y += velocity.y * delta;
-                    if (model.position.y <= 0) { model.position.y = 0; velocity.y = 0; controlledEntity.isGrounded = true; }
-                }
-
-                // Chase Camera
-                controls.enabled = false;
-                const offset = new THREE.Vector3(0, type === 'vehicle' ? 4 : 2.8, type === 'vehicle' ? -10 : -6);
-                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y + Math.PI);
-                camera.position.lerp(model.position.clone().add(offset), 0.12);
-                camera.lookAt(model.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
-            } else {
-                controls.enabled = true;
-            }
-
-            if (infiniteFloor && infiniteGrid) {
-                infiniteFloor.position.x = camera.position.x; infiniteFloor.position.z = camera.position.z;
-                infiniteGrid.position.x = Math.floor(camera.position.x / 10) * 10;
-                infiniteGrid.position.z = Math.floor(camera.position.z / 10) * 10;
-            }
-
-            if (controls.enabled) controls.update();
+            controls.update();
             renderer.render(scene, camera);
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initScene();
+        function resetWorld() {
+            window.createdObjects.forEach(obj => scene.remove(obj));
+            window.createdObjects = [];
+            window.updateFunctions = [];
+            projectScripts = [];
+            document.getElementById('objectCount').innerText = '0';
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('actionButtons').classList.remove('flex');
+            appendChatMessage('ai', 'نەخشەی 3D بە تەواوی پاککرایەوە. ئامادەیە بۆ دروستکردنی یارییەکی نوێ!');
+        }
 
-            // Key Modal Logic
-            const modal = document.getElementById('api-modal');
-            if (!localStorage.getItem('apexgen_api_key')) {
-                modal.classList.remove('hidden');
+        /**************************************************************
+         * 5. AI CHAT & LIVE 3D CODE EXECUTION
+         **************************************************************/
+        async function sendPromptToAI() {
+            const input = document.getElementById('promptInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            appendChatMessage('user', text);
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>دروستدەکرێت...</span>`;
+
+            try {
+                const result = await callAIProvider(text, false);
+
+                if (result.code && result.code.trim() !== '') {
+                    // Execute the AI's Three.js code inside the live 3D world
+                    const prevCount = scene.children.length;
+                    const execFn = new Function('THREE', 'scene', 'camera', 'renderer', 'controls', result.code);
+                    execFn(THREE, scene, camera, renderer, controls);
+
+                    // Track newly added scene children if AI forgot to push to window.createdObjects
+                    scene.children.slice(prevCount).forEach(child => {
+                        if (!window.createdObjects.includes(child)) {
+                            window.createdObjects.push(child);
+                        }
+                    });
+
+                    projectScripts.push(result.code);
+                    document.getElementById('objectCount').innerText = window.createdObjects.length;
+
+                    // Reveal SAVE & INSTALL buttons now that something was created!
+                    const actionBtns = document.getElementById('actionButtons');
+                    actionBtns.classList.remove('hidden');
+                    actionBtns.classList.add('flex');
+                }
+
+                appendChatMessage('ai', result.reply || 'بە سەرکەوتوویی لەناو ماپەکە دروست کرا!');
+            } catch (err) {
+                appendChatMessage('ai', `⚠️ هەڵە ڕوویدا لە کاتی دروستکردن: ${err.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>دروستکردن</span>`;
+            }
+        }
+
+        function appendChatMessage(role, msg) {
+            const chatHistory = document.getElementById('chatHistory');
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-2.5';
+
+            if (role === 'user') {
+                div.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-user text-indigo-400 text-xs"></i>
+                    </div>
+                    <div class="bg-indigo-950/60 border border-indigo-800/50 rounded-xl px-3.5 py-2 text-indigo-100 leading-relaxed">
+                        ${msg}
+                    </div>`;
+            } else {
+                div.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 leading-relaxed">
+                        ${msg}
+                    </div>`;
+            }
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        /**************************************************************
+         * 6. SAVE & INSTALL SYSTEM (WITH PROJECT NAME & ICON)
+         **************************************************************/
+        function openProjectModal(mode) {
+            currentModalMode = mode;
+            const modal = document.getElementById('projectModal');
+            const title = document.getElementById('modalTitle');
+            const btnText = document.getElementById('confirmProjectBtnText');
+
+            if (mode === 'save') {
+                title.innerText = 'پاشەکەوتکردنی پڕۆژە (Save Project)';
+                btnText.innerText = 'پاشەکەوتکردنی هەموو شتەکان (Save)';
+            } else {
+                title.innerText = 'دابەزاندنی یارییەکە (Install Game)';
+                btnText.innerText = 'داگرتن بۆ سەر مۆبایل / کۆمپیوتەر (Install)';
             }
 
-            document.getElementById('key-btn').addEventListener('click', () => {
-                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
-                modal.classList.remove('hidden');
-            });
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
 
-            document.getElementById('btn-close-key').addEventListener('click', () => modal.classList.add('hidden'));
+        function closeProjectModal() {
+            const modal = document.getElementById('projectModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
-            document.getElementById('btn-save-key').addEventListener('click', () => {
-                const key = document.getElementById('api-key-input').value.trim();
-                if (key) {
-                    localStorage.setItem('apexgen_api_key', key);
-                    document.getElementById('status-indicator').innerText = "API Key saved successfully!";
-                }
-                modal.classList.add('hidden');
-            });
-
-            document.getElementById('undo-btn').addEventListener('click', () => {
-                if (loadedModels.length === 0) return;
-                const last = loadedModels.pop();
-                scene.remove(last.model);
-                document.getElementById('status-indicator').innerText = "↩️ Last item undone.";
-            });
-
-            document.getElementById('clear-btn').addEventListener('click', () => {
-                loadedModels.forEach(m => scene.remove(m.model));
-                loadedModels = [];
-                controlledEntity = null;
-                document.getElementById('joystick-zone').classList.add('hidden');
-                document.getElementById('action-buttons-zone').classList.add('hidden');
-                document.getElementById('exit-control-btn').classList.add('hidden');
-                controls.enabled = true;
-                document.getElementById('status-indicator').innerText = "🗑️ Studio cleared.";
-            });
-
-            document.getElementById('exit-control-btn').addEventListener('click', () => {
-                controlledEntity = null;
-                document.getElementById('joystick-zone').classList.add('hidden');
-                document.getElementById('action-buttons-zone').classList.add('hidden');
-                document.getElementById('exit-control-btn').classList.add('hidden');
-                controls.enabled = true;
-                document.getElementById('status-indicator').innerText = "Camera unlocked.";
-            });
-
-            const input = document.getElementById('ai-input');
-            const execute = () => {
-                const prompt = input.value.trim();
-                if (prompt) {
-                    spawnEntity(prompt);
-                    input.value = '';
-                }
+        function handleIconUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                projectIconDataUrl = e.target.result;
+                const img = document.getElementById('iconPreviewImg');
+                const defIcon = document.getElementById('defaultIconPreview');
+                img.src = projectIconDataUrl;
+                img.classList.remove('hidden');
+                defIcon.classList.add('hidden');
             };
-            document.getElementById('ai-send').addEventListener('click', execute);
-            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') execute(); });
+            reader.readAsDataURL(file);
+        }
+
+        function executeProjectAction() {
+            const projectName = document.getElementById('projectNameInput').value.trim() || 'ApexGen_3D_Game';
+            const iconUrl = projectIconDataUrl || 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png';
+
+            if (currentModalMode === 'save') {
+                // Save everything to LocalStorage + Download Project JSON Backup
+                const projectData = {
+                    name: projectName,
+                    icon: iconUrl,
+                    savedAt: new Date().toISOString(),
+                    scripts: projectScripts
+                };
+                localStorage.setItem(`apexgen_project_${projectName}`, JSON.stringify(projectData));
+
+                const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+                triggerDownload(blob, `${projectName}.apexgen.json`);
+                appendChatMessage('ai', `✅ پڕۆژەی <strong>${projectName}</strong> بە سەرکەوتوویی لەگەڵ ئایکۆنەکەی پاشەکەوت کرا (Saved)!`);
+            } else {
+                // INSTALL: Generate a standalone, playable 3D Game HTML file with embedded Icon & Manifest!
+                const standaloneGameHtml = buildStandaloneGameFile(projectName, iconUrl, projectScripts);
+                const blob = new Blob([standaloneGameHtml], { type: 'text/html' });
+                triggerDownload(blob, `${projectName}.html`);
+                appendChatMessage('ai', `🚀 یاری <strong>${projectName}</strong> بە سەرکەوتوویی دابەزێنرا سەر ئامێرەکەت! دەتوانیت ڕاستەوخۆ بیکەیتەوە و یاری پێ بکەیت.`);
+            }
+
+            closeProjectModal();
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function buildStandaloneGameFile(name, icon, scripts) {
+            const combinedCode = scripts.join('\n\n');
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="${name}">
+    <title>${name}</title>
+    <link rel="icon" href="${icon}">
+    <link rel="apple-touch-icon" href="${icon}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #060b19; font-family: sans-serif; }
+        #hud { position: fixed; top: 15px; left: 15px; display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.8); color: white; padding: 8px 14px; border-radius: 14px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; }
+        #hud img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <img src="${icon}" alt="icon">
+        <strong>${name}</strong>
+    </div>
+    <script>
+        window.updateFunctions = [];
+        window.createdObjects = [];
+        window.keysPressed = {};
+        window.addEventListener('keydown', e => window.keysPressed[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => window.keysPressed[e.key.toLowerCase()] = false);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x060b19);
+        scene.fog = new THREE.FogExp2(0x060b19, 0.0025);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 15, 35);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        scene.add(new THREE.AmbientLight(0xdbeafe, 0.7));
+        const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+        dirLight.position.set(60, 120, 80);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), new THREE.MeshStandardMaterial({ color: 0x091024 }));
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+        const grid = new THREE.GridHelper(2000, 200, 0x0ea5e9, 0x1e293b);
+        scene.add(grid);
+
+        // Execute Generated Game Scripts
+        try {
+            ${combinedCode}
+        } catch(e) { console.error(e); }
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+            grid.position.x = Math.floor(camera.position.x / 10) * 10;
+            grid.position.z = Math.floor(camera.position.z / 10) * 10;
+            floor.position.x = camera.position.x;
+            floor.position.z = camera.position.z;
+            window.updateFunctions.forEach(fn => fn(delta, elapsed));
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
+    <\/script>
+</body>
+</html>`;
+        }
     </script>
 </body>
 </html>
