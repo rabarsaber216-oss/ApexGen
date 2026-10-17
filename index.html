@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ku" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -20,13 +20,12 @@
             overflow: hidden;
             background-color: #050811;
             color: #ffffff;
-            font-family: 'Vazirmatn', sans-serif;
+            font-family: 'Inter', sans-serif;
             user-select: none;
         }
         .font-cyber {
             font-family: 'Orbitron', sans-serif;
         }
-        /* Glassmorphism */
         .glass {
             background: rgba(15, 23, 42, 0.78);
             backdrop-filter: blur(16px);
@@ -36,7 +35,6 @@
         .neon-shadow {
             box-shadow: 0 0 25px rgba(14, 165, 233, 0.35), inset 0 0 15px rgba(14, 165, 233, 0.15);
         }
-        /* Splash Animation */
         @keyframes pulseGlow {
             0%, 100% { text-shadow: 0 0 20px #38bdf8, 0 0 40px #0284c7, 0 0 80px #0369a1; transform: scale(1); }
             50% { text-shadow: 0 0 35px #a855f7, 0 0 70px #7e22ce, 0 0 110px #581c87; transform: scale(1.04); }
@@ -44,7 +42,6 @@
         .welcome-text {
             animation: pulseGlow 2.5s infinite ease-in-out;
         }
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
         ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 3px; }
@@ -59,11 +56,11 @@
             <div class="inline-block p-4 rounded-full bg-sky-500/10 border border-sky-400/30 mb-6 animate-bounce">
                 <i class="fa-solid fa-cubes-stacked text-5xl text-sky-400"></i>
             </div>
-            <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider uppercase welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500" dir="ltr">
+            <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider uppercase welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500">
                 Welcome to ApexGen
             </h1>
             <p class="mt-5 text-slate-400 text-lg md:text-xl tracking-wide">
-                بزوێنەری زیرەکی دەستکرد بۆ دروستکردنی یاری 3D بە شێوەی ڕاستەوخۆ
+                Next-Gen Real-Time AI 3D Game Creation Engine
             </p>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
                 <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2500ms] ease-out"></div>
@@ -78,8 +75,8 @@
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="font-cyber text-2xl md:text-3xl font-extrabold text-sky-400" dir="ltr">ApexGen Setup</h2>
-                    <p class="text-slate-400 text-sm mt-1">جۆری زیرەکی دەستکرد هەڵبژێرە و کلیلەکەت (API Key) دابنێ</p>
+                    <h2 class="font-cyber text-2xl md:text-3xl font-extrabold text-sky-400">ApexGen Setup</h2>
+                    <p class="text-slate-400 text-sm mt-1">Select your AI provider and enter your API Key</p>
                 </div>
                 <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
                     <i class="fa-solid fa-microchip text-2xl text-sky-400"></i>
@@ -87,8 +84,8 @@
             </div>
 
             <!-- AI Provider Selection -->
-            <label class="block text-sm font-semibold text-slate-300 mb-3">١. هەڵبژاردنی مۆدێلی AI:</label>
-            <div class="grid grid-cols-3 gap-3 mb-6" dir="ltr">
+            <label class="block text-sm font-semibold text-slate-300 mb-3">1. Select AI Model:</label>
+            <div class="grid grid-cols-3 gap-3 mb-6">
                 <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
                     <i class="fa-solid fa-wand-magic-sparkles text-2xl text-sky-400 mb-1.5"></i>
                     <span class="font-bold text-sm">Gemini</span>
@@ -107,35 +104,35 @@
             </div>
 
             <!-- API Key Input + Direct Link Button -->
-            <label class="block text-sm font-semibold text-slate-300 mb-2">٢. کلیلی تایبەت (API Key):</label>
+            <label class="block text-sm font-semibold text-slate-300 mb-2">2. Enter API Key:</label>
             <div class="flex items-center gap-2 mb-3">
                 <div class="relative flex-1">
-                    <input id="apiKeyInput" type="password" dir="ltr" placeholder="Paste your Gemini API Key here..." 
-                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-4 py-3.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
+                    <input id="apiKeyInput" type="password" placeholder="Paste your Gemini API Key here..." 
+                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-4 pr-10 py-3.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
                         oninput="handleKeyInput(this.value)">
                     <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
                         <i id="eyeIcon" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
                 <!-- Small Button to take user to the chosen API Key page -->
-                <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank" title="بڕۆ بۆ هێنانی API Key"
+                <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank" title="Get your API Key"
                     class="px-4 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
                     <i class="fa-solid fa-key"></i>
-                    <span>هێنانی Key</span>
+                    <span>Get Key</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                 </a>
             </div>
 
             <!-- Status message -->
-            <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-center gap-2 min-h-[20px]">
-                <i class="fa-solid fa-circle-info text-sky-400"></i>
-                <span>هەر کە API Key لێرە دابنێیت، ڕاستەوخۆ پاشەکەوت دەبێت و پەیوەندی دەبەستێت.</span>
+            <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-start gap-2 min-h-[20px]">
+                <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
+                <span>Your API Key is automatically saved and connected as soon as you paste it.</span>
             </div>
 
             <!-- Connect Button -->
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-4 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-plug-circle-bolt"></i>
-                <span>پەیوەندیکردن و کردنەوەی جیهانی 3D</span>
+                <span>Connect & Launch 3D World</span>
             </button>
         </div>
     </div>
@@ -150,19 +147,19 @@
             <!-- Brand & Connection Badge -->
             <div class="glass px-4 py-2.5 rounded-2xl flex items-center gap-3 pointer-events-auto shadow-lg">
                 <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
-                <span class="font-cyber font-bold text-lg text-sky-400" dir="ltr">ApexGen 3D</span>
-                <span id="activeProviderBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold" dir="ltr">Gemini</span>
-                <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white ml-1" title="گۆڕینی API Key">
+                <span class="font-cyber font-bold text-lg text-sky-400">ApexGen 3D</span>
+                <span id="activeProviderBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini</span>
+                <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white ml-1" title="API Key Settings">
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
 
             <!-- Dynamic Game HUD / Object Counter -->
             <div class="glass px-4 py-2 rounded-2xl hidden md:flex items-center gap-4 text-xs text-slate-300 pointer-events-auto">
-                <span><i class="fa-solid fa-cube text-sky-400 ml-1"></i> تەنە دروستکراوەکان: <strong id="objectCount" class="text-white">0</strong></span>
-                <span><i class="fa-solid fa-gamepad text-purple-400 ml-1"></i> جوڵان: <strong>WASD / ماوس</strong></span>
+                <span><i class="fa-solid fa-cube text-sky-400 mr-1"></i> Objects: <strong id="objectCount" class="text-white">0</strong></span>
+                <span><i class="fa-solid fa-gamepad text-purple-400 mr-1"></i> Controls: <strong>WASD / Mouse / Touch</strong></span>
                 <button onclick="resetWorld()" class="text-rose-400 hover:text-rose-300 font-semibold">
-                    <i class="fa-solid fa-rotate-right ml-1"></i> پاککردنەوە
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset World
                 </button>
             </div>
 
@@ -170,11 +167,11 @@
             <div id="actionButtons" class="hidden items-center gap-2.5 pointer-events-auto">
                 <button onclick="openProjectModal('save')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-floppy-disk"></i>
-                    <span dir="ltr">Save</span>
+                    <span>Save</span>
                 </button>
                 <button onclick="openProjectModal('install')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-download"></i>
-                    <span dir="ltr">Install</span>
+                    <span>Install</span>
                 </button>
             </div>
         </div>
@@ -188,19 +185,19 @@
                         <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
                     </div>
                     <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 leading-relaxed">
-                        بەخێربێیت بۆ نەخشەی بێکۆتای <strong>ApexGen</strong>! پێم بڵێ چ یارییەک یان چ تەنێکی 3D دروست بکەم؟ (بۆ نموونە: <em>"ئۆتۆمبێلێکی سوور دروست بکە بە دوگمەکانی کیبۆرد لێبخوڕێت"</em> یان <em>"شارێکی گەورەی پڕ لە باڵەخانە و درەخت دروست بکە"</em>).
+                        Welcome to the <strong>ApexGen</strong> Infinite 3D World! Tell me what game or 3D objects to build (e.g., <em>"Build a red sports car I can drive with WASD"</em> or <em>"Create a futuristic cyber city with glowing towers"</em>).
                     </div>
                 </div>
             </div>
 
             <!-- Chat Input Bar -->
             <div class="glass neon-shadow rounded-2xl p-2 flex items-center gap-2">
-                <input id="promptInput" type="text" placeholder="لێرە بنووسە چ یارییەک یان چی دروست بکەم لەناو ماپەکە..." 
+                <input id="promptInput" type="text" placeholder="Describe what you want AI to build in the 3D world..." 
                     class="flex-1 bg-transparent px-4 py-2.5 text-white placeholder-slate-400 text-sm outline-none"
                     onkeydown="if(event.key === 'Enter') sendPromptToAI()">
                 <button id="sendBtn" onclick="sendPromptToAI()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm flex items-center gap-2 shrink-0 transition-all">
                     <i id="sendIcon" class="fa-solid fa-paper-plane"></i>
-                    <span>دروستکردن</span>
+                    <span>Generate</span>
                 </button>
             </div>
         </div>
@@ -210,7 +207,7 @@
     <div id="projectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-md rounded-3xl p-6 md:p-8 border border-sky-500/30">
             <div class="flex items-center justify-between mb-6">
-                <h3 id="modalTitle" class="text-xl font-extrabold text-sky-400">پاشەکەوتکردنی پڕۆژە (Save)</h3>
+                <h3 id="modalTitle" class="text-xl font-extrabold text-sky-400">Save Project</h3>
                 <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white text-lg">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -218,14 +215,14 @@
 
             <!-- Project Name -->
             <div class="mb-5">
-                <label class="block text-sm font-semibold text-slate-300 mb-2">ناوی پڕۆژە (یارییەکەت):</label>
-                <input id="projectNameInput" type="text" placeholder="بۆ نموونە: Super Car 3D" 
+                <label class="block text-sm font-semibold text-slate-300 mb-2">Project Name:</label>
+                <input id="projectNameInput" type="text" placeholder="e.g., Cyber Racer 3D" 
                     class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-4 py-3 text-white text-sm outline-none">
             </div>
 
             <!-- Project Icon Upload -->
             <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-300 mb-2">ئایکۆنی پڕۆژە (Icon):</label>
+                <label class="block text-sm font-semibold text-slate-300 mb-2">Project Icon:</label>
                 <div class="flex items-center gap-4">
                     <div id="iconPreviewBox" class="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden shrink-0">
                         <i id="defaultIconPreview" class="fa-solid fa-gamepad text-2xl text-slate-500"></i>
@@ -233,7 +230,7 @@
                     </div>
                     <label class="flex-1 cursor-pointer">
                         <div class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-center text-slate-200 font-semibold transition-all">
-                            <i class="fa-solid fa-upload ml-1 text-sky-400"></i> هەڵبژاردنی وێنەی ئایکۆن
+                            <i class="fa-solid fa-upload mr-1 text-sky-400"></i> Upload Icon Image
                         </div>
                         <input type="file" accept="image/*" class="hidden" onchange="handleIconUpload(event)">
                     </label>
@@ -243,7 +240,7 @@
             <!-- Confirm Action Button -->
             <button id="confirmProjectBtn" onclick="executeProjectAction()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2">
                 <i class="fa-solid fa-check"></i>
-                <span id="confirmProjectBtnText">پاشەکەوتکردن</span>
+                <span id="confirmProjectBtnText">Save Project</span>
             </button>
         </div>
     </div>
@@ -275,21 +272,20 @@
 
         let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
         let currentApiKey = '';
-        let projectScripts = []; // Stores all AI-generated 3D JS code blocks
-        let currentModalMode = 'save'; // 'save' or 'install'
-        let projectIconDataUrl = ''; // Base64 icon image
+        let detectedGeminiModel = 'models/gemini-3.8-flash';
+        let projectScripts = [];
+        let currentModalMode = 'save';
+        let projectIconDataUrl = '';
         let autoConnectTimer = null;
 
         /**************************************************************
          * 2. INITIALIZATION & SPLASH SCREEN
          **************************************************************/
         window.addEventListener('DOMContentLoaded', () => {
-            // Animate splash progress bar
             setTimeout(() => {
                 document.getElementById('splashProgress').style.width = '100%';
             }, 100);
 
-            // Transition from Welcome screen to API Setup after 2.6 seconds
             setTimeout(() => {
                 const splash = document.getElementById('splashScreen');
                 splash.style.opacity = '0';
@@ -307,7 +303,6 @@
             currentProvider = provider;
             localStorage.setItem('apexgen_provider', provider);
 
-            // Update UI Buttons
             ['gemini', 'openai', 'claude'].forEach(p => {
                 const btn = document.getElementById(`btn-${p}`);
                 if (p === provider) {
@@ -317,13 +312,11 @@
                 }
             });
 
-            // Update Input & Get Key Link
             const config = PROVIDERS[provider];
             const input = document.getElementById('apiKeyInput');
             input.placeholder = config.placeholder;
             document.getElementById('getKeyLink').href = config.keyUrl;
 
-            // Load saved key if available
             const savedKey = localStorage.getItem(config.storageKey) || '';
             input.value = savedKey;
             currentApiKey = savedKey;
@@ -341,7 +334,6 @@
             }
         }
 
-        // Auto-save key immediately and trigger connection when pasted/entered
         function handleKeyInput(val) {
             const trimmed = val.trim();
             currentApiKey = trimmed;
@@ -349,14 +341,48 @@
 
             const status = document.getElementById('authStatus');
             if (trimmed.length > 20) {
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-emerald-400">کلیلەکە ڕاستەوخۆ پاشەکەوت کرا (Saved)! خەریکی پەیوەندیکردنە...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key automatically saved! Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
                 clearTimeout(autoConnectTimer);
                 autoConnectTimer = setTimeout(() => {
                     verifyAndConnect();
-                }, 900);
+                }, 800);
             } else {
-                status.innerHTML = `<i class="fa-solid fa-circle-info text-sky-400"></i> <span>تکایە API Key تەواو دابنێ بۆ پەیوەندیکردن.</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i> <span>Please enter a valid API Key to connect.</span>`;
             }
+        }
+
+        async function resolveBestGeminiModel(apiKey) {
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'Invalid Gemini API Key');
+
+                const available = (data.models || []).filter(m =>
+                    Array.isArray(m.supportedGenerationMethods) &&
+                    m.supportedGenerationMethods.includes('generateContent') &&
+                    !m.name.includes('2.5-flash')
+                );
+
+                const preferredOrder = [
+                    'models/gemini-3.8-flash',
+                    'models/gemini-3.0-flash',
+                    'models/gemini-3-flash',
+                    'models/gemini-2.0-flash',
+                    'models/gemini-1.5-flash'
+                ];
+
+                for (const pref of preferredOrder) {
+                    const match = available.find(m => m.name === pref || m.name.startsWith(pref));
+                    if (match) return match.name;
+                }
+
+                const anyFlash = available.find(m => m.name.includes('flash'));
+                if (anyFlash) return anyFlash.name;
+                if (available.length > 0) return available[0].name;
+            } catch (err) {
+                throw err;
+            }
+            return 'models/gemini-3.8-flash';
         }
 
         async function verifyAndConnect() {
@@ -366,7 +392,7 @@
             const btn = document.getElementById('connectBtn');
 
             if (!key || key.length < 15) {
-                status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400"></i> <span class="text-rose-400">تکایە سەرەتا API Key دروست دابنێ!</span>`;
+                status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key first!</span>`;
                 return;
             }
 
@@ -374,13 +400,16 @@
             localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
 
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>پشکنینی پەیوەندی لەگەڵ ${PROVIDERS[currentProvider].name}...</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
 
             try {
-                // Real live ping to verify the API Key works
-                await callAIProvider("Say 'OK'", true);
+                if (currentProvider === 'gemini') {
+                    detectedGeminiModel = await resolveBestGeminiModel(currentApiKey);
+                } else {
+                    await callAIProvider("Say 'OK'", true);
+                }
 
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-emerald-400">پەیوەندی سەرکەوتوو بوو! کردنەوەی جیهانی 3D...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected successfully! Launching 3D World...</span>`;
                 document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
 
                 setTimeout(() => {
@@ -388,12 +417,12 @@
                     document.getElementById('authScreen').classList.remove('flex');
                     document.getElementById('workspace').classList.remove('hidden');
                     init3DWorld();
-                }, 500);
+                }, 400);
             } catch (err) {
-                status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i> <span class="text-rose-400">هەڵە لە کلیلەکەدا هەیە: ${err.message}</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">API Error: ${err.message}</span>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>پەیوەندیکردن و کردنەوەی جیهانی 3D</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
             }
         }
 
@@ -418,9 +447,9 @@ Available globals in the execution scope:
 - window.keysPressed (Object tracking currently pressed keys in lowercase, e.g., \`window.keysPressed['w']\`, \`window.keysPressed['arrowup']\`)
 - window.createdObjects (Array: push every root THREE.Mesh or THREE.Group you add to \`scene\` into \`window.createdObjects\` as well so it can be tracked).
 
-Respond ONLY with a valid JSON object (no markdown fences around the JSON) in this exact format:
+Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 {
-  "reply": "Short friendly explanation in Kurdish (Sorani) of what you built and how to interact with it.",
+  "reply": "Short friendly explanation in English of what you built and how to play or interact with it.",
   "code": "Executable JavaScript code using THREE, scene, camera, window.updateFunctions, window.keysPressed, and window.createdObjects. Do NOT redeclare scene or camera. Build rich, colorful, multi-part 3D meshes, lighting, and interactive game mechanics."
 }`;
 
@@ -428,20 +457,35 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             const promptText = isPing ? "Reply with valid JSON: {\"reply\":\"OK\",\"code\":\"\"}" : userPrompt;
 
             if (currentProvider === 'gemini') {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        systemInstruction: { parts: [{ text: ENGINE_SYSTEM_PROMPT }] },
-                        contents: [{ parts: [{ text: promptText }] }],
-                        generationConfig: { responseMimeType: "application/json" }
-                    })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error?.message || 'Gemini API Error');
-                const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-                return parseAIJson(rawText);
+                const candidateModels = [
+                    detectedGeminiModel,
+                    'models/gemini-3.8-flash',
+                    'models/gemini-3.0-flash',
+                    'models/gemini-2.0-flash',
+                    'models/gemini-1.5-flash'
+                ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+                let lastError = null;
+                for (const modelName of candidateModels) {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemInstruction: { parts: [{ text: ENGINE_SYSTEM_PROMPT }] },
+                            contents: [{ parts: [{ text: promptText }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        detectedGeminiModel = modelName;
+                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+                        return parseAIJson(rawText);
+                    }
+                    lastError = new Error(data.error?.message || 'Gemini API Error');
+                }
+                throw lastError;
             }
 
             if (currentProvider === 'openai') {
@@ -492,8 +536,7 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
                 const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
                 return JSON.parse(cleaned);
             } catch (e) {
-                // Fallback if model returned raw code
-                return { reply: "فەرمانەکەت جێبەجێ کرا!", code: text };
+                return { reply: "Your 3D creation has been added to the world!", code: text };
             }
         }
 
@@ -509,7 +552,7 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
         window.addEventListener('keyup', e => { window.keysPressed[e.key.toLowerCase()] = false; });
 
         function init3DWorld() {
-            if (renderer) return; // Already initialized
+            if (renderer) return;
 
             const container = document.getElementById('canvasContainer');
             scene = new THREE.Scene();
@@ -530,7 +573,6 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-            // Lights
             const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.7);
             scene.add(ambientLight);
 
@@ -539,7 +581,6 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             dirLight.castShadow = true;
             scene.add(dirLight);
 
-            // Infinite Floor & Grid
             const floorGeo = new THREE.PlaneGeometry(10000, 10000);
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x091024, roughness: 0.85, metalness: 0.1 });
             infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
@@ -567,14 +608,12 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             const delta = clock.getDelta();
             const elapsedTime = clock.getElapsedTime();
 
-            // Keep Grid & Floor truly infinite by following camera X/Z
             const snap = 10;
             infiniteGrid.position.x = Math.floor(camera.position.x / snap) * snap;
             infiniteGrid.position.z = Math.floor(camera.position.z / snap) * snap;
             infiniteFloor.position.x = camera.position.x;
             infiniteFloor.position.z = camera.position.z;
 
-            // Run AI-generated game loop functions
             for (let i = 0; i < window.updateFunctions.length; i++) {
                 try {
                     window.updateFunctions[i](delta, elapsedTime);
@@ -595,7 +634,7 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             document.getElementById('objectCount').innerText = '0';
             document.getElementById('actionButtons').classList.add('hidden');
             document.getElementById('actionButtons').classList.remove('flex');
-            appendChatMessage('ai', 'نەخشەی 3D بە تەواوی پاککرایەوە. ئامادەیە بۆ دروستکردنی یارییەکی نوێ!');
+            appendChatMessage('ai', 'The 3D world has been reset. Ready to build a new game!');
         }
 
         /**************************************************************
@@ -611,18 +650,16 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
 
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
-            sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>دروستدەکرێت...</span>`;
+            sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Building...</span>`;
 
             try {
                 const result = await callAIProvider(text, false);
 
                 if (result.code && result.code.trim() !== '') {
-                    // Execute the AI's Three.js code inside the live 3D world
                     const prevCount = scene.children.length;
                     const execFn = new Function('THREE', 'scene', 'camera', 'renderer', 'controls', result.code);
                     execFn(THREE, scene, camera, renderer, controls);
 
-                    // Track newly added scene children if AI forgot to push to window.createdObjects
                     scene.children.slice(prevCount).forEach(child => {
                         if (!window.createdObjects.includes(child)) {
                             window.createdObjects.push(child);
@@ -632,18 +669,17 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
                     projectScripts.push(result.code);
                     document.getElementById('objectCount').innerText = window.createdObjects.length;
 
-                    // Reveal SAVE & INSTALL buttons now that something was created!
                     const actionBtns = document.getElementById('actionButtons');
                     actionBtns.classList.remove('hidden');
                     actionBtns.classList.add('flex');
                 }
 
-                appendChatMessage('ai', result.reply || 'بە سەرکەوتوویی لەناو ماپەکە دروست کرا!');
+                appendChatMessage('ai', result.reply || 'Successfully built and added to the 3D map!');
             } catch (err) {
-                appendChatMessage('ai', `⚠️ هەڵە ڕوویدا لە کاتی دروستکردن: ${err.message}`);
+                appendChatMessage('ai', `⚠️ Error while generating: ${err.message}`);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>دروستکردن</span>`;
+                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Generate</span>`;
             }
         }
 
@@ -683,11 +719,11 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             const btnText = document.getElementById('confirmProjectBtnText');
 
             if (mode === 'save') {
-                title.innerText = 'پاشەکەوتکردنی پڕۆژە (Save Project)';
-                btnText.innerText = 'پاشەکەوتکردنی هەموو شتەکان (Save)';
+                title.innerText = 'Save Project';
+                btnText.innerText = 'Save All Project Data';
             } else {
-                title.innerText = 'دابەزاندنی یارییەکە (Install Game)';
-                btnText.innerText = 'داگرتن بۆ سەر مۆبایل / کۆمپیوتەر (Install)';
+                title.innerText = 'Install Game';
+                btnText.innerText = 'Download & Install Game';
             }
 
             modal.classList.remove('hidden');
@@ -720,7 +756,6 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
             const iconUrl = projectIconDataUrl || 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png';
 
             if (currentModalMode === 'save') {
-                // Save everything to LocalStorage + Download Project JSON Backup
                 const projectData = {
                     name: projectName,
                     icon: iconUrl,
@@ -731,13 +766,12 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
 
                 const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
                 triggerDownload(blob, `${projectName}.apexgen.json`);
-                appendChatMessage('ai', `✅ پڕۆژەی <strong>${projectName}</strong> بە سەرکەوتوویی لەگەڵ ئایکۆنەکەی پاشەکەوت کرا (Saved)!`);
+                appendChatMessage('ai', `✅ Project <strong>${projectName}</strong> and its icon have been saved!`);
             } else {
-                // INSTALL: Generate a standalone, playable 3D Game HTML file with embedded Icon & Manifest!
                 const standaloneGameHtml = buildStandaloneGameFile(projectName, iconUrl, projectScripts);
                 const blob = new Blob([standaloneGameHtml], { type: 'text/html' });
                 triggerDownload(blob, `${projectName}.html`);
-                appendChatMessage('ai', `🚀 یاری <strong>${projectName}</strong> بە سەرکەوتوویی دابەزێنرا سەر ئامێرەکەت! دەتوانیت ڕاستەوخۆ بیکەیتەوە و یاری پێ بکەیت.`);
+                appendChatMessage('ai', `🚀 <strong>${projectName}</strong> has been downloaded to your device! Open it anytime to play.`);
             }
 
             closeProjectModal();
@@ -810,7 +844,6 @@ Respond ONLY with a valid JSON object (no markdown fences around the JSON) in th
         const grid = new THREE.GridHelper(2000, 200, 0x0ea5e9, 0x1e293b);
         scene.add(grid);
 
-        // Execute Generated Game Scripts
         try {
             ${combinedCode}
         } catch(e) { console.error(e); }
