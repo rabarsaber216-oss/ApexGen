@@ -2,11 +2,11 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ApexGen - AI 3D Game Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js & OrbitControls -->
+    <!-- Three.js & Controls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <!-- FontAwesome Icons -->
@@ -22,18 +22,20 @@
             color: #ffffff;
             font-family: 'Inter', sans-serif;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
         }
         .font-cyber {
             font-family: 'Orbitron', sans-serif;
         }
         .glass {
-            background: rgba(15, 23, 42, 0.78);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(56, 189, 248, 0.25);
         }
         .neon-shadow {
-            box-shadow: 0 0 25px rgba(14, 165, 233, 0.35), inset 0 0 15px rgba(14, 165, 233, 0.15);
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.3), inset 0 0 12px rgba(14, 165, 233, 0.12);
         }
         @keyframes pulseGlow {
             0%, 100% { text-shadow: 0 0 20px #38bdf8, 0 0 40px #0284c7, 0 0 80px #0369a1; transform: scale(1); }
@@ -42,14 +44,46 @@
         .welcome-text {
             animation: pulseGlow 2.5s infinite ease-in-out;
         }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
-        ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 3px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+        ::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 2px; }
+
+        /* Custom Metallic Grey & White Joystick matching user's design */
+        .joystick-base {
+            width: 116px;
+            height: 116px;
+            border-radius: 50%;
+            background: radial-gradient(circle, 
+                #5c5c5c 0%, 
+                #5c5c5c 53%, 
+                #9e9e9e 56%, 
+                #474747 59%, 
+                #b8b8b8 62%, 
+                #525252 65%, 
+                #595959 100%);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.55), inset 0 0 8px rgba(255,255,255,0.2);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+        }
+        .joystick-knob {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 5px solid #b3b3b3;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+            position: absolute;
+            pointer-events: none;
+            transition: transform 0.04s linear;
+        }
     </style>
 </head>
 <body class="w-screen h-screen relative">
 
-    <!-- 1. SPLASH SCREEN (Welcome to ApexGen) -->
+    <!-- 1. SPLASH SCREEN -->
     <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030712] transition-opacity duration-1000">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
         <div class="relative z-10 text-center px-4">
@@ -59,78 +93,70 @@
             <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider uppercase welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500">
                 Welcome to ApexGen
             </h1>
-            <p class="mt-5 text-slate-400 text-lg md:text-xl tracking-wide">
-                Next-Gen Real-Time AI 3D Game Creation Engine
+            <p class="mt-4 text-slate-400 text-base md:text-xl tracking-wide">
+                Ultra-Realistic AI 3D Game Creation Engine
             </p>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
-                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2500ms] ease-out"></div>
+                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2200ms] ease-out"></div>
             </div>
         </div>
     </div>
 
     <!-- 2. API KEY SETUP MODAL -->
     <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500">
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.15),transparent_60%)] pointer-events-none"></div>
-        
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-5">
                 <div>
-                    <h2 class="font-cyber text-2xl md:text-3xl font-extrabold text-sky-400">ApexGen Setup</h2>
-                    <p class="text-slate-400 text-sm mt-1">Select your AI provider and enter your API Key</p>
+                    <h2 class="font-cyber text-2xl font-extrabold text-sky-400">ApexGen Setup</h2>
+                    <p class="text-slate-400 text-xs mt-1">Select your AI provider and connect your API Key</p>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
-                    <i class="fa-solid fa-microchip text-2xl text-sky-400"></i>
+                <div class="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
+                    <i class="fa-solid fa-microchip text-xl text-sky-400"></i>
                 </div>
             </div>
 
-            <!-- AI Provider Selection -->
-            <label class="block text-sm font-semibold text-slate-300 mb-3">1. Select AI Model:</label>
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
-                    <i class="fa-solid fa-wand-magic-sparkles text-2xl text-sky-400 mb-1.5"></i>
-                    <span class="font-bold text-sm">Gemini</span>
-                    <span class="text-[10px] text-sky-300 mt-0.5">Google AI</span>
+            <label class="block text-xs font-semibold text-slate-300 mb-2.5">1. Select AI Provider:</label>
+            <div class="grid grid-cols-3 gap-2.5 mb-5">
+                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xl text-sky-400 mb-1"></i>
+                    <span class="font-bold text-xs">Gemini</span>
+                    <span class="text-[10px] text-sky-300">Google AI</span>
                 </button>
-                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-bolt text-2xl text-emerald-400 mb-1.5"></i>
-                    <span class="font-bold text-sm">OpenAI</span>
-                    <span class="text-[10px] text-slate-400 mt-0.5">GPT-4o</span>
+                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-bolt text-xl text-emerald-400 mb-1"></i>
+                    <span class="font-bold text-xs">OpenAI</span>
+                    <span class="text-[10px] text-slate-400">GPT-4o</span>
                 </button>
-                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-brain text-2xl text-amber-400 mb-1.5"></i>
-                    <span class="font-bold text-sm">Claude</span>
-                    <span class="text-[10px] text-slate-400 mt-0.5">Anthropic</span>
+                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-brain text-xl text-amber-400 mb-1"></i>
+                    <span class="font-bold text-xs">Claude</span>
+                    <span class="text-[10px] text-slate-400">Anthropic</span>
                 </button>
             </div>
 
-            <!-- API Key Input + Direct Link Button -->
-            <label class="block text-sm font-semibold text-slate-300 mb-2">2. Enter API Key:</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">2. Enter API Key:</label>
             <div class="flex items-center gap-2 mb-3">
                 <div class="relative flex-1">
-                    <input id="apiKeyInput" type="password" placeholder="Paste your Gemini API Key here..." 
-                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-4 pr-10 py-3.5 text-sm text-white placeholder-slate-500 outline-none transition-all"
+                    <input id="apiKeyInput" type="password" placeholder="Paste your API Key here..." 
+                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-3 text-xs text-white placeholder-slate-500 outline-none transition-all"
                         oninput="handleKeyInput(this.value)">
-                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
                         <i id="eyeIcon" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
-                <!-- Small Button to take user to the chosen API Key page -->
-                <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank" title="Get your API Key"
-                    class="px-4 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
+                <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank"
+                    class="px-3.5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
                     <i class="fa-solid fa-key"></i>
                     <span>Get Key</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                 </a>
             </div>
 
-            <!-- Status message -->
             <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-start gap-2 min-h-[20px]">
                 <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
                 <span>Your API Key is automatically saved and connected as soon as you paste it.</span>
             </div>
 
-            <!-- Connect Button -->
-            <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-4 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
+            <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-plug-circle-bolt"></i>
                 <span>Connect & Launch 3D World</span>
             </button>
@@ -142,94 +168,165 @@
         <!-- Three.js Canvas Container -->
         <div id="canvasContainer" class="w-full h-full"></div>
 
-        <!-- TOP NAVIGATION BAR -->
-        <div class="fixed top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-            <!-- Brand & Connection Badge -->
-            <div class="glass px-4 py-2.5 rounded-2xl flex items-center gap-3 pointer-events-auto shadow-lg">
-                <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
-                <span class="font-cyber font-bold text-lg text-sky-400">ApexGen 3D</span>
-                <span id="activeProviderBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini</span>
-                <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white ml-1" title="API Key Settings">
+        <!-- Dynamic Game HUD Container (for any AI scoreboards so Undo/Clean removes them) -->
+        <div id="aiHudContainer" class="fixed top-14 left-3 z-10 pointer-events-none"></div>
+
+        <!-- COMPACT TOP NAVIGATION BAR -->
+        <div class="fixed top-2.5 left-2.5 right-2.5 z-30 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
+            <!-- Left: Brand + Settings -->
+            <div class="glass px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-auto shadow-md">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
+                <span class="font-cyber font-bold text-xs text-sky-400">ApexGen</span>
+                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini</span>
+                <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white px-1" title="API Key Settings">
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
 
-            <!-- Dynamic Game HUD / Object Counter -->
-            <div class="glass px-4 py-2 rounded-2xl hidden md:flex items-center gap-4 text-xs text-slate-300 pointer-events-auto">
-                <span><i class="fa-solid fa-cube text-sky-400 mr-1"></i> Objects: <strong id="objectCount" class="text-white">0</strong></span>
-                <span><i class="fa-solid fa-gamepad text-purple-400 mr-1"></i> Controls: <strong>WASD / Mouse / Touch</strong></span>
-                <button onclick="resetWorld()" class="text-rose-400 hover:text-rose-300 font-semibold">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset World
+            <!-- Right: Compact Action Buttons (Undo, Clean All, Exit, Save, Install) -->
+            <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+                <!-- UNDO BUTTON -->
+                <button onclick="undoLastStep()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md transition-all" title="Undo Last Step">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Undo</span>
                 </button>
-            </div>
 
-            <!-- SAVE & INSTALL BUTTONS (Hidden until user builds something!) -->
-            <div id="actionButtons" class="hidden items-center gap-2.5 pointer-events-auto">
-                <button onclick="openProjectModal('save')" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span>Save</span>
+                <!-- CLEAN ALL BUTTON -->
+                <button onclick="cleanAllWorld()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-rose-400 border border-rose-500/30 flex items-center gap-1 shadow-md transition-all" title="Clean All Objects">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Clean All</span>
                 </button>
-                <button onclick="openProjectModal('install')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-download"></i>
-                    <span>Install</span>
+
+                <!-- EXIT CONTROL BUTTON (Extin / Exit Car or Character) -->
+                <button id="exitControlBtn" onclick="toggleExitControl()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all" title="Exit Vehicle or Character Control">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i>
+                    <span id="exitBtnText">Exit</span>
                 </button>
+
+                <!-- SAVE & INSTALL (Visible once something is built) -->
+                <div id="actionButtons" class="hidden items-center gap-1.5">
+                    <button onclick="openProjectModal('save')" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md flex items-center gap-1 transition-all">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save</span>
+                    </button>
+                    <button onclick="openProjectModal('install')" class="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[11px] shadow-md flex items-center gap-1 transition-all">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Install</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- BOTTOM AI CHAT INTERFACE -->
-        <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-3xl pointer-events-auto">
-            <!-- Chat History Drawer -->
-            <div id="chatHistory" class="glass rounded-2xl p-4 mb-2.5 max-h-48 overflow-y-auto space-y-2.5 text-sm">
-                <div class="flex items-start gap-2.5">
-                    <div class="w-7 h-7 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 mt-0.5">
-                        <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
+        <!-- MOBILE JOYSTICK (Matches Image 2) & ACTION BUTTONS -->
+        <div id="mobileControls" class="fixed bottom-20 left-4 z-20 flex items-center select-none">
+            <div id="joystickZone" class="joystick-base">
+                <div id="joystickKnob" class="joystick-knob"></div>
+            </div>
+        </div>
+
+        <div id="mobileActionBtns" class="fixed bottom-24 right-4 z-20 flex flex-col gap-2 select-none md:hidden">
+            <button ontouchstart="window.keysPressed[' ']=true" ontouchend="window.keysPressed[' ']=false"
+                class="w-12 h-12 rounded-full glass border border-sky-400/40 text-sky-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
+                JUMP
+            </button>
+            <button ontouchstart="window.keysPressed['shift']=true" ontouchend="window.keysPressed['shift']=false"
+                class="w-12 h-12 rounded-full glass border border-purple-400/40 text-purple-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
+                BOOST
+            </button>
+        </div>
+
+        <!-- FLOATING BUTTON TO RESTORE CHAT WHEN HIDDEN -->
+        <button id="showChatBtn" onclick="toggleChatBox(true)" class="fixed bottom-3 right-3 z-30 hidden px-3.5 py-2 rounded-2xl glass neon-shadow text-sky-400 font-bold text-xs items-center gap-2 shadow-xl">
+            <i class="fa-solid fa-comments"></i>
+            <span>Open AI Chat</span>
+        </button>
+
+        <!-- COMPACT, COLLAPSIBLE BOTTOM AI CHAT BOX -->
+        <div id="chatWrapper" class="fixed bottom-2.5 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md pointer-events-auto transition-all duration-300">
+            <!-- Chat Header with Minimize / Hide Button & Live Build Timer -->
+            <div class="glass rounded-t-xl px-3 py-1.5 flex items-center justify-between border-b-0">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
+                    <span class="text-[11px] font-bold text-slate-200">ApexGen AI Builder</span>
+                    <!-- LIVE BUILD TIMER BADGE -->
+                    <div id="buildTimerBadge" class="hidden items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-mono">
+                        <i class="fa-solid fa-spinner fa-spin text-[9px]"></i>
+                        <span id="buildTimerText">Building 0.0s</span>
                     </div>
-                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 leading-relaxed">
-                        Welcome to the <strong>ApexGen</strong> Infinite 3D World! Tell me what game or 3D objects to build (e.g., <em>"Build a red sports car I can drive with WASD"</em> or <em>"Create a futuristic cyber city with glowing towers"</em>).
-                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleHistoryView()" class="text-slate-400 hover:text-white text-xs px-1" title="Toggle Messages">
+                        <i id="collapseHistoryIcon" class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <button onclick="toggleChatBox(false)" class="text-slate-400 hover:text-rose-400 text-xs px-1" title="Hide Chat Box">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Chat Input Bar -->
-            <div class="glass neon-shadow rounded-2xl p-2 flex items-center gap-2">
-                <input id="promptInput" type="text" placeholder="Describe what you want AI to build in the 3D world..." 
-                    class="flex-1 bg-transparent px-4 py-2.5 text-white placeholder-slate-400 text-sm outline-none"
+            <!-- Compact Chat History Drawer -->
+            <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
+                <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
+                    Tell me what to build or upload a reference image! Use Joystick (Mobile) or WASD/Arrows (PC) to move.
+                </div>
+            </div>
+
+            <!-- Attached Image Preview Bar -->
+            <div id="imageAttachmentBar" class="hidden glass px-3 py-1.5 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
+                <div class="flex items-center gap-2">
+                    <img id="attachedImagePreview" src="" class="w-8 h-8 rounded-lg object-cover border border-sky-400">
+                    <span class="text-[10px] text-sky-300 font-medium">Reference image attached for 3D build</span>
+                </div>
+                <button onclick="clearAttachedImage()" class="text-rose-400 hover:text-rose-300 text-xs">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Compact Chat Input Bar -->
+            <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5">
+                <!-- Image Upload Button -->
+                <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image to Build">
+                    <i class="fa-solid fa-image text-xs"></i>
+                    <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
+                </label>
+
+                <input id="promptInput" type="text" placeholder="Build a realistic car, city, or upload image..." 
+                    class="flex-1 bg-transparent px-2 py-1.5 text-white placeholder-slate-400 text-xs outline-none"
                     onkeydown="if(event.key === 'Enter') sendPromptToAI()">
-                <button id="sendBtn" onclick="sendPromptToAI()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm flex items-center gap-2 shrink-0 transition-all">
-                    <i id="sendIcon" class="fa-solid fa-paper-plane"></i>
-                    <span>Generate</span>
+
+                <button id="sendBtn" onclick="sendPromptToAI()" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all">
+                    <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    <span>Build</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 4. SAVE / INSTALL PROJECT MODAL (Name & Icon) -->
+    <!-- 4. SAVE / INSTALL PROJECT MODAL -->
     <div id="projectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
-        <div class="glass neon-shadow w-full max-w-md rounded-3xl p-6 md:p-8 border border-sky-500/30">
-            <div class="flex items-center justify-between mb-6">
-                <h3 id="modalTitle" class="text-xl font-extrabold text-sky-400">Save Project</h3>
-                <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white text-lg">
+        <div class="glass neon-shadow w-full max-w-md rounded-3xl p-6 border border-sky-500/30">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="modalTitle" class="text-lg font-extrabold text-sky-400">Save Project</h3>
+                <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white text-base">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- Project Name -->
-            <div class="mb-5">
-                <label class="block text-sm font-semibold text-slate-300 mb-2">Project Name:</label>
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Project Name:</label>
                 <input id="projectNameInput" type="text" placeholder="e.g., Cyber Racer 3D" 
-                    class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-4 py-3 text-white text-sm outline-none">
+                    class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-white text-xs outline-none">
             </div>
 
-            <!-- Project Icon Upload -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-300 mb-2">Project Icon:</label>
-                <div class="flex items-center gap-4">
-                    <div id="iconPreviewBox" class="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden shrink-0">
-                        <i id="defaultIconPreview" class="fa-solid fa-gamepad text-2xl text-slate-500"></i>
+            <div class="mb-5">
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Project Icon:</label>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden shrink-0">
+                        <i id="defaultIconPreview" class="fa-solid fa-gamepad text-xl text-slate-500"></i>
                         <img id="iconPreviewImg" src="" class="w-full h-full object-cover hidden" alt="Project Icon">
                     </div>
                     <label class="flex-1 cursor-pointer">
-                        <div class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-center text-slate-200 font-semibold transition-all">
+                        <div class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-center text-slate-200 font-semibold transition-all">
                             <i class="fa-solid fa-upload mr-1 text-sky-400"></i> Upload Icon Image
                         </div>
                         <input type="file" accept="image/*" class="hidden" onchange="handleIconUpload(event)">
@@ -237,8 +334,7 @@
                 </div>
             </div>
 
-            <!-- Confirm Action Button -->
-            <button id="confirmProjectBtn" onclick="executeProjectAction()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2">
+            <button onclick="executeProjectAction()" class="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2">
                 <i class="fa-solid fa-check"></i>
                 <span id="confirmProjectBtnText">Save Project</span>
             </button>
@@ -247,7 +343,7 @@
 
     <script>
         /**************************************************************
-         * 1. STATE & API PROVIDER CONFIGURATION
+         * 1. STATE & API CONFIGURATION
          **************************************************************/
         const PROVIDERS = {
             gemini: {
@@ -272,20 +368,27 @@
 
         let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
         let currentApiKey = '';
-        let detectedGeminiModel = 'models/gemini-3.8-flash';
-        let projectScripts = [];
+        let verifiedGeminiModels = [];
+        let buildHistoryStack = []; // Tracks each build step for Undo & Clean All
         let currentModalMode = 'save';
         let projectIconDataUrl = '';
+        let attachedImageBase64 = null;
+        let attachedImageMimeType = null;
         let autoConnectTimer = null;
+        let buildTimerInterval = null;
+
+        // Global Controls & Exit state
+        window.updateFunctions = [];
+        window.createdObjects = [];
+        window.keysPressed = {};
+        window.joystickVector = { x: 0, y: 0 };
+        window.isControlExited = false;
 
         /**************************************************************
-         * 2. INITIALIZATION & SPLASH SCREEN
+         * 2. SPLASH & AUTHENTICATION
          **************************************************************/
         window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                document.getElementById('splashProgress').style.width = '100%';
-            }, 100);
-
+            setTimeout(() => { document.getElementById('splashProgress').style.width = '100%'; }, 100);
             setTimeout(() => {
                 const splash = document.getElementById('splashScreen');
                 splash.style.opacity = '0';
@@ -295,8 +398,10 @@
                     auth.classList.remove('hidden');
                     auth.classList.add('flex');
                     selectProvider(currentProvider);
-                }, 800);
-            }, 2600);
+                }, 700);
+            }, 2200);
+
+            initJoystick();
         });
 
         function selectProvider(provider) {
@@ -306,9 +411,9 @@
             ['gemini', 'openai', 'claude'].forEach(p => {
                 const btn = document.getElementById(`btn-${p}`);
                 if (p === provider) {
-                    btn.className = 'provider-btn flex flex-col items-center p-3.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20';
+                    btn.className = 'provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20';
                 } else {
-                    btn.className = 'provider-btn flex flex-col items-center p-3.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
+                    btn.className = 'provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
                 }
             });
 
@@ -325,13 +430,8 @@
         function toggleKeyVisibility() {
             const input = document.getElementById('apiKeyInput');
             const icon = document.getElementById('eyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye';
-            }
+            input.type = input.type === 'password' ? 'text' : 'password';
+            icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
         }
 
         function handleKeyInput(val) {
@@ -341,48 +441,47 @@
 
             const status = document.getElementById('authStatus');
             if (trimmed.length > 20) {
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key automatically saved! Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key saved! Connecting...</span>`;
                 clearTimeout(autoConnectTimer);
-                autoConnectTimer = setTimeout(() => {
-                    verifyAndConnect();
-                }, 800);
-            } else {
-                status.innerHTML = `<i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i> <span>Please enter a valid API Key to connect.</span>`;
+                autoConnectTimer = setTimeout(() => verifyAndConnect(), 700);
             }
         }
 
-        async function resolveBestGeminiModel(apiKey) {
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error?.message || 'Invalid Gemini API Key');
+        // Fetch ONLY valid, active models for this user's Gemini API key (Never use dead 1.5 models)
+        async function fetchActiveGeminiModels(apiKey) {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error?.message || 'Invalid Gemini API Key');
 
-                const available = (data.models || []).filter(m =>
+            const validModels = (data.models || [])
+                .filter(m =>
                     Array.isArray(m.supportedGenerationMethods) &&
                     m.supportedGenerationMethods.includes('generateContent') &&
-                    !m.name.includes('2.5-flash')
-                );
+                    !m.name.includes('1.5') &&
+                    !m.name.includes('2.5-flash') &&
+                    !m.name.includes('embedding') &&
+                    !m.name.includes('imagen') &&
+                    !m.name.includes('veo')
+                )
+                .map(m => m.name);
 
-                const preferredOrder = [
-                    'models/gemini-3.8-flash',
-                    'models/gemini-3.0-flash',
-                    'models/gemini-3-flash',
-                    'models/gemini-2.0-flash',
-                    'models/gemini-1.5-flash'
-                ];
+            // Sort to prefer gemini-3.8-flash and newest flash/pro models first
+            validModels.sort((a, b) => {
+                const score = name => {
+                    if (name.includes('3.8-flash')) return 100;
+                    if (name.includes('3') && name.includes('flash')) return 90;
+                    if (name.includes('3') && name.includes('pro')) return 85;
+                    if (name.includes('flash')) return 70;
+                    if (name.includes('pro')) return 60;
+                    return 10;
+                };
+                return score(b) - score(a);
+            });
 
-                for (const pref of preferredOrder) {
-                    const match = available.find(m => m.name === pref || m.name.startsWith(pref));
-                    if (match) return match.name;
-                }
-
-                const anyFlash = available.find(m => m.name.includes('flash'));
-                if (anyFlash) return anyFlash.name;
-                if (available.length > 0) return available[0].name;
-            } catch (err) {
-                throw err;
+            if (validModels.length === 0) {
+                return ['models/gemini-3.8-flash'];
             }
-            return 'models/gemini-3.8-flash';
+            return validModels;
         }
 
         async function verifyAndConnect() {
@@ -392,7 +491,7 @@
             const btn = document.getElementById('connectBtn');
 
             if (!key || key.length < 15) {
-                status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key first!</span>`;
+                status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key!</span>`;
                 return;
             }
 
@@ -404,12 +503,12 @@
 
             try {
                 if (currentProvider === 'gemini') {
-                    detectedGeminiModel = await resolveBestGeminiModel(currentApiKey);
+                    verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
                 } else {
-                    await callAIProvider("Say 'OK'", true);
+                    await callAIProvider("Reply OK", null, null, true);
                 }
 
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected successfully! Launching 3D World...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Opening 3D World...</span>`;
                 document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
 
                 setTimeout(() => {
@@ -417,9 +516,9 @@
                     document.getElementById('authScreen').classList.remove('flex');
                     document.getElementById('workspace').classList.remove('hidden');
                     init3DWorld();
-                }, 400);
+                }, 350);
             } catch (err) {
-                status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">API Error: ${err.message}</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
@@ -432,63 +531,84 @@
         }
 
         /**************************************************************
-         * 3. REAL AI API CONNECTION (GEMINI, OPENAI, CLAUDE)
+         * 3. HIGH-GRAPHIC SYSTEM PROMPT & MULTIMODAL AI CALLS
          **************************************************************/
         const ENGINE_SYSTEM_PROMPT = `
 You are the core 3D Game Engine AI of "ApexGen".
-The user is inside a live Three.js (r128) infinite 3D world.
+The user is inside a live Three.js (r128) PBR 3D world with high-dynamic-range lighting and soft shadows.
 Available globals in the execution scope:
 - THREE (Three.js r128 library)
 - scene (THREE.Scene)
 - camera (THREE.PerspectiveCamera)
 - renderer (THREE.WebGLRenderer)
 - controls (THREE.OrbitControls)
-- window.updateFunctions (Array of functions: push any per-frame callback \`(delta, time) => {}\` here to animate objects, move cars/players, handle keyboard input, physics, or game loops)
-- window.keysPressed (Object tracking currently pressed keys in lowercase, e.g., \`window.keysPressed['w']\`, \`window.keysPressed['arrowup']\`)
-- window.createdObjects (Array: push every root THREE.Mesh or THREE.Group you add to \`scene\` into \`window.createdObjects\` as well so it can be tracked).
+- window.updateFunctions (Array of callbacks \`(delta, time) => {}\` called every frame)
+- window.keysPressed (Object tracking pressed keys in lowercase: 'w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift'. Mobile joystick automatically sets these keys too!)
+- window.joystickVector (Object \`{ x, y }\` from -1 to 1 for smooth analog mobile control)
+- window.isControlExited (Boolean: if true, the user clicked the "Exit" button to leave vehicle/character control; when \`window.isControlExited === true\`, do NOT lock the camera or move the player/car!)
+- window.createdObjects (Array: push every root THREE.Group or THREE.Mesh you add to \`scene\` into \`window.createdObjects\`).
+
+STRICT GRAPHICS & QUALITY RULES:
+1. ULTRA-HIGH VISUAL QUALITY: Never build crude 4-box blocky figures! Build sleek, high-detail, multi-part 3D models using smooth geometries (CylinderGeometry, SphereGeometry, TorusGeometry, ExtrudeGeometry, bevels, wheel rims, tire treads, glowing headlights/taillights, tinted glass windows, articulated character limbs, smooth procedural animations).
+2. PBR MATERIALS: Always use \`THREE.MeshStandardMaterial\` or \`THREE.MeshPhysicalMaterial\` with realistic \`metalness\`, \`roughness\`, \`clearcoat\`, and enable \`castShadow = true\` and \`receiveShadow = true\` on all meshes.
+3. NO GIANT HTML OVERLAYS: Do NOT create large DOM overlays that block the mobile screen. Keep everything inside the 3D world.
+4. IMAGE RECREATION: If the user attaches an image, carefully analyze its colors, proportions, shapes, and style, and build an accurate, detailed 3D replica of it in the scene.
 
 Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 {
-  "reply": "Short friendly explanation in English of what you built and how to play or interact with it.",
-  "code": "Executable JavaScript code using THREE, scene, camera, window.updateFunctions, window.keysPressed, and window.createdObjects. Do NOT redeclare scene or camera. Build rich, colorful, multi-part 3D meshes, lighting, and interactive game mechanics."
+  "reply": "Brief explanation in English of what you built.",
+  "code": "Executable Three.js JavaScript code."
 }`;
 
-        async function callAIProvider(userPrompt, isPing = false) {
-            const promptText = isPing ? "Reply with valid JSON: {\"reply\":\"OK\",\"code\":\"\"}" : userPrompt;
+        async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPing = false) {
+            const promptText = isPing
+                ? 'Reply with valid JSON: {"reply":"OK","code":""}'
+                : `${ENGINE_SYSTEM_PROMPT}\n\nUser Request: ${userPrompt || 'Build the object shown in the attached image in high-detail 3D.'}`;
 
             if (currentProvider === 'gemini') {
-                const candidateModels = [
-                    detectedGeminiModel,
-                    'models/gemini-3.8-flash',
-                    'models/gemini-3.0-flash',
-                    'models/gemini-2.0-flash',
-                    'models/gemini-1.5-flash'
-                ].filter((v, i, a) => v && a.indexOf(v) === i);
+                if (verifiedGeminiModels.length === 0) {
+                    verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
+                }
 
-                let lastError = null;
-                for (const modelName of candidateModels) {
+                const parts = [{ text: promptText }];
+                if (imgBase64 && imgMime) {
+                    parts.push({
+                        inlineData: { mimeType: imgMime, data: imgBase64 }
+                    });
+                }
+
+                let firstRealError = null;
+                for (const modelName of verifiedGeminiModels.slice(0, 3)) {
                     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
                     const res = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            systemInstruction: { parts: [{ text: ENGINE_SYSTEM_PROMPT }] },
-                            contents: [{ parts: [{ text: promptText }] }],
+                            contents: [{ parts }],
                             generationConfig: { responseMimeType: "application/json" }
                         })
                     });
                     const data = await res.json();
                     if (res.ok) {
-                        detectedGeminiModel = modelName;
                         const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
                         return parseAIJson(rawText);
                     }
-                    lastError = new Error(data.error?.message || 'Gemini API Error');
+                    if (!firstRealError) {
+                        firstRealError = new Error(data.error?.message || `Error from ${modelName}`);
+                    }
                 }
-                throw lastError;
+                throw firstRealError || new Error('Gemini API request failed.');
             }
 
             if (currentProvider === 'openai') {
+                const userContent = [{ type: 'text', text: userPrompt || 'Build this image in 3D.' }];
+                if (imgBase64 && imgMime) {
+                    userContent.push({
+                        type: 'image_url',
+                        image_url: { url: `data:${imgMime};base64,${imgBase64}` }
+                    });
+                }
+
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -500,7 +620,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                         response_format: { type: "json_object" },
                         messages: [
                             { role: 'system', content: ENGINE_SYSTEM_PROMPT },
-                            { role: 'user', content: promptText }
+                            { role: 'user', content: userContent }
                         ]
                     })
                 });
@@ -510,6 +630,15 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             }
 
             if (currentProvider === 'claude') {
+                const contentArr = [];
+                if (imgBase64 && imgMime) {
+                    contentArr.push({
+                        type: 'image',
+                        source: { type: 'base64', media_type: imgMime, data: imgBase64 }
+                    });
+                }
+                contentArr.push({ type: 'text', text: userPrompt || 'Build this image in 3D.' });
+
                 const res = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
@@ -520,9 +649,9 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                     },
                     body: JSON.stringify({
                         model: 'claude-3-5-sonnet-latest',
-                        max_tokens: 4000,
+                        max_tokens: 4096,
                         system: ENGINE_SYSTEM_PROMPT,
-                        messages: [{ role: 'user', content: promptText }]
+                        messages: [{ role: 'user', content: contentArr }]
                     })
                 });
                 const data = await res.json();
@@ -536,60 +665,120 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
                 return JSON.parse(cleaned);
             } catch (e) {
-                return { reply: "Your 3D creation has been added to the world!", code: text };
+                const firstBrace = text.indexOf('{');
+                const lastBrace = text.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    try {
+                        return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+                    } catch (err) {}
+                }
+                return { reply: "3D model generated!", code: text };
             }
         }
 
         /**************************************************************
-         * 4. INFINITE 3D WORLD ENGINE (THREE.JS)
+         * 4. ULTRA-HIGH-QUALITY PBR 3D WORLD ENGINE
          **************************************************************/
-        let scene, camera, renderer, controls, infiniteGrid, infiniteFloor, clock;
-        window.updateFunctions = [];
-        window.createdObjects = [];
-        window.keysPressed = {};
+        let scene, camera, renderer, controls, infiniteGrid, infiniteFloor, clock, sunLight;
 
-        window.addEventListener('keydown', e => { window.keysPressed[e.key.toLowerCase()] = true; });
-        window.addEventListener('keyup', e => { window.keysPressed[e.key.toLowerCase()] = false; });
+        window.addEventListener('keydown', e => {
+            if (document.activeElement.tagName === 'INPUT') return;
+            window.keysPressed[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener('keyup', e => {
+            window.keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        function createStudioEnvironment(rendererInstance) {
+            const pmremGenerator = new THREE.PMREMGenerator(rendererInstance);
+            pmremGenerator.compileEquirectangularShader();
+            const envScene = new THREE.Scene();
+            envScene.background = new THREE.Color(0x1e293b);
+
+            const skyDome = new THREE.Mesh(
+                new THREE.SphereGeometry(100, 32, 16),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.BackSide })
+            );
+            envScene.add(skyDome);
+
+            const strip1 = new THREE.Mesh(
+                new THREE.PlaneGeometry(80, 20),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+            );
+            strip1.position.set(0, 40, 0);
+            strip1.rotation.x = Math.PI / 2;
+            envScene.add(strip1);
+
+            const envMap = pmremGenerator.fromScene(envScene).texture;
+            pmremGenerator.dispose();
+            return envMap;
+        }
 
         function init3DWorld() {
             if (renderer) return;
 
             const container = document.getElementById('canvasContainer');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x060b19);
-            scene.fog = new THREE.FogExp2(0x060b19, 0.0025);
+            scene.background = new THREE.Color(0x0b132b);
+            scene.fog = new THREE.FogExp2(0x0b132b, 0.0018);
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(0, 15, 35);
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(0, 14, 32);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
             container.appendChild(renderer.domElement);
+
+            // Realistic Metallic & Glass Reflections
+            scene.environment = createStudioEnvironment(renderer);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-            const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.7);
-            scene.add(ambientLight);
+            // High-Quality Hemisphere + Sun Lighting
+            const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.85);
+            hemiLight.position.set(0, 200, 0);
+            scene.add(hemiLight);
 
-            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
-            dirLight.position.set(60, 120, 80);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
+            sunLight = new THREE.DirectionalLight(0xfffbeb, 1.6);
+            sunLight.position.set(80, 140, 90);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            const d = 120;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            sunLight.shadow.bias = -0.0005;
+            scene.add(sunLight);
 
-            const floorGeo = new THREE.PlaneGeometry(10000, 10000);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x091024, roughness: 0.85, metalness: 0.1 });
+            // Infinite Realistic Ground Plane
+            const floorGeo = new THREE.PlaneGeometry(12000, 12000);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                roughness: 0.75,
+                metalness: 0.15
+            });
             infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
-            infiniteGrid = new THREE.GridHelper(2000, 200, 0x0ea5e9, 0x1e293b);
+            infiniteGrid = new THREE.GridHelper(2000, 200, 0x38bdf8, 0x1e293b);
             infiniteGrid.position.y = 0.02;
+            infiniteGrid.material.opacity = 0.45;
+            infiniteGrid.material.transparent = true;
             scene.add(infiniteGrid);
 
             clock = new THREE.Clock();
@@ -605,20 +794,24 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 
         function animate3D() {
             requestAnimationFrame(animate3D);
-            const delta = clock.getDelta();
+            const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
+            // Infinite Grid & Sun Shadow Follow
             const snap = 10;
             infiniteGrid.position.x = Math.floor(camera.position.x / snap) * snap;
             infiniteGrid.position.z = Math.floor(camera.position.z / snap) * snap;
             infiniteFloor.position.x = camera.position.x;
             infiniteFloor.position.z = camera.position.z;
 
-            for (let i = 0; i < window.updateFunctions.length; i++) {
-                try {
-                    window.updateFunctions[i](delta, elapsedTime);
-                } catch (e) {
-                    console.error("Error in AI update loop:", e);
+            // Only run AI vehicle/character control updates when NOT exited
+            if (!window.isControlExited) {
+                for (let i = 0; i < window.updateFunctions.length; i++) {
+                    try {
+                        window.updateFunctions[i](delta, elapsedTime);
+                    } catch (e) {
+                        console.error("AI Update Loop Error:", e);
+                    }
                 }
             }
 
@@ -626,106 +819,339 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             renderer.render(scene, camera);
         }
 
-        function resetWorld() {
-            window.createdObjects.forEach(obj => scene.remove(obj));
-            window.createdObjects = [];
-            window.updateFunctions = [];
-            projectScripts = [];
-            document.getElementById('objectCount').innerText = '0';
-            document.getElementById('actionButtons').classList.add('hidden');
-            document.getElementById('actionButtons').classList.remove('flex');
-            appendChatMessage('ai', 'The 3D world has been reset. Ready to build a new game!');
+        /**************************************************************
+         * 5. MOBILE JOYSTICK (MATCHING IMAGE 2)
+         **************************************************************/
+        function initJoystick() {
+            const zone = document.getElementById('joystickZone');
+            const knob = document.getElementById('joystickKnob');
+            const maxRadius = 32;
+            let activeTouchId = null;
+            let isDraggingMouse = false;
+
+            function updateStick(clientX, clientY) {
+                const rect = zone.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                let dx = clientX - centerX;
+                let dy = clientY - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > maxRadius) {
+                    dx = (dx / dist) * maxRadius;
+                    dy = (dy / dist) * maxRadius;
+                }
+
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                const normX = dx / maxRadius;
+                const normY = dy / maxRadius;
+                window.joystickVector.x = normX;
+                window.joystickVector.y = normY;
+
+                // Map joystick to WASD & Arrow keys automatically for all AI games
+                const threshold = 0.25;
+                window.keysPressed['w'] = normY < -threshold;
+                window.keysPressed['arrowup'] = normY < -threshold;
+                window.keysPressed['s'] = normY > threshold;
+                window.keysPressed['arrowdown'] = normY > threshold;
+                window.keysPressed['a'] = normX < -threshold;
+                window.keysPressed['arrowleft'] = normX < -threshold;
+                window.keysPressed['d'] = normX > threshold;
+                window.keysPressed['arrowright'] = normX > threshold;
+            }
+
+            function resetStick() {
+                knob.style.transform = `translate(0px, 0px)`;
+                window.joystickVector.x = 0;
+                window.joystickVector.y = 0;
+                ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].forEach(k => {
+                    window.keysPressed[k] = false;
+                });
+            }
+
+            zone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                activeTouchId = touch.identifier;
+                updateStick(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            zone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            zone.addEventListener('touchend', e => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        activeTouchId = null;
+                        resetStick();
+                        break;
+                    }
+                }
+            });
+
+            // Mouse fallback for testing joystick on PC
+            zone.addEventListener('mousedown', e => {
+                isDraggingMouse = true;
+                updateStick(e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', e => {
+                if (isDraggingMouse) updateStick(e.clientX, e.clientY);
+            });
+            window.addEventListener('mouseup', () => {
+                if (isDraggingMouse) {
+                    isDraggingMouse = false;
+                    resetStick();
+                }
+            });
         }
 
         /**************************************************************
-         * 5. AI CHAT & LIVE 3D CODE EXECUTION
+         * 6. UNDO, CLEAN ALL, AND EXIT CONTROL BUTTONS
          **************************************************************/
+        function undoLastStep() {
+            if (buildHistoryStack.length === 0) {
+                appendChatMessage('ai', 'Nothing left to undo!');
+                return;
+            }
+
+            const lastStep = buildHistoryStack.pop();
+
+            // Remove 3D objects created in that step
+            lastStep.objects.forEach(obj => {
+                scene.remove(obj);
+                const idx = window.createdObjects.indexOf(obj);
+                if (idx > -1) window.createdObjects.splice(idx, 1);
+            });
+
+            // Remove update loops created in that step
+            lastStep.updateFns.forEach(fn => {
+                const idx = window.updateFunctions.indexOf(fn);
+                if (idx > -1) window.updateFunctions.splice(idx, 1);
+            });
+
+            // Remove any DOM overlays created in that step
+            lastStep.domNodes.forEach(node => {
+                if (node && node.parentNode) node.parentNode.removeChild(node);
+            });
+
+            if (buildHistoryStack.length === 0) {
+                document.getElementById('actionButtons').classList.add('hidden');
+                document.getElementById('actionButtons').classList.remove('flex');
+            }
+
+            appendChatMessage('ai', '↩️ Undid last build step.');
+        }
+
+        function cleanAllWorld() {
+            while (buildHistoryStack.length > 0) {
+                undoLastStep();
+            }
+            window.createdObjects.forEach(obj => scene.remove(obj));
+            window.createdObjects = [];
+            window.updateFunctions = [];
+            document.getElementById('aiHudContainer').innerHTML = '';
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('actionButtons').classList.remove('flex');
+            appendChatMessage('ai', '🧹 Cleaned all objects from the 3D world!');
+        }
+
+        function toggleExitControl() {
+            window.isControlExited = !window.isControlExited;
+            const btn = document.getElementById('exitControlBtn');
+            const txt = document.getElementById('exitBtnText');
+
+            if (window.isControlExited) {
+                // Clear pressed keys and unlock OrbitControls so user can freely move camera
+                Object.keys(window.keysPressed).forEach(k => window.keysPressed[k] = false);
+                controls.enabled = true;
+                camera.position.y += 6;
+                camera.position.z += 10;
+                txt.innerText = 'Resume';
+                btn.className = 'glass bg-amber-500/20 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-400 flex items-center gap-1 shadow-md transition-all';
+                appendChatMessage('ai', '🚪 Exited vehicle/character control. Free camera enabled! Click "Resume" to control again.');
+            } else {
+                txt.innerText = 'Exit';
+                btn.className = 'glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all';
+                appendChatMessage('ai', '🎮 Resumed vehicle/character control!');
+            }
+        }
+
+        /**************************************************************
+         * 7. COLLAPSIBLE CHAT, IMAGE UPLOAD & LIVE BUILD TIMER
+         **************************************************************/
+        function toggleChatBox(show) {
+            const chat = document.getElementById('chatWrapper');
+            const showBtn = document.getElementById('showChatBtn');
+            if (show) {
+                chat.classList.remove('hidden');
+                showBtn.classList.add('hidden');
+                showBtn.classList.remove('flex');
+            } else {
+                chat.classList.add('hidden');
+                showBtn.classList.remove('hidden');
+                showBtn.classList.add('flex');
+            }
+        }
+
+        function toggleHistoryView() {
+            const hist = document.getElementById('chatHistory');
+            const icon = document.getElementById('collapseHistoryIcon');
+            hist.classList.toggle('hidden');
+            icon.className = hist.classList.contains('hidden') ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+        }
+
+        function handleChatImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                attachedImageMimeType = file.type || 'image/jpeg';
+                attachedImageBase64 = dataUrl.split(',')[1];
+                document.getElementById('attachedImagePreview').src = dataUrl;
+                const bar = document.getElementById('imageAttachmentBar');
+                bar.classList.remove('hidden');
+                bar.classList.add('flex');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearAttachedImage() {
+            attachedImageBase64 = null;
+            attachedImageMimeType = null;
+            document.getElementById('chatImageInput').value = '';
+            const bar = document.getElementById('imageAttachmentBar');
+            bar.classList.add('hidden');
+            bar.classList.remove('flex');
+        }
+
+        function startBuildTimer() {
+            const badge = document.getElementById('buildTimerBadge');
+            const text = document.getElementById('buildTimerText');
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+            const startTime = performance.now();
+
+            clearInterval(buildTimerInterval);
+            buildTimerInterval = setInterval(() => {
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+                text.innerText = `Building ${elapsed}s`;
+            }, 100);
+            return startTime;
+        }
+
+        function stopBuildTimer(startTime) {
+            clearInterval(buildTimerInterval);
+            const badge = document.getElementById('buildTimerBadge');
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+            return ((performance.now() - startTime) / 1000).toFixed(1);
+        }
+
         async function sendPromptToAI() {
             const input = document.getElementById('promptInput');
             const text = input.value.trim();
-            if (!text) return;
+            if (!text && !attachedImageBase64) return;
+
+            const sentImageBase64 = attachedImageBase64;
+            const sentImageMime = attachedImageMimeType;
 
             input.value = '';
-            appendChatMessage('user', text);
+            clearAttachedImage();
+            appendChatMessage('user', text || '📷 [Build from attached image]');
 
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
-            sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Building...</span>`;
+            sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[10px]"></i>`;
+
+            const timerStart = startBuildTimer();
 
             try {
-                const result = await callAIProvider(text, false);
+                const result = await callAIProvider(text, sentImageBase64, sentImageMime, false);
+                const totalSeconds = stopBuildTimer(timerStart);
 
                 if (result.code && result.code.trim() !== '') {
-                    const prevCount = scene.children.length;
+                    // Snapshot scene, update functions, and body children before execution for Undo support
+                    const prevSceneChildren = [...scene.children];
+                    const prevUpdateFns = [...window.updateFunctions];
+                    const prevBodyChildren = [...document.body.children];
+
+                    window.isControlExited = false;
+                    document.getElementById('exitBtnText').innerText = 'Exit';
+
                     const execFn = new Function('THREE', 'scene', 'camera', 'renderer', 'controls', result.code);
                     execFn(THREE, scene, camera, renderer, controls);
 
-                    scene.children.slice(prevCount).forEach(child => {
-                        if (!window.createdObjects.includes(child)) {
-                            window.createdObjects.push(child);
+                    // Collect newly created items in this step
+                    const newObjects = scene.children.filter(c => !prevSceneChildren.includes(c));
+                    const newUpdateFns = window.updateFunctions.filter(fn => !prevUpdateFns.includes(fn));
+                    const newDomNodes = [...document.body.children].filter(el => !prevBodyChildren.includes(el));
+
+                    newObjects.forEach(obj => {
+                        obj.traverse(sub => {
+                            if (sub.isMesh) {
+                                sub.castShadow = true;
+                                sub.receiveShadow = true;
+                            }
+                        });
+                        if (!window.createdObjects.includes(obj)) {
+                            window.createdObjects.push(obj);
                         }
                     });
 
-                    projectScripts.push(result.code);
-                    document.getElementById('objectCount').innerText = window.createdObjects.length;
+                    buildHistoryStack.push({
+                        code: result.code,
+                        objects: newObjects,
+                        updateFns: newUpdateFns,
+                        domNodes: newDomNodes
+                    });
 
                     const actionBtns = document.getElementById('actionButtons');
                     actionBtns.classList.remove('hidden');
                     actionBtns.classList.add('flex');
                 }
 
-                appendChatMessage('ai', result.reply || 'Successfully built and added to the 3D map!');
+                appendChatMessage('ai', `✅ (${totalSeconds}s) ${result.reply || 'Built in high-detail 3D!'}`);
             } catch (err) {
-                appendChatMessage('ai', `⚠️ Error while generating: ${err.message}`);
+                stopBuildTimer(timerStart);
+                appendChatMessage('ai', `⚠️ Error: ${err.message}`);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Generate</span>`;
+                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-[10px]"></i><span>Build</span>`;
             }
         }
 
         function appendChatMessage(role, msg) {
             const chatHistory = document.getElementById('chatHistory');
+            chatHistory.classList.remove('hidden');
             const div = document.createElement('div');
-            div.className = 'flex items-start gap-2.5';
-
             if (role === 'user') {
-                div.innerHTML = `
-                    <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shrink-0 mt-0.5">
-                        <i class="fa-solid fa-user text-indigo-400 text-xs"></i>
-                    </div>
-                    <div class="bg-indigo-950/60 border border-indigo-800/50 rounded-xl px-3.5 py-2 text-indigo-100 leading-relaxed">
-                        ${msg}
-                    </div>`;
+                div.className = 'bg-indigo-950/70 border border-indigo-800/50 rounded-lg px-2.5 py-1 text-indigo-100 leading-snug';
+                div.innerHTML = `<strong class="text-indigo-400">You:</strong> ${msg}`;
             } else {
-                div.innerHTML = `
-                    <div class="w-7 h-7 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 mt-0.5">
-                        <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
-                    </div>
-                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 leading-relaxed">
-                        ${msg}
-                    </div>`;
+                div.className = 'bg-slate-900/80 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200 leading-snug';
+                div.innerHTML = `<strong class="text-sky-400">AI:</strong> ${msg}`;
             }
             chatHistory.appendChild(div);
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
         /**************************************************************
-         * 6. SAVE & INSTALL SYSTEM (WITH PROJECT NAME & ICON)
+         * 8. SAVE & INSTALL SYSTEM
          **************************************************************/
         function openProjectModal(mode) {
             currentModalMode = mode;
             const modal = document.getElementById('projectModal');
-            const title = document.getElementById('modalTitle');
-            const btnText = document.getElementById('confirmProjectBtnText');
-
-            if (mode === 'save') {
-                title.innerText = 'Save Project';
-                btnText.innerText = 'Save All Project Data';
-            } else {
-                title.innerText = 'Install Game';
-                btnText.innerText = 'Download & Install Game';
-            }
-
+            document.getElementById('modalTitle').innerText = mode === 'save' ? 'Save Project' : 'Install Game';
+            document.getElementById('confirmProjectBtnText').innerText = mode === 'save' ? 'Save All Project Data' : 'Download & Install Game';
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -743,10 +1169,9 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             reader.onload = function(e) {
                 projectIconDataUrl = e.target.result;
                 const img = document.getElementById('iconPreviewImg');
-                const defIcon = document.getElementById('defaultIconPreview');
                 img.src = projectIconDataUrl;
                 img.classList.remove('hidden');
-                defIcon.classList.add('hidden');
+                document.getElementById('defaultIconPreview').classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }
@@ -754,26 +1179,25 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
         function executeProjectAction() {
             const projectName = document.getElementById('projectNameInput').value.trim() || 'ApexGen_3D_Game';
             const iconUrl = projectIconDataUrl || 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png';
+            const activeScripts = buildHistoryStack.map(s => s.code);
 
             if (currentModalMode === 'save') {
                 const projectData = {
                     name: projectName,
                     icon: iconUrl,
                     savedAt: new Date().toISOString(),
-                    scripts: projectScripts
+                    scripts: activeScripts
                 };
                 localStorage.setItem(`apexgen_project_${projectName}`, JSON.stringify(projectData));
-
                 const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
                 triggerDownload(blob, `${projectName}.apexgen.json`);
-                appendChatMessage('ai', `✅ Project <strong>${projectName}</strong> and its icon have been saved!`);
+                appendChatMessage('ai', `💾 Project "${projectName}" saved!`);
             } else {
-                const standaloneGameHtml = buildStandaloneGameFile(projectName, iconUrl, projectScripts);
-                const blob = new Blob([standaloneGameHtml], { type: 'text/html' });
+                const html = buildStandaloneGameFile(projectName, iconUrl, activeScripts);
+                const blob = new Blob([html], { type: 'text/html' });
                 triggerDownload(blob, `${projectName}.html`);
-                appendChatMessage('ai', `🚀 <strong>${projectName}</strong> has been downloaded to your device! Open it anytime to play.`);
+                appendChatMessage('ai', `🚀 "${projectName}" installed to your device!`);
             }
-
             closeProjectModal();
         }
 
@@ -795,63 +1219,82 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="${name}">
     <title>${name}</title>
     <link rel="icon" href="${icon}">
     <link rel="apple-touch-icon" href="${icon}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
     <style>
-        body { margin: 0; overflow: hidden; background: #060b19; font-family: sans-serif; }
-        #hud { position: fixed; top: 15px; left: 15px; display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.8); color: white; padding: 8px 14px; border-radius: 14px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; }
-        #hud img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+        body { margin: 0; overflow: hidden; background: #0b132b; font-family: sans-serif; touch-action: none; user-select: none; }
+        #hud { position: fixed; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.85); color: white; padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; font-size: 13px; }
+        #hud img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+        .joystick-base { width: 116px; height: 116px; border-radius: 50%; background: radial-gradient(circle, #5c5c5c 0%, #5c5c5c 53%, #9e9e9e 56%, #474747 59%, #b8b8b8 62%, #525252 65%, #595959 100%); position: fixed; bottom: 24px; left: 24px; z-index: 20; display: flex; align-items: center; justify-content: center; }
+        .joystick-knob { width: 52px; height: 52px; border-radius: 50%; background: #fff; border: 5px solid #b3b3b3; position: absolute; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div id="hud">
-        <img src="${icon}" alt="icon">
-        <strong>${name}</strong>
-    </div>
+    <div id="hud"><img src="${icon}"><strong>${name}</strong></div>
+    <div id="joyZone" class="joystick-base"><div id="joyKnob" class="joystick-knob"></div></div>
     <script>
         window.updateFunctions = [];
         window.createdObjects = [];
         window.keysPressed = {};
+        window.joystickVector = { x: 0, y: 0 };
+        window.isControlExited = false;
         window.addEventListener('keydown', e => window.keysPressed[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => window.keysPressed[e.key.toLowerCase()] = false);
 
+        const zone = document.getElementById('joyZone');
+        const knob = document.getElementById('joyKnob');
+        zone.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const t = e.touches[0];
+            const r = zone.getBoundingClientRect();
+            let dx = t.clientX - (r.left + r.width/2);
+            let dy = t.clientY - (r.top + r.height/2);
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 32) { dx = dx/d*32; dy = dy/d*32; }
+            knob.style.transform = \`translate(\${dx}px, \${dy}px)\`;
+            window.keysPressed['w'] = dy < -8; window.keysPressed['s'] = dy > 8;
+            window.keysPressed['a'] = dx < -8; window.keysPressed['d'] = dx > 8;
+        }, { passive: false });
+        zone.addEventListener('touchend', () => {
+            knob.style.transform = 'translate(0px,0px)';
+            ['w','a','s','d'].forEach(k => window.keysPressed[k] = false);
+        });
+
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x060b19);
-        scene.fog = new THREE.FogExp2(0x060b19, 0.0025);
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 15, 35);
+        scene.background = new THREE.Color(0x0b132b);
+        scene.fog = new THREE.FogExp2(0x0b132b, 0.0018);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera.position.set(0, 14, 32);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        scene.add(new THREE.AmbientLight(0xdbeafe, 0.7));
-        const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
-        dirLight.position.set(60, 120, 80);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
+        scene.add(new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.85));
+        const sun = new THREE.DirectionalLight(0xfffbeb, 1.6);
+        sun.position.set(80, 140, 90);
+        sun.castShadow = true;
+        scene.add(sun);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), new THREE.MeshStandardMaterial({ color: 0x091024 }));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.75 }));
         floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
         scene.add(floor);
-        const grid = new THREE.GridHelper(2000, 200, 0x0ea5e9, 0x1e293b);
+        const grid = new THREE.GridHelper(2000, 200, 0x38bdf8, 0x1e293b);
         scene.add(grid);
 
-        try {
-            ${combinedCode}
-        } catch(e) { console.error(e); }
+        try { ${combinedCode} } catch(e) { console.error(e); }
 
         const clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
-            const delta = clock.getDelta();
+            const delta = Math.min(clock.getDelta(), 0.1);
             const elapsed = clock.getElapsedTime();
             grid.position.x = Math.floor(camera.position.x / 10) * 10;
             grid.position.z = Math.floor(camera.position.z / 10) * 10;
@@ -862,11 +1305,6 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             renderer.render(scene, camera);
         }
         animate();
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     <\/script>
 </body>
 </html>`;
