@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - C#/C++ Logic Engine to JS</title>
+    <title>ApexGen - AI Studio Engine</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -14,23 +14,6 @@
         }
         body, html { width: 100%; height: 100%; overflow: hidden; background-color: #02040a; color: #ffffff; }
         #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
-        /* CINEMATIC BOOT */
-        #boot-intro {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #010206; z-index: 1000; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; transition: opacity 1s ease;
-        }
-        .intro-title {
-            font-size: 2.8rem; font-weight: 900; letter-spacing: 5px; color: #38bdf8;
-            text-shadow: 0 0 35px rgba(56, 189, 248, 0.8); margin-bottom: 15px; text-align: center;
-        }
-        .intro-sub { font-size: 0.9rem; color: #94a3b8; letter-spacing: 2px; margin-bottom: 25px; text-transform: uppercase; }
-        .intro-btn {
-            background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none;
-            padding: 12px 36px; border-radius: 30px; font-size: 0.95rem; font-weight: 700;
-            cursor: pointer; box-shadow: 0 0 25px rgba(2, 132, 199, 0.6);
-        }
 
         /* HEADER HUD */
         header {
@@ -89,20 +72,29 @@
             border-radius: 12px; padding: 5px 8px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); align-items: center; gap: 6px; backdrop-filter: blur(10px);
         }
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 0.9rem; padding: 6px; }
+
+        /* API SETTINGS MODAL */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 200;
+        }
+        .modal-card {
+            background: #0b1120; border: 1px solid #1e293b; padding: 22px; border-radius: 16px;
+            width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+        }
+        .modal-card input {
+            width: 100%; background: #1e293b; border: 1px solid #334155; color: white;
+            padding: 9px 12px; border-radius: 8px; margin-top: 5px; margin-bottom: 14px; outline: none; font-size: 0.85rem;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="boot-intro">
-        <div class="intro-title">ApexGen Studio</div>
-        <div class="intro-sub">C#/C++ Logic Translated Engine</div>
-        <button id="intro-enter-btn" class="intro-btn">LAUNCH STUDIO</button>
-    </div>
-
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
+            <button id="key-btn" class="hud-btn" style="border-color: #38bdf8; color: #38bdf8;">Key ⚙️</button>
             <button id="undo-btn" class="hud-btn">Undo ↩️</button>
             <button id="clear-btn" class="hud-btn btn-danger">Clear 🗑️</button>
             <button id="exit-control-btn" class="hud-btn btn-danger hidden">Exit ✕</button>
@@ -122,8 +114,23 @@
         <button id="btn-jump" class="action-btn">🦘</button>
     </div>
 
+    <!-- API SETTINGS MODAL -->
+    <div id="api-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="color:#38bdf8; margin-bottom: 12px;">AI & API Keys Setup</h3>
+            <div style="text-align: left; font-size: 0.8rem; color: #94a3b8;">
+                <label>Gemini / OpenAI / Claude API Key</label>
+                <input type="text" id="api-key-input" placeholder="Paste your API key here..." />
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button id="btn-save-key" class="hud-btn" style="background: #0284c7; border: none; padding: 8px 20px;">Save</button>
+                <button id="btn-close-key" class="hud-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Type 'car', 'kratos', or 'castle' to build!</div>
+        <div id="status-indicator" class="chat-status">Ready. Click 'Key ⚙️' to add your API key, then build!</div>
         <div class="chat-bar">
             <input type="text" id="ai-input" class="chat-input" placeholder="Type command..." />
             <button id="ai-send" class="hud-btn" style="background: #0284c7; border: none; padding: 8px 18px;">Build</button>
@@ -131,16 +138,6 @@
     </div>
 
     <script>
-        // C# / C++ Translated Object-Oriented Physics Logic in JS
-        class GameObject {
-            constructor(mesh, type) {
-                this.mesh = mesh;
-                this.type = type;
-                this.velocity = new THREE.Vector3(0, 0, 0);
-                this.isGrounded = true;
-            }
-        }
-
         let scene, camera, renderer, controls;
         let loadedModels = [];
         let staticColliders = [];
@@ -149,11 +146,6 @@
         let infiniteFloor, infiniteGrid;
 
         const joystick = { x: 0, y: 0, active: false };
-
-        document.getElementById('intro-enter-btn').addEventListener('click', () => {
-            document.getElementById('boot-intro').style.opacity = '0';
-            setTimeout(() => document.getElementById('boot-intro').style.display = 'none', 1000);
-        });
 
         function initScene() {
             const container = document.getElementById('webgl-canvas');
@@ -273,11 +265,11 @@
             if (loadedModels.length > 0 && type !== 'static') group.position.x += loadedModels.length * 6;
             scene.add(group);
 
-            const gameObj = new GameObject(group, type);
-            loadedModels.push(gameObj);
+            const record = { model: group, type, velocity: new THREE.Vector3(), baseY: 0, isGrounded: true };
+            loadedModels.push(record);
 
             if (type !== 'static') {
-                controlledEntity = gameObj;
+                controlledEntity = record;
                 document.getElementById('joystick-zone').classList.remove('hidden');
                 document.getElementById('exit-control-btn').classList.remove('hidden');
                 if (type === 'character') document.getElementById('action-buttons-zone').classList.remove('hidden');
@@ -289,33 +281,33 @@
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.1);
 
-            if (controlledEntity && controlledEntity.mesh) {
-                const { mesh, type, velocity } = controlledEntity;
+            if (controlledEntity && controlledEntity.model) {
+                const { model, type, velocity } = controlledEntity;
 
                 if (type === 'vehicle') {
                     if (Math.abs(joystick.y) > 0.05) {
-                        mesh.rotation.y -= joystick.x * 3.0 * delta * Math.sign(joystick.y);
-                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y);
-                        mesh.position.addScaledVector(fwd, joystick.y * 18 * delta);
+                        model.rotation.y -= joystick.x * 3.0 * delta * Math.sign(joystick.y);
+                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
+                        model.position.addScaledVector(fwd, joystick.y * 18 * delta);
                     }
                 } else if (type === 'character') {
                     const mag = Math.hypot(joystick.x, joystick.y);
                     if (mag > 0.15) {
-                        mesh.rotation.y = Math.atan2(joystick.x, joystick.y);
-                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y);
-                        mesh.position.addScaledVector(fwd, mag * 7 * delta);
+                        model.rotation.y = Math.atan2(joystick.x, joystick.y);
+                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
+                        model.position.addScaledVector(fwd, mag * 7 * delta);
                     }
                     velocity.y -= 25 * delta;
-                    mesh.position.y += velocity.y * delta;
-                    if (mesh.position.y <= 0) { mesh.position.y = 0; velocity.y = 0; controlledEntity.isGrounded = true; }
+                    model.position.y += velocity.y * delta;
+                    if (model.position.y <= 0) { model.position.y = 0; velocity.y = 0; controlledEntity.isGrounded = true; }
                 }
 
                 // Chase Camera
                 controls.enabled = false;
                 const offset = new THREE.Vector3(0, type === 'vehicle' ? 4 : 2.8, type === 'vehicle' ? -10 : -6);
-                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y + Math.PI);
-                camera.position.lerp(mesh.position.clone().add(offset), 0.12);
-                camera.lookAt(mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
+                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y + Math.PI);
+                camera.position.lerp(model.position.clone().add(offset), 0.12);
+                camera.lookAt(model.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
             } else {
                 controls.enabled = true;
             }
@@ -330,39 +322,63 @@
             renderer.render(scene, camera);
         }
 
-        document.getElementById('undo-btn').addEventListener('click', () => {
-            if (loadedModels.length === 0) return;
-            const last = loadedModels.pop();
-            scene.remove(last.mesh);
-            document.getElementById('status-indicator').innerText = "↩️ Last item undone.";
-        });
-
-        document.getElementById('clear-btn').addEventListener('click', () => {
-            loadedModels.forEach(m => scene.remove(m.mesh));
-            loadedModels = [];
-            controlledEntity = null;
-            document.getElementById('joystick-zone').classList.add('hidden');
-            document.getElementById('action-buttons-zone').classList.add('hidden');
-            document.getElementById('exit-control-btn').classList.add('hidden');
-            controls.enabled = true;
-            document.getElementById('status-indicator').innerText = "🗑️ Studio cleared.";
-        });
-
-        document.getElementById('exit-control-btn').addEventListener('click', () => {
-            controlledEntity = null;
-            document.getElementById('joystick-zone').classList.add('hidden');
-            document.getElementById('action-buttons-zone').classList.add('hidden');
-            document.getElementById('exit-control-btn').classList.add('hidden');
-            controls.enabled = true;
-            document.getElementById('status-indicator').innerText = "Camera unlocked.";
-        });
-
         window.addEventListener('DOMContentLoaded', () => {
             initScene();
+
+            // Key Modal Logic
+            const modal = document.getElementById('api-modal');
+            if (!localStorage.getItem('apexgen_api_key')) {
+                modal.classList.remove('hidden');
+            }
+
+            document.getElementById('key-btn').addEventListener('click', () => {
+                document.getElementById('api-key-input').value = localStorage.getItem('apexgen_api_key') || '';
+                modal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-key').addEventListener('click', () => modal.classList.add('hidden'));
+
+            document.getElementById('btn-save-key').addEventListener('click', () => {
+                const key = document.getElementById('api-key-input').value.trim();
+                if (key) {
+                    localStorage.setItem('apexgen_api_key', key);
+                    document.getElementById('status-indicator').innerText = "API Key saved successfully!";
+                }
+                modal.classList.add('hidden');
+            });
+
+            document.getElementById('undo-btn').addEventListener('click', () => {
+                if (loadedModels.length === 0) return;
+                const last = loadedModels.pop();
+                scene.remove(last.model);
+                document.getElementById('status-indicator').innerText = "↩️ Last item undone.";
+            });
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                loadedModels.forEach(m => scene.remove(m.model));
+                loadedModels = [];
+                controlledEntity = null;
+                document.getElementById('joystick-zone').classList.add('hidden');
+                document.getElementById('action-buttons-zone').classList.add('hidden');
+                document.getElementById('exit-control-btn').classList.add('hidden');
+                controls.enabled = true;
+                document.getElementById('status-indicator').innerText = "🗑️ Studio cleared.";
+            });
+
+            document.getElementById('exit-control-btn').addEventListener('click', () => {
+                controlledEntity = null;
+                document.getElementById('joystick-zone').classList.add('hidden');
+                document.getElementById('action-buttons-zone').classList.add('hidden');
+                document.getElementById('exit-control-btn').classList.add('hidden');
+                controls.enabled = true;
+                document.getElementById('status-indicator').innerText = "Camera unlocked.";
+            });
+
             const input = document.getElementById('ai-input');
             const execute = () => {
-                if (input.value.trim()) {
-                    spawnEntity(input.value.trim());
+                const prompt = input.value.trim();
+                if (prompt) {
+                    spawnEntity(prompt);
                     input.value = '';
                 }
             };
