@@ -3,416 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - Stable Built-in Engine</title>
-    <!-- Three.js & Controls -->
+    <title>ApexGen - C#/C++ Logic Engine to JS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            user-select: none; -webkit-tap-highlight-color: transparent;
         }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #030611;
-            color: #ffffff;
-        }
-        #webgl-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            touch-action: none;
-        }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #02040a; color: #ffffff; }
+        #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* 1. CINEMATIC INTRO */
+        /* CINEMATIC BOOT */
         #boot-intro {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #02040a;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 1s ease, visibility 1s ease;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #010206; z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; transition: opacity 1s ease;
         }
-        #intro-stars-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1001;
-            pointer-events: none;
+        .intro-title {
+            font-size: 2.8rem; font-weight: 900; letter-spacing: 5px; color: #38bdf8;
+            text-shadow: 0 0 35px rgba(56, 189, 248, 0.8); margin-bottom: 15px; text-align: center;
         }
-        .intro-content {
-            position: relative;
-            z-index: 1002;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
+        .intro-sub { font-size: 0.9rem; color: #94a3b8; letter-spacing: 2px; margin-bottom: 25px; text-transform: uppercase; }
+        .intro-btn {
+            background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none;
+            padding: 12px 36px; border-radius: 30px; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; box-shadow: 0 0 25px rgba(2, 132, 199, 0.6);
         }
-        .intro-welcome {
-            font-size: 0.95rem;
-            letter-spacing: 2.5px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            animation: fadeInWelcome 3.5s forwards ease-in-out;
-            opacity: 0;
-        }
-        .intro-brand-title {
-            font-size: 2.8rem;
-            font-weight: 900;
-            letter-spacing: 4px;
-            color: #38bdf8;
-            text-shadow: 0 0 35px rgba(56, 189, 248, 0.8), 0 0 70px rgba(56, 189, 248, 0.4);
-            opacity: 0;
-            animation: revealBrand 4.5s 2.5s forwards ease-out;
-        }
-        .intro-enter-btn {
-            margin-top: 15px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.15));
-            color: #f8fafc;
-            border: 1px solid #38bdf8;
-            padding: 10px 30px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            cursor: pointer;
-            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-            opacity: 0;
-            animation: fadeInBtn 1.5s 5.5s forwards ease;
-        }
-        @keyframes fadeInWelcome { 0% { opacity: 0; } 50% { opacity: 0.9; } 100% { opacity: 0.9; } }
-        @keyframes revealBrand { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
-        @keyframes fadeInBtn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
 
-        /* Top Header */
+        /* HEADER HUD */
         header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 20;
-            background: linear-gradient(to bottom, rgba(5, 8, 17, 0.95), transparent);
-            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 20;
+            background: linear-gradient(to bottom, rgba(2,4,10,0.9), transparent); pointer-events: none;
         }
-        .brand {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #38bdf8;
-            text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
-            pointer-events: auto;
-        }
-        .header-actions {
-            display: flex;
-            gap: 6px;
-            pointer-events: auto;
-            align-items: center;
-        }
-        .btn {
-            background: rgba(30, 41, 59, 0.85);
-            color: #f8fafc;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
+        .brand { font-size: 1.3rem; font-weight: 900; color: #38bdf8; letter-spacing: 1.5px; pointer-events: auto; }
+        .header-actions { display: flex; gap: 8px; pointer-events: auto; }
+        .hud-btn {
+            background: rgba(15, 23, 42, 0.85); color: #f8fafc; border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 7px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
             backdrop-filter: blur(8px);
         }
-        .btn-danger { background: rgba(225, 29, 72, 0.85); border-color: #fb7185; color: white; }
-        .btn-warning { background: rgba(217, 119, 6, 0.85); border-color: #f59e0b; color: white; }
-        .btn-primary { background: #0284c7; border-color: #38bdf8; }
-        .hidden { display: none !important; }
+        .btn-danger { background: rgba(225, 29, 72, 0.85); border-color: #fb7185; }
 
-        /* 2. ANALOG JOYSTICK */
+        /* ANALOG JOYSTICK */
         #joystick-zone {
-            position: absolute;
-            bottom: 85px;
-            left: 20px;
-            width: 130px;
-            height: 130px;
-            z-index: 50;
-            touch-action: none;
+            position: absolute; bottom: 85px; left: 20px; width: 130px; height: 130px; z-index: 50; touch-action: none;
         }
         .joystick-base {
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(30,41,59,0.85) 0%, rgba(15,23,42,0.95) 100%);
+            border: 2px solid rgba(56, 189, 248, 0.4); border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center;
             position: relative;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, #384152 0%, #1e2430 65%, #0f131a 100%);
-            border: 4px solid #475569;
-            border-radius: 50%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 2px 6px rgba(255,255,255,0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         .joystick-thumb {
-            position: absolute;
-            width: 55px;
-            height: 55px;
-            background: radial-gradient(circle, #64748b 0%, #334155 70%, #1e293b 100%);
-            border: 2px solid #94a3b8;
-            border-radius: 50%;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.9), inset 0 2px 5px rgba(255,255,255,0.4);
-            pointer-events: none;
-        }
-        .joystick-thumb::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 24px;
-            height: 24px;
-            background: #1e293b;
-            border: 1px solid #475569;
-            border-radius: 50%;
+            width: 55px; height: 55px; background: linear-gradient(135deg, #38bdf8, #0284c7);
+            border-radius: 50%; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.6); position: absolute; pointer-events: none;
         }
 
-        /* 3. ACTION BUTTONS */
+        /* ACTION BUTTONS */
         #action-buttons-zone {
-            position: absolute;
-            bottom: 90px;
-            right: 20px;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
+            position: absolute; bottom: 85px; right: 20px; z-index: 50; display: flex; flex-direction: column; gap: 12px; align-items: center;
         }
-        .action-row { display: flex; gap: 12px; }
         .action-btn {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            background: rgba(15, 23, 42, 0.85);
-            border: 2px solid #38bdf8;
-            color: white;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 12px rgba(56, 189, 248, 0.3);
-            cursor: pointer;
-            backdrop-filter: blur(8px);
-            touch-action: none;
+            width: 55px; height: 55px; border-radius: 50%; background: rgba(15, 23, 42, 0.85);
+            border: 2px solid rgba(56, 189, 248, 0.5); color: white; font-size: 1.3rem;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+            cursor: pointer; backdrop-filter: blur(8px); touch-action: none;
         }
-        .action-btn:active { transform: scale(0.9); background: rgba(2, 132, 199, 0.9); }
-        .action-btn-attack { border-color: #f43f5e; box-shadow: 0 0 18px rgba(244, 63, 94, 0.5); }
-        .action-btn-sprint { border-color: #eab308; box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+        .action-btn:active { transform: scale(0.9); background: #0284c7; }
 
-        /* Bottom Search & AI Bar */
+        /* COMMAND BAR */
         .chat-container {
-            position: absolute;
-            bottom: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 94%;
-            max-width: 650px;
-            z-index: 20;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+            width: 94%; max-width: 650px; z-index: 20; display: flex; flex-direction: column; gap: 6px;
         }
         .chat-status {
-            font-size: 0.76rem;
-            color: #94a3b8;
-            background: rgba(10, 15, 29, 0.92);
-            padding: 5px 12px;
-            border-radius: 6px;
-            align-self: flex-start;
-            backdrop-filter: blur(8px);
-            border-left: 3px solid #38bdf8;
-            max-width: 100%;
+            font-size: 0.78rem; color: #38bdf8; background: rgba(15, 23, 42, 0.9);
+            padding: 5px 12px; border-radius: 6px; backdrop-filter: blur(8px); border-left: 3px solid #38bdf8; align-self: flex-start;
         }
         .chat-bar {
-            display: flex;
-            background: rgba(10, 15, 29, 0.92);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 12px;
-            padding: 5px 8px;
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
-            align-items: center;
-            gap: 6px;
+            display: flex; background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 12px; padding: 5px 8px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); align-items: center; gap: 6px; backdrop-filter: blur(10px);
         }
-        .chat-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #ffffff;
-            font-size: 0.88rem;
-            padding: 6px 8px;
-        }
+        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: white; font-size: 0.9rem; padding: 6px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- 1. INTRO SCREEN -->
     <div id="boot-intro">
-        <canvas id="intro-stars-canvas"></canvas>
-        <div class="intro-content">
-            <div class="intro-welcome">welcome to ApexGen</div>
-            <div class="intro-brand-title">ApexGen</div>
-            <button id="intro-enter-btn" class="intro-enter-btn">ENTER STUDIO</button>
-        </div>
+        <div class="intro-title">ApexGen Studio</div>
+        <div class="intro-sub">C#/C++ Logic Translated Engine</div>
+        <button id="intro-enter-btn" class="intro-btn">LAUNCH STUDIO</button>
     </div>
 
     <header>
         <div class="brand">ApexGen</div>
         <div class="header-actions">
-            <button id="undo-btn" class="btn btn-warning" title="Undo">Undo ↩️</button>
-            <button id="clear-btn" class="btn btn-danger" title="Clear">Clear 🗑️</button>
-            <button id="exit-control-btn" class="btn btn-danger hidden">Exit ✕</button>
+            <button id="undo-btn" class="hud-btn">Undo ↩️</button>
+            <button id="clear-btn" class="hud-btn btn-danger">Clear 🗑️</button>
+            <button id="exit-control-btn" class="hud-btn btn-danger hidden">Exit ✕</button>
         </div>
     </header>
 
     <div id="webgl-canvas"></div>
 
-    <!-- 2. ANALOG JOYSTICK -->
     <div id="joystick-zone" class="hidden">
         <div class="joystick-base" id="joystick-base">
             <div class="joystick-thumb" id="joystick-thumb"></div>
         </div>
     </div>
 
-    <!-- 3. ACTION BUTTONS -->
     <div id="action-buttons-zone" class="hidden">
-        <div class="action-row">
-            <button id="btn-attack" class="action-btn action-btn-attack" title="Attack">⚔️</button>
-        </div>
-        <div class="action-row">
-            <button id="btn-sprint" class="action-btn action-btn-sprint" title="Sprint">⚡</button>
-            <button id="btn-jump" class="action-btn" title="Jump">🦘</button>
-        </div>
+        <button id="btn-attack" class="action-btn" style="border-color: #f43f5e;">⚔️</button>
+        <button id="btn-jump" class="action-btn">🦘</button>
     </div>
 
-    <!-- Search Bar -->
     <div class="chat-container">
-        <div id="status-indicator" class="chat-status">Ready. Type 'kratos', 'car', or 'castle' to build instantly!</div>
+        <div id="status-indicator" class="chat-status">Ready. Type 'car', 'kratos', or 'castle' to build!</div>
         <div class="chat-bar">
-            <input type="text" id="ai-input" class="chat-input" placeholder="make something" />
-            <button id="ai-send" class="btn btn-primary">Build</button>
+            <input type="text" id="ai-input" class="chat-input" placeholder="Type command..." />
+            <button id="ai-send" class="hud-btn" style="background: #0284c7; border: none; padding: 8px 18px;">Build</button>
         </div>
     </div>
 
     <script>
-        // PROCEDURAL AUDIO ENGINE
-        class SoundEngine {
-            constructor() {
-                this.ctx = null;
-                this.engineGain = null;
-                this.engineOsc = null;
-                this.isEngineRunning = false;
-                this.lastStepTime = 0;
-            }
-            init() {
-                if (this.ctx) return;
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
-            }
-            startEngine() {
-                this.init();
-                if (this.ctx.state === 'suspended') this.ctx.resume();
-                if (this.isEngineRunning) return;
-                this.engineOsc = this.ctx.createOscillator();
-                this.engineGain = this.ctx.createGain();
-                this.filter = this.ctx.createBiquadFilter();
-                this.engineOsc.type = 'sawtooth';
-                this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
-                this.filter.type = 'lowpass';
-                this.filter.frequency.setValueAtTime(260, this.ctx.currentTime);
-                this.engineGain.gain.setValueAtTime(0.09, this.ctx.currentTime);
-                this.engineOsc.connect(this.filter);
-                this.filter.connect(this.engineGain);
-                this.engineGain.connect(this.ctx.destination);
-                this.engineOsc.start();
-                this.isEngineRunning = true;
-            }
-            setEngineSpeed(speedRatio) {
-                if (!this.isEngineRunning || !this.engineOsc) return;
-                const freq = 45 + Math.abs(speedRatio) * 115;
-                this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.05);
-            }
-            stopEngine() {
-                if (!this.isEngineRunning) return;
-                try {
-                    this.engineGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
-                    setTimeout(() => {
-                        if (this.engineOsc) this.engineOsc.stop();
-                        this.isEngineRunning = false;
-                    }, 300);
-                } catch(e) { this.isEngineRunning = false; }
-            }
-            playFootstep() {
-                this.init();
-                const now = performance.now();
-                if (now - this.lastStepTime < 280) return;
-                this.lastStepTime = now;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(95, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(28, this.ctx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.09);
-            }
-            playAttack() {
-                this.init();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(320, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.21);
-            }
-            playJump() {
-                this.init();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(340, this.ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.23);
+        // C# / C++ Translated Object-Oriented Physics Logic in JS
+        class GameObject {
+            constructor(mesh, type) {
+                this.mesh = mesh;
+                this.type = type;
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.isGrounded = true;
             }
         }
-
-        const audio = new SoundEngine();
 
         let scene, camera, renderer, controls;
         let loadedModels = [];
@@ -422,55 +149,19 @@
         let infiniteFloor, infiniteGrid;
 
         const joystick = { x: 0, y: 0, active: false };
-        const actionState = { sprint: false };
 
-        // 1. BOOT INTRO
-        function initBootIntro() {
-            const canvas = document.getElementById('intro-stars-canvas');
-            const ctx = canvas.getContext('2d');
-            let w = canvas.width = window.innerWidth;
-            let h = canvas.height = window.innerHeight;
-            const particles = Array.from({ length: 75 }, () => ({
-                x: Math.random() * w,
-                y: Math.random() * h,
-                size: Math.random() * 2 + 0.6,
-                speedX: (Math.random() - 0.5) * 0.4,
-                speedY: -Math.random() * 0.6 - 0.2,
-                alpha: Math.random() * 0.7 + 0.3
-            }));
+        document.getElementById('intro-enter-btn').addEventListener('click', () => {
+            document.getElementById('boot-intro').style.opacity = '0';
+            setTimeout(() => document.getElementById('boot-intro').style.display = 'none', 1000);
+        });
 
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                particles.forEach(p => {
-                    p.x = (p.x + p.speedX + w) % w;
-                    p.y = (p.y + p.speedY + h) % h;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(186, 230, 253, ${p.alpha})`;
-                    ctx.fill();
-                });
-                if (document.getElementById('boot-intro').style.display !== 'none') requestAnimationFrame(draw);
-            }
-            draw();
-
-            const closeIntro = () => {
-                audio.init();
-                const introEl = document.getElementById('boot-intro');
-                introEl.style.opacity = '0';
-                setTimeout(() => { introEl.style.display = 'none'; }, 1000);
-            };
-            document.getElementById('intro-enter-btn').addEventListener('click', closeIntro);
-            setTimeout(() => { if (document.getElementById('boot-intro').style.display !== 'none') closeIntro(); }, 9200);
-        }
-
-        // 2. SCENE SETUP
         function initScene() {
             const container = document.getElementById('webgl-canvas');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x060913);
-            scene.fog = new THREE.FogExp2(0x060913, 0.0035);
+            scene.background = new THREE.Color(0x02040a);
+            scene.fog = new THREE.FogExp2(0x02040a, 0.003);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 4000);
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
             camera.position.set(0, 8, 20);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -482,28 +173,26 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxDistance = 1000;
-            controls.maxPolarAngle = Math.PI / 2 + 0.01;
 
-            const groundGeo = new THREE.PlaneGeometry(12000, 12000);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x080d1a, roughness: 0.8, metalness: 0.2 });
+            const groundGeo = new THREE.PlaneGeometry(15000, 15000);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x050b18, roughness: 0.9 });
             infiniteFloor = new THREE.Mesh(groundGeo, groundMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
-            infiniteGrid = new THREE.GridHelper(3000, 300, 0x38bdf8, 0x1e293b);
+            infiniteGrid = new THREE.GridHelper(4000, 400, 0x38bdf8, 0x1e293b);
             infiniteGrid.position.y = 0.02;
             scene.add(infiniteGrid);
 
-            scene.add(new THREE.HemisphereLight(0xffffff, 0x111827, 0.9));
-            const sunLight = new THREE.DirectionalLight(0xfff5ea, 2.0);
-            sunLight.position.set(30, 50, 25);
-            sunLight.castShadow = true;
-            scene.add(sunLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.5);
+            dirLight.position.set(40, 60, 30);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
 
-            setupAnalogJoystick();
-            setupActionButtons();
+            setupJoystick();
+            setupButtons();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -514,34 +203,11 @@
             animate();
         }
 
-        // 3. JOYSTICK
-        function setupAnalogJoystick() {
+        function setupJoystick() {
             const base = document.getElementById('joystick-base');
             const thumb = document.getElementById('joystick-thumb');
             const maxRadius = 38;
-            let touchId = null;
-            let center = { x: 0, y: 0 };
-
-            const updatePos = (clientX, clientY) => {
-                let dx = clientX - center.x;
-                let dy = clientY - center.y;
-                let dist = Math.hypot(dx, dy);
-                if (dist > maxRadius) {
-                    dx = (dx / dist) * maxRadius;
-                    dy = (dy / dist) * maxRadius;
-                }
-                thumb.style.transform = `translate(${dx}px, ${dy}px)`;
-                joystick.x = dx / maxRadius;
-                joystick.y = -dy / maxRadius;
-            };
-
-            const reset = () => {
-                touchId = null;
-                joystick.active = false;
-                joystick.x = 0;
-                joystick.y = 0;
-                thumb.style.transform = `translate(0px, 0px)`;
-            };
+            let touchId = null, center = { x: 0, y: 0 };
 
             base.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -550,257 +216,112 @@
                 const rect = base.getBoundingClientRect();
                 center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                 joystick.active = true;
-                updatePos(t.clientX, t.clientY);
             }, { passive: false });
 
             window.addEventListener('touchmove', (e) => {
                 if (!joystick.active) return;
                 for (let t of e.changedTouches) {
-                    if (t.identifier === touchId) { updatePos(t.clientX, t.clientY); break; }
+                    if (t.identifier === touchId) {
+                        let dx = t.clientX - center.x, dy = t.clientY - center.y;
+                        let dist = Math.hypot(dx, dy);
+                        if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
+                        thumb.style.transform = `translate(${dx}px, ${dy}px)`;
+                        joystick.x = dx / maxRadius; joystick.y = -dy / maxRadius;
+                    }
                 }
             }, { passive: false });
 
-            const endTouch = (e) => {
-                if (!joystick.active) return;
-                for (let t of e.changedTouches) {
-                    if (t.identifier === touchId) { reset(); break; }
-                }
+            const end = () => {
+                touchId = null; joystick.active = false; joystick.x = 0; joystick.y = 0;
+                thumb.style.transform = `translate(0px, 0px)`;
             };
-            window.addEventListener('touchend', endTouch);
-            window.addEventListener('touchcancel', endTouch);
+            window.addEventListener('touchend', end);
         }
 
-        // 4. ACTION BUTTONS
-        function setupActionButtons() {
+        function setupButtons() {
             document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (controlledEntity && controlledEntity.isGrounded) {
-                    controlledEntity.velocity.y = 11.5;
+                    controlledEntity.velocity.y = 12;
                     controlledEntity.isGrounded = false;
-                    audio.playJump();
-                }
-            });
-
-            const sprintBtn = document.getElementById('btn-sprint');
-            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); actionState.sprint = true; });
-            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); actionState.sprint = false; });
-
-            document.getElementById('btn-attack').addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                audio.playAttack();
-                if (controlledEntity && controlledEntity.type === 'character') {
-                    // Quick attack recoil
-                    const m = controlledEntity.model;
-                    m.rotation.z += 0.3;
-                    setTimeout(() => { m.rotation.z = 0; }, 150);
                 }
             });
         }
 
-        // 5. BUILT-IN PROCEDURAL ENTITY GENERATORS (100% Error-Free, No Internet Required)
-        function spawnEntity(typeQuery) {
-            const q = typeQuery.toLowerCase();
+        function spawnEntity(query) {
+            const q = query.toLowerCase();
             const group = new THREE.Group();
-            let entityType = 'character';
-            let wheels = [];
+            let type = 'character';
 
-            if (q.includes('car') || q.includes('سەیارە') || q.includes('ferrari')) {
-                entityType = 'vehicle';
-                // Build a sleek procedural sports car
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8, roughness: 0.2 });
-                const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 4.5), bodyMat);
-                body.position.y = 0.6;
-                body.castShadow = true;
-                group.add(body);
-
-                const cabinMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.1 });
-                const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 2.2), cabinMat);
-                cabin.position.set(0, 1.1, -0.2);
-                group.add(cabin);
-
-                const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 24);
-                wheelGeo.rotateZ(Math.PI / 2);
-                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 });
-
-                const wheelPos = [ [-1.1, 0.4, 1.4], [1.1, 0.4, 1.4], [-1.1, 0.4, -1.4], [1.1, 0.4, -1.4] ];
-                wheelPos.forEach(p => {
-                    const w = new THREE.Mesh(wheelGeo, wheelMat);
-                    w.position.set(...p);
-                    group.add(w);
-                    wheels.push(w);
-                });
-
-            } else if (q.includes('castle') || q.includes('house') || q.includes('گوند') || q.includes('خانوو')) {
-                entityType = 'static';
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
-                const base = new THREE.Mesh(new THREE.BoxGeometry(8, 5, 8), wallMat);
-                base.position.y = 2.5;
-                base.castShadow = true;
-                base.receiveShadow = true;
-                group.add(base);
-
-                const roofMat = new THREE.MeshStandardMaterial({ color: 0x991b1b });
-                const roof = new THREE.Mesh(new THREE.ConeGeometry(6, 3, 4), roofMat);
-                roof.position.y = 5.5;
-                roof.rotation.y = Math.PI / 4;
-                group.add(roof);
-
-                staticColliders.push({ position: group.position, radius: 4.5 });
-
+            if (q.includes('car') || q.includes('سەیارە')) {
+                type = 'vehicle';
+                const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 4.6), new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8 }));
+                body.position.y = 0.6; body.castShadow = true; group.add(body);
+            } else if (q.includes('castle') || q.includes('خانوو')) {
+                type = 'static';
+                const base = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 9), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+                base.position.y = 3; base.castShadow = true; group.add(base);
+                staticColliders.push({ position: group.position, radius: 5 });
             } else {
-                // Default: Stylized Warrior / Kratos Character
-                entityType = 'character';
-                const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.6 });
-                const clothMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7 });
-
-                // Torso
-                const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.5), clothMat);
-                torso.position.y = 1.3;
-                torso.castShadow = true;
-                group.add(torso);
-
-                // Head
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), skinMat);
-                head.position.y = 2.1;
-                head.castShadow = true;
-                group.add(head);
-
-                // Limbs for walking simulation
-                const limbMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
-                const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), limbMat);
-                leftLeg.position.set(-0.25, 0.5, 0);
-                group.add(leftLeg);
-
-                const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), limbMat);
-                rightLeg.position.set(0.25, 0.5, 0);
-                group.add(rightLeg);
-
-                group.userData = { leftLeg, rightLeg };
+                type = 'character';
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.3, 0.5), new THREE.MeshStandardMaterial({ color: 0xf43f5e }));
+                body.position.y = 1.3; body.castShadow = true; group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({ color: 0xfde047 }));
+                head.position.y = 2.1; group.add(head);
             }
 
-            if (loadedModels.length > 0 && entityType !== 'static') {
-                group.position.x += loadedModels.length * 6;
-            }
-
+            if (loadedModels.length > 0 && type !== 'static') group.position.x += loadedModels.length * 6;
             scene.add(group);
 
-            const record = {
-                model: group,
-                type: entityType,
-                wheels,
-                leftLeg: group.userData.leftLeg,
-                rightLeg: group.userData.rightLeg,
-                velocity: new THREE.Vector3(0, 0, 0),
-                baseY: 0,
-                isGrounded: true
-            };
+            const gameObj = new GameObject(group, type);
+            loadedModels.push(gameObj);
 
-            loadedModels.push(record);
-
-            if (entityType === 'vehicle' || entityType === 'character') {
-                switchToControl(record);
-                document.getElementById('status-indicator').innerText = `✨ Built & ready! Physics & Chase Cam active.`;
-            } else {
-                exitControl();
-                document.getElementById('status-indicator').innerText = `✨ Built static environment successfully.`;
+            if (type !== 'static') {
+                controlledEntity = gameObj;
+                document.getElementById('joystick-zone').classList.remove('hidden');
+                document.getElementById('exit-control-btn').classList.remove('hidden');
+                if (type === 'character') document.getElementById('action-buttons-zone').classList.remove('hidden');
             }
+            document.getElementById('status-indicator').innerText = `✨ Successfully built: "${query}"!`;
         }
 
-        function checkCollision(nextPos, radius = 0.8) {
-            for (let obs of staticColliders) {
-                if (Math.hypot(nextPos.x - obs.position.x, nextPos.z - obs.position.z) < (obs.radius + radius)) return true;
-            }
-            return false;
-        }
-
-        // 6. MAIN ANIMATION LOOP
         function animate() {
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.1);
-            const elapsedTime = clock.getElapsedTime();
 
-            if (controlledEntity && controlledEntity.model) {
-                const { model, type, wheels, leftLeg, rightLeg, velocity } = controlledEntity;
+            if (controlledEntity && controlledEntity.mesh) {
+                const { mesh, type, velocity } = controlledEntity;
 
                 if (type === 'vehicle') {
-                    const turnInput = -joystick.x;
-                    const driveInput = joystick.y;
-                    audio.setEngineSpeed(driveInput);
-
-                    if (Math.abs(driveInput) > 0.05) {
-                        model.rotation.y += turnInput * 2.8 * delta * (driveInput >= 0 ? 1 : -1);
+                    if (Math.abs(joystick.y) > 0.05) {
+                        mesh.rotation.y -= joystick.x * 3.0 * delta * Math.sign(joystick.y);
+                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y);
+                        mesh.position.addScaledVector(fwd, joystick.y * 18 * delta);
                     }
-
-                    const forwardVector = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                    const currentSpeed = driveInput * 18.0;
-                    const nextPos = model.position.clone().addScaledVector(forwardVector, currentSpeed * delta);
-
-                    if (!checkCollision(nextPos, 1.8)) model.position.copy(nextPos);
-                    if (wheels && wheels.length > 0) wheels.forEach(w => w.rotation.x += currentSpeed * delta * 1.5);
-                    model.rotation.x = THREE.MathUtils.lerp(model.rotation.x, -driveInput * 0.08, 0.1);
-
                 } else if (type === 'character') {
-                    const inputMag = Math.hypot(joystick.x, joystick.y);
-                    const speedMultiplier = actionState.sprint ? 2.1 : 1.0;
-                    const moveSpeed = inputMag * 6.5 * speedMultiplier;
-
-                    if (inputMag > 0.15) {
-                        const targetAngle = Math.atan2(joystick.x, joystick.y);
-                        model.rotation.y = THREE.MathUtils.lerp(model.rotation.y, targetAngle, 0.2);
-
-                        const forwardVector = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y);
-                        const nextPos = model.position.clone().addScaledVector(forwardVector, moveSpeed * delta);
-
-                        if (!checkCollision(nextPos, 0.7)) {
-                            model.position.x = nextPos.x;
-                            model.position.z = nextPos.z;
-                        }
-
-                        audio.playFootstep();
-
-                        // Procedural leg swing animation
-                        if (leftLeg && rightLeg) {
-                            const swing = Math.sin(elapsedTime * (actionState.sprint ? 14 : 9)) * 0.5;
-                            leftLeg.rotation.x = swing;
-                            rightLeg.rotation.x = -swing;
-                        }
-                    } else {
-                        if (leftLeg && rightLeg) {
-                            leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.15);
-                            rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.15);
-                        }
+                    const mag = Math.hypot(joystick.x, joystick.y);
+                    if (mag > 0.15) {
+                        mesh.rotation.y = Math.atan2(joystick.x, joystick.y);
+                        const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y);
+                        mesh.position.addScaledVector(fwd, mag * 7 * delta);
                     }
-
-                    velocity.y -= 28.0 * delta;
-                    model.position.y += velocity.y * delta;
-
-                    if (model.position.y <= 0) {
-                        model.position.y = 0;
-                        velocity.y = 0;
-                        controlledEntity.isGrounded = true;
-                    }
+                    velocity.y -= 25 * delta;
+                    mesh.position.y += velocity.y * delta;
+                    if (mesh.position.y <= 0) { mesh.position.y = 0; velocity.y = 0; controlledEntity.isGrounded = true; }
                 }
 
-                // CHASE CAMERA
+                // Chase Camera
                 controls.enabled = false;
-                const targetPos = model.position;
-                const isCar = type === 'vehicle';
-                const camDistance = isCar ? 9.5 : 5.5;
-                const camHeight = isCar ? 3.8 : 2.5;
-
-                const camOffset = new THREE.Vector3(0, camHeight, -camDistance);
-                camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), model.rotation.y + Math.PI);
-
-                camera.position.lerp(targetPos.clone().add(camOffset), 0.12);
-                camera.lookAt(targetPos.clone().add(new THREE.Vector3(0, isCar ? 1.3 : 1.5, 0)));
-
+                const offset = new THREE.Vector3(0, type === 'vehicle' ? 4 : 2.8, type === 'vehicle' ? -10 : -6);
+                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), mesh.rotation.y + Math.PI);
+                camera.position.lerp(mesh.position.clone().add(offset), 0.12);
+                camera.lookAt(mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
             } else {
                 controls.enabled = true;
             }
 
             if (infiniteFloor && infiniteGrid) {
-                infiniteFloor.position.x = camera.position.x;
-                infiniteFloor.position.z = camera.position.z;
+                infiniteFloor.position.x = camera.position.x; infiniteFloor.position.z = camera.position.z;
                 infiniteGrid.position.x = Math.floor(camera.position.x / 10) * 10;
                 infiniteGrid.position.z = Math.floor(camera.position.z / 10) * 10;
             }
@@ -809,80 +330,44 @@
             renderer.render(scene, camera);
         }
 
-        // 7. UNDO & CLEAR
-        function undoLastItem() {
+        document.getElementById('undo-btn').addEventListener('click', () => {
             if (loadedModels.length === 0) return;
-            const lastItem = loadedModels.pop();
-            scene.remove(lastItem.model);
-            if (lastItem.type === 'static' && lastItem.collider) {
-                const idx = staticColliders.indexOf(lastItem.collider);
-                if (idx !== -1) staticColliders.splice(idx, 1);
-            }
-            if (controlledEntity && controlledEntity.model === lastItem.model) {
-                exitControl();
-                const prev = loadedModels.slice().reverse().find(m => m.type === 'vehicle' || m.type === 'character');
-                if (prev) switchToControl(prev);
-            }
-            document.getElementById('status-indicator').innerText = "↩️ Last item removed.";
-        }
+            const last = loadedModels.pop();
+            scene.remove(last.mesh);
+            document.getElementById('status-indicator').innerText = "↩️ Last item undone.";
+        });
 
-        function clearAllItems() {
-            loadedModels.forEach(item => scene.remove(item.model));
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            loadedModels.forEach(m => scene.remove(m.mesh));
             loadedModels = [];
-            staticColliders = [];
-            exitControl();
-            document.getElementById('status-indicator').innerText = "🗑️ Universe cleared.";
-        }
-
-        function switchToControl(item) {
-            controlledEntity = {
-                model: item.model,
-                type: item.type,
-                wheels: item.wheels,
-                leftLeg: item.leftLeg,
-                rightLeg: item.rightLeg,
-                velocity: new THREE.Vector3(0, 0, 0),
-                baseY: 0,
-                isGrounded: true
-            };
-            document.getElementById('joystick-zone').classList.remove('hidden');
-            document.getElementById('exit-control-btn').classList.remove('hidden');
-            if (item.type === 'character') {
-                document.getElementById('action-buttons-zone').classList.remove('hidden');
-            } else {
-                document.getElementById('action-buttons-zone').classList.add('hidden');
-                audio.startEngine();
-            }
-        }
-
-        function exitControl() {
             controlledEntity = null;
             document.getElementById('joystick-zone').classList.add('hidden');
             document.getElementById('action-buttons-zone').classList.add('hidden');
             document.getElementById('exit-control-btn').classList.add('hidden');
-            audio.stopEngine();
             controls.enabled = true;
-        }
+            document.getElementById('status-indicator').innerText = "🗑️ Studio cleared.";
+        });
+
+        document.getElementById('exit-control-btn').addEventListener('click', () => {
+            controlledEntity = null;
+            document.getElementById('joystick-zone').classList.add('hidden');
+            document.getElementById('action-buttons-zone').classList.add('hidden');
+            document.getElementById('exit-control-btn').classList.add('hidden');
+            controls.enabled = true;
+            document.getElementById('status-indicator').innerText = "Camera unlocked.";
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
-            initBootIntro();
             initScene();
-
-            document.getElementById('undo-btn').addEventListener('click', undoLastItem);
-            document.getElementById('clear-btn').addEventListener('click', clearAllItems);
-            document.getElementById('exit-control-btn').addEventListener('click', exitControl);
-
-            const aiInput = document.getElementById('ai-input');
-            const aiSend = document.getElementById('ai-send');
-            const handleExecute = () => {
-                const prompt = aiInput.value.trim();
-                if (prompt) {
-                    spawnEntity(prompt);
-                    aiInput.value = '';
+            const input = document.getElementById('ai-input');
+            const execute = () => {
+                if (input.value.trim()) {
+                    spawnEntity(input.value.trim());
+                    input.value = '';
                 }
             };
-            aiSend.addEventListener('click', handleExecute);
-            aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleExecute(); });
+            document.getElementById('ai-send').addEventListener('click', execute);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') execute(); });
         });
     </script>
 </body>
