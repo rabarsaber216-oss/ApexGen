@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AI 3D Game Engine</title>
+    <title>ApexGen - Ultra 3D AI Studio Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js & Controls -->
+    <!-- Three.js, OrbitControls & GLTFLoader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
@@ -18,7 +19,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #050811;
+            background-color: #121316;
             color: #ffffff;
             font-family: 'Inter', sans-serif;
             user-select: none;
@@ -29,13 +30,13 @@
             font-family: 'Orbitron', sans-serif;
         }
         .glass {
-            background: rgba(15, 23, 42, 0.82);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(18, 21, 28, 0.86);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.22);
         }
         .neon-shadow {
-            box-shadow: 0 0 20px rgba(14, 165, 233, 0.3), inset 0 0 12px rgba(14, 165, 233, 0.12);
+            box-shadow: 0 0 24px rgba(14, 165, 233, 0.25), inset 0 0 12px rgba(14, 165, 233, 0.1);
         }
         @keyframes pulseGlow {
             0%, 100% { text-shadow: 0 0 20px #38bdf8, 0 0 40px #0284c7, 0 0 80px #0369a1; transform: scale(1); }
@@ -48,10 +49,10 @@
         ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
         ::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 2px; }
 
-        /* Custom Metallic Grey & White Joystick matching user's design */
+        /* Custom Metallic Grey & White Joystick */
         .joystick-base {
-            width: 116px;
-            height: 116px;
+            width: 112px;
+            height: 112px;
             border-radius: 50%;
             background: radial-gradient(circle, 
                 #5c5c5c 0%, 
@@ -61,7 +62,7 @@
                 #b8b8b8 62%, 
                 #525252 65%, 
                 #595959 100%);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.55), inset 0 0 8px rgba(255,255,255,0.2);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 0 8px rgba(255,255,255,0.2);
             position: relative;
             display: flex;
             align-items: center;
@@ -69,8 +70,8 @@
             touch-action: none;
         }
         .joystick-knob {
-            width: 52px;
-            height: 52px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: #ffffff;
             border: 5px solid #b3b3b3;
@@ -84,8 +85,8 @@
 <body class="w-screen h-screen relative">
 
     <!-- 1. SPLASH SCREEN -->
-    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030712] transition-opacity duration-1000">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#090a0f] transition-opacity duration-1000">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.16)_0,transparent_70%)]"></div>
         <div class="relative z-10 text-center px-4">
             <div class="inline-block p-4 rounded-full bg-sky-500/10 border border-sky-400/30 mb-6 animate-bounce">
                 <i class="fa-solid fa-cubes-stacked text-5xl text-sky-400"></i>
@@ -94,21 +95,21 @@
                 Welcome to ApexGen
             </h1>
             <p class="mt-4 text-slate-400 text-base md:text-xl tracking-wide">
-                Ultra-Realistic AI 3D Game Creation Engine
+                Cinema-Grade AI 3D Sculpting & Game Engine
             </p>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
-                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2200ms] ease-out"></div>
+                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2000ms] ease-out"></div>
             </div>
         </div>
     </div>
 
     <!-- 2. API KEY SETUP MODAL -->
-    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500">
+    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#090a0f]/95 p-4 transition-all duration-500">
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
             <div class="flex items-center justify-between mb-5">
                 <div>
-                    <h2 class="font-cyber text-2xl font-extrabold text-sky-400">ApexGen Setup</h2>
-                    <p class="text-slate-400 text-xs mt-1">Select your AI provider and connect your API Key</p>
+                    <h2 class="font-cyber text-2xl font-extrabold text-sky-400">ApexGen Studio Setup</h2>
+                    <p class="text-slate-400 text-xs mt-1">Select your AI provider and paste your API Key</p>
                 </div>
                 <div class="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
                     <i class="fa-solid fa-microchip text-xl text-sky-400"></i>
@@ -158,7 +159,7 @@
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-plug-circle-bolt"></i>
-                <span>Connect & Launch 3D World</span>
+                <span>Connect & Launch Studio 3D World</span>
             </button>
         </div>
     </div>
@@ -167,9 +168,6 @@
     <div id="workspace" class="fixed inset-0 hidden">
         <!-- Three.js Canvas Container -->
         <div id="canvasContainer" class="w-full h-full"></div>
-
-        <!-- Dynamic Game HUD Container (for any AI scoreboards so Undo/Clean removes them) -->
-        <div id="aiHudContainer" class="fixed top-14 left-3 z-10 pointer-events-none"></div>
 
         <!-- COMPACT TOP NAVIGATION BAR -->
         <div class="fixed top-2.5 left-2.5 right-2.5 z-30 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
@@ -185,25 +183,21 @@
 
             <!-- Right: Compact Action Buttons (Undo, Clean All, Exit, Save, Install) -->
             <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-                <!-- UNDO BUTTON -->
                 <button onclick="undoLastStep()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md transition-all" title="Undo Last Step">
                     <i class="fa-solid fa-rotate-left"></i>
                     <span>Undo</span>
                 </button>
 
-                <!-- CLEAN ALL BUTTON -->
                 <button onclick="cleanAllWorld()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-rose-400 border border-rose-500/30 flex items-center gap-1 shadow-md transition-all" title="Clean All Objects">
                     <i class="fa-solid fa-trash-can"></i>
                     <span>Clean All</span>
                 </button>
 
-                <!-- EXIT CONTROL BUTTON (Extin / Exit Car or Character) -->
                 <button id="exitControlBtn" onclick="toggleExitControl()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all" title="Exit Vehicle or Character Control">
                     <i class="fa-solid fa-person-walking-arrow-right"></i>
                     <span id="exitBtnText">Exit</span>
                 </button>
 
-                <!-- SAVE & INSTALL (Visible once something is built) -->
                 <div id="actionButtons" class="hidden items-center gap-1.5">
                     <button onclick="openProjectModal('save')" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-floppy-disk"></i>
@@ -217,20 +211,20 @@
             </div>
         </div>
 
-        <!-- MOBILE JOYSTICK (Matches Image 2) & ACTION BUTTONS -->
-        <div id="mobileControls" class="fixed bottom-20 left-4 z-20 flex items-center select-none">
+        <!-- MOBILE JOYSTICK & ACTION BUTTONS -->
+        <div id="mobileControls" class="fixed bottom-24 left-3.5 z-20 flex items-center select-none">
             <div id="joystickZone" class="joystick-base">
                 <div id="joystickKnob" class="joystick-knob"></div>
             </div>
         </div>
 
-        <div id="mobileActionBtns" class="fixed bottom-24 right-4 z-20 flex flex-col gap-2 select-none md:hidden">
+        <div id="mobileActionBtns" class="fixed bottom-28 right-3.5 z-20 flex flex-col gap-2 select-none md:hidden">
             <button ontouchstart="window.keysPressed[' ']=true" ontouchend="window.keysPressed[' ']=false"
-                class="w-12 h-12 rounded-full glass border border-sky-400/40 text-sky-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
+                class="w-11 h-11 rounded-full glass border border-sky-400/40 text-sky-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
                 JUMP
             </button>
             <button ontouchstart="window.keysPressed['shift']=true" ontouchend="window.keysPressed['shift']=false"
-                class="w-12 h-12 rounded-full glass border border-purple-400/40 text-purple-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
+                class="w-11 h-11 rounded-full glass border border-purple-400/40 text-purple-300 font-bold text-[10px] shadow-lg active:scale-90 flex items-center justify-center">
                 BOOST
             </button>
         </div>
@@ -241,21 +235,30 @@
             <span>Open AI Chat</span>
         </button>
 
-        <!-- COMPACT, COLLAPSIBLE BOTTOM AI CHAT BOX -->
-        <div id="chatWrapper" class="fixed bottom-2.5 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md pointer-events-auto transition-all duration-300">
-            <!-- Chat Header with Minimize / Hide Button & Live Build Timer -->
-            <div class="glass rounded-t-xl px-3 py-1.5 flex items-center justify-between border-b-0">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
-                    <span class="text-[11px] font-bold text-slate-200">ApexGen AI Builder</span>
-                    <!-- LIVE BUILD TIMER BADGE -->
-                    <div id="buildTimerBadge" class="hidden items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-mono">
-                        <i class="fa-solid fa-spinner fa-spin text-[9px]"></i>
-                        <span id="buildTimerText">Building 0.0s</span>
+        <!-- COMPACT, COLLAPSIBLE BOTTOM AI CHAT BOX WITH POWER SELECTOR & ETA COUNTDOWN -->
+        <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-md pointer-events-auto transition-all duration-300">
+            
+            <!-- Header Bar: Title + AI Power Selector (Low / Medium / High) + Collapse/Close -->
+            <div class="glass rounded-t-xl px-2.5 py-1.5 flex items-center justify-between border-b border-slate-800/80">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-sky-400 text-xs"></i>
+                    <span class="text-[11px] font-bold text-slate-200">AI Power:</span>
+                    <!-- LOW / MEDIUM / HIGH POWER SELECTOR -->
+                    <div class="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-700/80">
+                        <button type="button" onclick="setAIPower('low')" id="pwr-low" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">
+                            Low
+                        </button>
+                        <button type="button" onclick="setAIPower('medium')" id="pwr-medium" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">
+                            Medium
+                        </button>
+                        <button type="button" onclick="setAIPower('high')" id="pwr-high" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-gradient-to-r from-sky-500 to-purple-600 text-white shadow">
+                            High
+                        </button>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleHistoryView()" class="text-slate-400 hover:text-white text-xs px-1" title="Toggle Messages">
+
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleHistoryView()" class="text-slate-400 hover:text-white text-xs px-1" title="Minimize Messages">
                         <i id="collapseHistoryIcon" class="fa-solid fa-chevron-down"></i>
                     </button>
                     <button onclick="toggleChatBox(false)" class="text-slate-400 hover:text-rose-400 text-xs px-1" title="Hide Chat Box">
@@ -264,18 +267,32 @@
                 </div>
             </div>
 
+            <!-- LIVE ETA COUNTDOWN & PROGRESS BAR (Visible during build) -->
+            <div id="buildEtaBar" class="hidden glass px-3 py-1.5 border-t-0 border-b-0 bg-slate-950/90 flex-col gap-1">
+                <div class="flex items-center justify-between text-[10px] font-mono">
+                    <span class="text-amber-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <strong id="buildStageText">Sculpting 3D meshes...</strong>
+                    </span>
+                    <span id="buildEtaText" class="text-sky-300 font-bold">Ready in ~18.0s (0%)</span>
+                </div>
+                <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="buildProgressBar" class="h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 w-0 transition-all duration-150"></div>
+                </div>
+            </div>
+
             <!-- Compact Chat History Drawer -->
             <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
                 <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
-                    Tell me what to build or upload a reference image! Use Joystick (Mobile) or WASD/Arrows (PC) to move.
+                    <strong class="text-sky-400">Studio Ready:</strong> AI Power is set to <strong>HIGH</strong> for sculpted characters, realistic cloth folds, and studio lighting.
                 </div>
             </div>
 
             <!-- Attached Image Preview Bar -->
             <div id="imageAttachmentBar" class="hidden glass px-3 py-1.5 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
                 <div class="flex items-center gap-2">
-                    <img id="attachedImagePreview" src="" class="w-8 h-8 rounded-lg object-cover border border-sky-400">
-                    <span class="text-[10px] text-sky-300 font-medium">Reference image attached for 3D build</span>
+                    <img id="attachedImagePreview" src="" class="w-7 h-7 rounded-lg object-cover border border-sky-400">
+                    <span class="text-[10px] text-sky-300 font-medium">Reference image ready for 3D sculpting</span>
                 </div>
                 <button onclick="clearAttachedImage()" class="text-rose-400 hover:text-rose-300 text-xs">
                     <i class="fa-solid fa-circle-xmark"></i>
@@ -284,13 +301,12 @@
 
             <!-- Compact Chat Input Bar -->
             <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5">
-                <!-- Image Upload Button -->
-                <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image to Build">
+                <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image">
                     <i class="fa-solid fa-image text-xs"></i>
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
-                <input id="promptInput" type="text" placeholder="Build a realistic car, city, or upload image..." 
+                <input id="promptInput" type="text" placeholder="e.g., Build Doctor Strange with sculpted red cape..." 
                     class="flex-1 bg-transparent px-2 py-1.5 text-white placeholder-slate-400 text-xs outline-none"
                     onkeydown="if(event.key === 'Enter') sendPromptToAI()">
 
@@ -314,7 +330,7 @@
 
             <div class="mb-4">
                 <label class="block text-xs font-semibold text-slate-300 mb-1.5">Project Name:</label>
-                <input id="projectNameInput" type="text" placeholder="e.g., Cyber Racer 3D" 
+                <input id="projectNameInput" type="text" placeholder="e.g., Sorcerer Supreme 3D" 
                     class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-white text-xs outline-none">
             </div>
 
@@ -343,7 +359,7 @@
 
     <script>
         /**************************************************************
-         * 1. STATE & API CONFIGURATION
+         * 1. STATE, AI POWER LEVELS & API CONFIGURATION
          **************************************************************/
         const PROVIDERS = {
             gemini: {
@@ -366,10 +382,42 @@
             }
         };
 
+        // Functional AI Power Configurations (Low, Medium, High)
+        const AI_POWER_CONFIG = {
+            low: {
+                label: 'LOW',
+                estimatedSeconds: 6.5,
+                maxTokens: 2048,
+                temperature: 0.3,
+                thinkingBudget: 0,
+                instruction: `POWER LEVEL: LOW (Fast Prototype). Build a clean, stylized 3D model with 12-20 parts using window.APEX_GRAPHICS materials so it finishes very quickly.`
+            },
+            medium: {
+                label: 'MEDIUM',
+                estimatedSeconds: 13.5,
+                maxTokens: 4096,
+                temperature: 0.5,
+                thinkingBudget: 1024,
+                instruction: `POWER LEVEL: MEDIUM (Balanced Studio Quality). Build a detailed 3D model with 25-45 parts, articulated limbs/wheels, procedural fabric/metal textures from window.APEX_GRAPHICS, and smooth animation.`
+            },
+            high: {
+                label: 'HIGH',
+                estimatedSeconds: 24.0,
+                maxTokens: 8192,
+                temperature: 0.65,
+                thinkingBudget: 4096,
+                instruction: `POWER LEVEL: HIGH (ULTRA SCULPTED CINEMA QUALITY). You MUST build a museum-grade, hyper-detailed 3D masterpiece matching high-end 3D character/vehicle showcases:
+- If building a character/hero/person, use window.APEX_GRAPHICS.createSculptedCharacter(config) or build 50+ sculpted sub-meshes: sculpted hair strands, facial details (brow, nose, beard/mustache), layered cloth tunics with vertex-displaced folds, a dramatic multi-fold draped cape using window.APEX_GRAPHICS.createSculptedCape(), sash/belts with hanging tassels, wrapped boots, forearm wraps, and glowing magical/energy artifacts.
+- Apply window.APEX_GRAPHICS.clothMaterial(), leatherMaterial(), skinMaterial(), and goldMaterial() for realistic micro-weave bump textures and rim-lit sheen.
+- Add smooth breathing, cape wind-ripple, and WASD/Joystick walking & action animations.`
+            }
+        };
+
         let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
+        let currentAIPower = localStorage.getItem('apexgen_ai_power') || 'high';
         let currentApiKey = '';
         let verifiedGeminiModels = [];
-        let buildHistoryStack = []; // Tracks each build step for Undo & Clean All
+        let buildHistoryStack = [];
         let currentModalMode = 'save';
         let projectIconDataUrl = '';
         let attachedImageBase64 = null;
@@ -377,7 +425,6 @@
         let autoConnectTimer = null;
         let buildTimerInterval = null;
 
-        // Global Controls & Exit state
         window.updateFunctions = [];
         window.createdObjects = [];
         window.keysPressed = {};
@@ -385,10 +432,369 @@
         window.isControlExited = false;
 
         /**************************************************************
-         * 2. SPLASH & AUTHENTICATION
+         * 2. PROCEDURAL STUDIO GRAPHICS & SCULPTING ENGINE (APEX_GRAPHICS)
+         **************************************************************/
+        window.APEX_GRAPHICS = {
+            _cache: {},
+
+            // Creates high-res procedural fabric weave bump map (like the video's tunic & cape)
+            getFabricBumpMap() {
+                if (this._cache.fabric) return this._cache.fabric;
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(0, 0, 256, 256);
+                for (let y = 0; y < 256; y += 3) {
+                    for (let x = 0; x < 256; x += 3) {
+                        const v = 110 + ((x + y) % 6 === 0 ? 35 : -20) + (Math.random() * 18 - 9);
+                        ctx.fillStyle = `rgb(${v},${v},${v})`;
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                }
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(12, 12);
+                this._cache.fabric = tex;
+                return tex;
+            },
+
+            // Creates realistic cloth material with weave micro-bump and velvet sheen
+            clothMaterial(colorHex = 0x8b2626, roughness = 0.78, bumpScale = 0.035) {
+                return new THREE.MeshPhysicalMaterial({
+                    color: colorHex,
+                    roughness: roughness,
+                    metalness: 0.04,
+                    bumpMap: this.getFabricBumpMap(),
+                    bumpScale: bumpScale,
+                    clearcoat: 0.08,
+                    clearcoatRoughness: 0.85,
+                    side: THREE.DoubleSide
+                });
+            },
+
+            leatherMaterial(colorHex = 0x3d2b1f) {
+                return new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: 0.52,
+                    metalness: 0.12,
+                    bumpMap: this.getFabricBumpMap(),
+                    bumpScale: 0.02
+                });
+            },
+
+            skinMaterial(colorHex = 0xd9a17c) {
+                return new THREE.MeshPhysicalMaterial({
+                    color: colorHex,
+                    roughness: 0.55,
+                    metalness: 0.02,
+                    clearcoat: 0.12,
+                    clearcoatRoughness: 0.65
+                });
+            },
+
+            goldMaterial(colorHex = 0xd4af37) {
+                return new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: 0.25,
+                    metalness: 0.92
+                });
+            },
+
+            // Creates a vertex-sculpted draped cape/cloak with realistic vertical folds & high collar
+            createSculptedCape(colorHex = 0x8f2c2c, width = 2.4, height = 3.3) {
+                const group = new THREE.Group();
+                const mat = this.clothMaterial(colorHex, 0.76, 0.045);
+
+                // Main draped cloak with multi-frequency sine-wave folds
+                const geo = new THREE.PlaneGeometry(width, height, 48, 48);
+                const pos = geo.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    const u = pos.getX(i);
+                    const v = pos.getY(i);
+                    const normY = (height / 2 - v) / height; // 0 at top shoulders, 1 at bottom hem
+                    // Narrow at shoulders, wider at bottom
+                    const flare = 0.62 + normY * 0.55;
+                    const newX = u * flare;
+                    // Deep vertical fabric pleats/folds
+                    const foldWave = Math.sin(u * 9.5) * 0.14 * normY + Math.cos(u * 4.2) * 0.08 * normY;
+                    // Natural back curve
+                    const backArch = -Math.sin(normY * Math.PI * 0.85) * 0.32 - normY * 0.25;
+                    // Asymmetric stitched panel ridges
+                    const panelRidge = Math.abs(Math.sin(u * 6 + v * 1.5)) * 0.025;
+                    pos.setXYZ(i, newX, v, backArch + foldWave + panelRidge);
+                }
+                geo.computeVertexNormals();
+                const capeMesh = new THREE.Mesh(geo, mat);
+                capeMesh.castShadow = true;
+                capeMesh.receiveShadow = true;
+                group.add(capeMesh);
+
+                // High sculpted levitation collar (like Doctor Strange's collar in the video)
+                const collarGeo = new THREE.CylinderGeometry(0.58, 0.42, 0.52, 32, 8, true, -Math.PI * 0.78, Math.PI * 1.56);
+                const cPos = collarGeo.attributes.position;
+                for (let i = 0; i < cPos.count; i++) {
+                    const y = cPos.getY(i);
+                    const x = cPos.getX(i);
+                    const z = cPos.getZ(i);
+                    const flare = 1 + (y + 0.26) * 0.65;
+                    cPos.setXYZ(i, x * flare, y + Math.abs(x) * 0.15, z * flare);
+                }
+                collarGeo.computeVertexNormals();
+                const collar = new THREE.Mesh(collarGeo, mat);
+                collar.position.set(0, height / 2 + 0.12, 0.18);
+                collar.rotation.y = Math.PI;
+                collar.castShadow = true;
+                group.add(collar);
+
+                return { group, capeMesh, geo };
+            },
+
+            // Helper to build a complete, ultra-detailed sculpted humanoid character (like the video)
+            createSculptedCharacter(opts = {}) {
+                const cfg = Object.assign({
+                    tunicColor: 0x3b536e,
+                    capeColor: 0x91322e,
+                    sashColor: 0x4a3b32,
+                    skinColor: 0xd49b78,
+                    hairColor: 0x262322,
+                    hasCape: true,
+                    hasMedallion: true,
+                    pose: 'mystic' // 'mystic' (crossed arms like video) or 'hero'
+                }, opts);
+
+                const root = new THREE.Group();
+                const tunicMat = this.clothMaterial(cfg.tunicColor, 0.75, 0.04);
+                const darkBlueMat = this.clothMaterial(0x1f2d3d, 0.8, 0.035);
+                const sashMat = this.leatherMaterial(cfg.sashColor);
+                const skinMat = this.skinMaterial(cfg.skinColor);
+                const hairMat = this.clothMaterial(cfg.hairColor, 0.85, 0.05);
+                const goldMat = this.goldMaterial();
+
+                // 1. Sculpted Upper Torso & Layered Pleated Tunic
+                const torsoGeo = new THREE.CylinderGeometry(0.54, 0.44, 1.35, 32, 16);
+                const tPos = torsoGeo.attributes.position;
+                for (let i = 0; i < tPos.count; i++) {
+                    const x = tPos.getX(i), y = tPos.getY(i), z = tPos.getZ(i);
+                    const fold = Math.sin(Math.atan2(x, z) * 14) * 0.018;
+                    tPos.setXYZ(i, x * 1.15 + fold, y, z * 0.82 + fold);
+                }
+                torsoGeo.computeVertexNormals();
+                const torso = new THREE.Mesh(torsoGeo, tunicMat);
+                torso.position.y = 3.05;
+                torso.castShadow = true; torso.receiveShadow = true;
+                root.add(torso);
+
+                // 2. Sculpted Flowing Lower Robe / Skirt with realistic drapery folds
+                const skirtGeo = new THREE.CylinderGeometry(0.46, 0.78, 1.45, 40, 20, false);
+                const sPos = skirtGeo.attributes.position;
+                for (let i = 0; i < sPos.count; i++) {
+                    const x = sPos.getX(i), y = sPos.getY(i), z = sPos.getZ(i);
+                    const angle = Math.atan2(x, z);
+                    const normY = (0.725 - y) / 1.45;
+                    const wave = Math.sin(angle * 10) * 0.055 * normY + Math.cos(angle * 5) * 0.03 * normY;
+                    sPos.setXYZ(i, x + Math.cos(angle) * wave, y, z + Math.sin(angle) * wave);
+                }
+                skirtGeo.computeVertexNormals();
+                const skirt = new THREE.Mesh(skirtGeo, tunicMat);
+                skirt.position.y = 1.75;
+                skirt.castShadow = true; skirt.receiveShadow = true;
+                root.add(skirt);
+
+                // 3. Multi-layered Waist Sash, Belt & Hanging Tassels
+                const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.50, 0.52, 0.34, 32), sashMat);
+                sash.scale.set(1.14, 1, 0.86);
+                sash.position.y = 2.42;
+                sash.castShadow = true;
+                root.add(sash);
+
+                for (let b = -1; b <= 1; b++) {
+                    const strap = new THREE.Mesh(new THREE.TorusGeometry(0.49, 0.028, 12, 32), sashMat);
+                    strap.rotation.x = Math.PI / 2 + b * 0.06;
+                    strap.scale.set(1.16, 0.88, 1);
+                    strap.position.y = 2.42 + b * 0.09;
+                    root.add(strap);
+                }
+
+                // Hanging Sash Tassels
+                for (let t = 0; t < 2; t++) {
+                    const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.55, 12), sashMat);
+                    tassel.position.set(0.18 + t * 0.09, 2.05, 0.42);
+                    tassel.rotation.z = -0.15 + t * 0.1;
+                    root.add(tassel);
+                }
+
+                // 4. Sculpted Head, Facial Structure, Beard & Wavy Hair with Grey Temples
+                const headGroup = new THREE.Group();
+                headGroup.position.set(0, 4.02, 0.04);
+
+                const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.34, 32, 32), skinMat);
+                headMesh.scale.set(0.92, 1.12, 0.98);
+                headMesh.castShadow = true;
+                headGroup.add(headMesh);
+
+                // Nose, Brow & Mustache/Goatee
+                const nose = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.16, 12), skinMat);
+                nose.position.set(0, 0.0, 0.33);
+                nose.rotation.x = Math.PI * 0.38;
+                headGroup.add(nose);
+
+                const goatee = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.06, 0.22, 16), hairMat);
+                goatee.position.set(0, -0.22, 0.26);
+                headGroup.add(goatee);
+
+                const mustache = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.025, 10, 20, Math.PI), hairMat);
+                mustache.position.set(0, -0.13, 0.29);
+                mustache.rotation.x = Math.PI;
+                headGroup.add(mustache);
+
+                // Sculpted Hair Volume + Grey Temple Streaks
+                const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.365, 28, 28, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
+                hairCap.scale.set(0.96, 1.12, 1.04);
+                hairCap.position.set(0, 0.06, -0.03);
+                hairCap.rotation.x = -0.25;
+                headGroup.add(hairCap);
+
+                const greyStreakMat = this.clothMaterial(0xcbd5e1, 0.7, 0.03);
+                [-1, 1].forEach(side => {
+                    const streak = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.28), greyStreakMat);
+                    streak.position.set(side * 0.32, 0.02, 0.04);
+                    headGroup.add(streak);
+                });
+
+                root.add(headGroup);
+
+                // 5. Eye of Agamotto Golden Medallion on Chest
+                if (cfg.hasMedallion) {
+                    const medGroup = new THREE.Group();
+                    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.03, 24), goldMat);
+                    disc.rotation.x = Math.PI / 2;
+                    medGroup.add(disc);
+                    const gem = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.05, 16, 16),
+                        new THREE.MeshBasicMaterial({ color: 0x4ade80 })
+                    );
+                    gem.position.z = 0.02;
+                    medGroup.add(gem);
+                    medGroup.position.set(0, 3.15, 0.44);
+                    root.add(medGroup);
+                }
+
+                // 6. Articulated Arms with Wrapped Forearm Bands (Crossed Mystic Pose or Hero Pose)
+                const leftArmGroup = new THREE.Group();
+                const rightArmGroup = new THREE.Group();
+
+                function buildDetailedArm(isLeft) {
+                    const g = new THREE.Group();
+                    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.65, 20), tunicMat);
+                    upper.position.y = -0.28;
+                    g.add(upper);
+
+                    const forearm = new THREE.Group();
+                    forearm.position.y = -0.6;
+                    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.10, 0.62, 20), darkBlueMat);
+                    lower.position.y = -0.28;
+                    forearm.add(lower);
+
+                    // Wrapped cloth bands on forearms
+                    for (let w = 0; w < 5; w++) {
+                        const band = new THREE.Mesh(new THREE.TorusGeometry(0.118 - w * 0.003, 0.016, 10, 24), tunicMat);
+                        band.rotation.x = Math.PI / 2 + (w % 2) * 0.12;
+                        band.position.y = -0.12 - w * 0.09;
+                        forearm.add(band);
+                    }
+
+                    // Sculpted Hand & Extended Fingers
+                    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.06), skinMat);
+                    hand.position.y = -0.64;
+                    forearm.add(hand);
+
+                    for (let f = -1.5; f <= 1.5; f += 1) {
+                        const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.011, 0.12, 8), skinMat);
+                        finger.position.set(f * 0.026, -0.74, 0.01);
+                        finger.rotation.z = f * 0.08;
+                        forearm.add(finger);
+                    }
+
+                    g.add(forearm);
+                    return { arm: g, forearm };
+                }
+
+                const lArm = buildDetailedArm(true);
+                const rArm = buildDetailedArm(false);
+                lArm.arm.position.set(-0.62, 3.55, 0.05);
+                rArm.arm.position.set(0.62, 3.55, 0.05);
+
+                if (cfg.pose === 'mystic') {
+                    // Crossed arms over chest like the video!
+                    lArm.arm.rotation.set(-0.75, 0.45, -0.55);
+                    lArm.forearm.rotation.set(-1.1, 0.2, -0.95);
+                    rArm.arm.rotation.set(-0.82, -0.45, 0.58);
+                    rArm.forearm.rotation.set(-1.15, -0.2, 0.95);
+                } else {
+                    lArm.arm.rotation.set(0, 0, 0.15);
+                    rArm.arm.rotation.set(0, 0, -0.15);
+                }
+
+                root.add(lArm.arm);
+                root.add(rArm.arm);
+
+                // 7. Sculpted Legs & Wrapped Combat Boots
+                function buildBootLeg(xOffset, zOffset, rotY) {
+                    const legGroup = new THREE.Group();
+                    legGroup.position.set(xOffset, 1.15, zOffset);
+                    legGroup.rotation.y = rotY;
+
+                    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.95, 20), darkBlueMat);
+                    shin.position.y = -0.45;
+                    shin.castShadow = true;
+                    legGroup.add(shin);
+
+                    // Boot straps
+                    for (let s = 0; s < 6; s++) {
+                        const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.145 - s * 0.003, 0.018, 10, 24), sashMat);
+                        wrap.rotation.x = Math.PI / 2 + 0.08;
+                        wrap.position.y = -0.28 - s * 0.11;
+                        legGroup.add(wrap);
+                    }
+
+                    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.46), sashMat);
+                    foot.position.set(0, -0.98, 0.09);
+                    foot.castShadow = true;
+                    legGroup.add(foot);
+                    return legGroup;
+                }
+
+                const leftLeg = buildBootLeg(-0.20, 0.08, -0.1);
+                const rightLeg = buildBootLeg(0.18, -0.12, 0.18);
+                root.add(leftLeg);
+                root.add(rightLeg);
+
+                // 8. Sculpted Red Cape with High Collar
+                let capeObj = null;
+                if (cfg.hasCape) {
+                    capeObj = this.createSculptedCape(cfg.capeColor, 2.35, 3.25);
+                    capeObj.group.position.set(0, 2.22, -0.28);
+                    root.add(capeObj.group);
+                }
+
+                root.traverse(obj => {
+                    if (obj.isMesh) {
+                        obj.castShadow = true;
+                        obj.receiveShadow = true;
+                    }
+                });
+
+                return { root, headGroup, lArm, rArm, leftLeg, rightLeg, capeObj };
+            }
+        };
+
+        /**************************************************************
+         * 3. INITIALIZATION & AUTHENTICATION
          **************************************************************/
         window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => { document.getElementById('splashProgress').style.width = '100%'; }, 100);
+            setAIPower(currentAIPower);
+            setTimeout(() => { document.getElementById('splashProgress').style.width = '100%'; }, 80);
             setTimeout(() => {
                 const splash = document.getElementById('splashScreen');
                 splash.style.opacity = '0';
@@ -398,11 +804,25 @@
                     auth.classList.remove('hidden');
                     auth.classList.add('flex');
                     selectProvider(currentProvider);
-                }, 700);
-            }, 2200);
+                }, 650);
+            }, 2000);
 
             initJoystick();
         });
+
+        function setAIPower(level) {
+            currentAIPower = level;
+            localStorage.setItem('apexgen_ai_power', level);
+            ['low', 'medium', 'high'].forEach(p => {
+                const btn = document.getElementById(`pwr-${p}`);
+                if (!btn) return;
+                if (p === level) {
+                    btn.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-gradient-to-r from-sky-500 to-purple-600 text-white shadow';
+                } else {
+                    btn.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white';
+                }
+            });
+        }
 
         function selectProvider(provider) {
             currentProvider = provider;
@@ -443,11 +863,10 @@
             if (trimmed.length > 20) {
                 status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key saved! Connecting...</span>`;
                 clearTimeout(autoConnectTimer);
-                autoConnectTimer = setTimeout(() => verifyAndConnect(), 700);
+                autoConnectTimer = setTimeout(() => verifyAndConnect(), 650);
             }
         }
 
-        // Fetch ONLY valid, active models for this user's Gemini API key (Never use dead 1.5 models)
         async function fetchActiveGeminiModels(apiKey) {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
             const data = await res.json();
@@ -465,23 +884,19 @@
                 )
                 .map(m => m.name);
 
-            // Sort to prefer gemini-3.8-flash and newest flash/pro models first
             validModels.sort((a, b) => {
                 const score = name => {
                     if (name.includes('3.8-flash')) return 100;
+                    if (name.includes('3') && name.includes('pro')) return 95;
                     if (name.includes('3') && name.includes('flash')) return 90;
-                    if (name.includes('3') && name.includes('pro')) return 85;
                     if (name.includes('flash')) return 70;
-                    if (name.includes('pro')) return 60;
+                    if (name.includes('pro')) return 65;
                     return 10;
                 };
                 return score(b) - score(a);
             });
 
-            if (validModels.length === 0) {
-                return ['models/gemini-3.8-flash'];
-            }
-            return validModels;
+            return validModels.length > 0 ? validModels : ['models/gemini-3.8-flash'];
         }
 
         async function verifyAndConnect() {
@@ -508,7 +923,7 @@
                     await callAIProvider("Reply OK", null, null, true);
                 }
 
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Opening 3D World...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Launching Studio 3D World...</span>`;
                 document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
 
                 setTimeout(() => {
@@ -516,12 +931,12 @@
                     document.getElementById('authScreen').classList.remove('flex');
                     document.getElementById('workspace').classList.remove('hidden');
                     init3DWorld();
-                }, 350);
+                }, 300);
             } catch (err) {
                 status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch Studio 3D World</span>`;
             }
         }
 
@@ -531,61 +946,67 @@
         }
 
         /**************************************************************
-         * 3. HIGH-GRAPHIC SYSTEM PROMPT & MULTIMODAL AI CALLS
+         * 4. AI ENGINE PROMPT & POWER-AWARE API EXECUTION
          **************************************************************/
-        const ENGINE_SYSTEM_PROMPT = `
-You are the core 3D Game Engine AI of "ApexGen".
-The user is inside a live Three.js (r128) PBR 3D world with high-dynamic-range lighting and soft shadows.
-Available globals in the execution scope:
-- THREE (Three.js r128 library)
-- scene (THREE.Scene)
-- camera (THREE.PerspectiveCamera)
-- renderer (THREE.WebGLRenderer)
-- controls (THREE.OrbitControls)
-- window.updateFunctions (Array of callbacks \`(delta, time) => {}\` called every frame)
-- window.keysPressed (Object tracking pressed keys in lowercase: 'w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift'. Mobile joystick automatically sets these keys too!)
-- window.joystickVector (Object \`{ x, y }\` from -1 to 1 for smooth analog mobile control)
-- window.isControlExited (Boolean: if true, the user clicked the "Exit" button to leave vehicle/character control; when \`window.isControlExited === true\`, do NOT lock the camera or move the player/car!)
-- window.createdObjects (Array: push every root THREE.Group or THREE.Mesh you add to \`scene\` into \`window.createdObjects\`).
+        const BASE_ENGINE_PROMPT = `
+You are the core 3D Studio Sculpting & Game Engine AI of "ApexGen".
+The user is inside a live Three.js (r128) dark studio 3D showcase and infinite game world.
 
-STRICT GRAPHICS & QUALITY RULES:
-1. ULTRA-HIGH VISUAL QUALITY: Never build crude 4-box blocky figures! Build sleek, high-detail, multi-part 3D models using smooth geometries (CylinderGeometry, SphereGeometry, TorusGeometry, ExtrudeGeometry, bevels, wheel rims, tire treads, glowing headlights/taillights, tinted glass windows, articulated character limbs, smooth procedural animations).
-2. PBR MATERIALS: Always use \`THREE.MeshStandardMaterial\` or \`THREE.MeshPhysicalMaterial\` with realistic \`metalness\`, \`roughness\`, \`clearcoat\`, and enable \`castShadow = true\` and \`receiveShadow = true\` on all meshes.
-3. NO GIANT HTML OVERLAYS: Do NOT create large DOM overlays that block the mobile screen. Keep everything inside the 3D world.
-4. IMAGE RECREATION: If the user attaches an image, carefully analyze its colors, proportions, shapes, and style, and build an accurate, detailed 3D replica of it in the scene.
+Available globals in execution scope:
+- THREE (Three.js r128 library + THREE.GLTFLoader)
+- scene, camera, renderer, controls
+- window.APEX_GRAPHICS: Built-in Studio Sculpting & PBR Texture library!
+  * \`window.APEX_GRAPHICS.createSculptedCharacter({ tunicColor, capeColor, sashColor, skinColor, hairColor, hasCape, hasMedallion, pose })\` -> Returns \`{ root, headGroup, lArm, rArm, leftLeg, rightLeg, capeObj }\`. Use this as your foundation whenever the user asks for a character, hero, sorcerer, warrior, or person, and customize/add extra sculpted details, weapons, magic rings, or animations!
+  * \`window.APEX_GRAPHICS.createSculptedCape(colorHex, width, height)\` -> Returns \`{ group, capeMesh, geo }\` with vertex-sculpted pleats and high collar.
+  * \`window.APEX_GRAPHICS.clothMaterial(colorHex, roughness, bumpScale)\` -> Realistic woven fabric material with micro-bump map.
+  * \`window.APEX_GRAPHICS.leatherMaterial(colorHex)\`, \`window.APEX_GRAPHICS.skinMaterial(colorHex)\`, \`window.APEX_GRAPHICS.goldMaterial(colorHex)\`
+- window.updateFunctions: Push per-frame callback \`(delta, time) => {}\` here for animations, cape wind ripples, turntable rotation, or WASD/Joystick movement.
+- window.keysPressed: Lowercase keys ('w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift').
+- window.joystickVector: \`{ x, y }\` (-1 to 1).
+- window.isControlExited: Boolean. When true, do NOT lock camera or move player/vehicle.
+- window.createdObjects: Push every root THREE.Group/Mesh added to \`scene\` into \`window.createdObjects\`.
 
-Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
+Respond ONLY with a valid JSON object (no markdown fences):
 {
-  "reply": "Brief explanation in English of what you built.",
+  "reply": "Short friendly explanation in English of what you sculpted/built.",
   "code": "Executable Three.js JavaScript code."
 }`;
 
         async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPing = false) {
-            const promptText = isPing
+            const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
+            const fullPrompt = isPing
                 ? 'Reply with valid JSON: {"reply":"OK","code":""}'
-                : `${ENGINE_SYSTEM_PROMPT}\n\nUser Request: ${userPrompt || 'Build the object shown in the attached image in high-detail 3D.'}`;
+                : `${BASE_ENGINE_PROMPT}\n\n${pwr.instruction}\n\nUser Request: ${userPrompt || 'Sculpt the character/object from the attached image in ultra-high 3D studio quality.'}`;
 
             if (currentProvider === 'gemini') {
                 if (verifiedGeminiModels.length === 0) {
                     verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
                 }
 
-                const parts = [{ text: promptText }];
-                if (imgBase64 && imgMime) {
-                    parts.push({
-                        inlineData: { mimeType: imgMime, data: imgBase64 }
-                    });
+                // Select model priority based on AI Power level
+                let modelsToTry = [...verifiedGeminiModels];
+                if (currentAIPower === 'high') {
+                    modelsToTry.sort((a, b) => (b.includes('pro') || b.includes('3.8') ? 1 : -1));
                 }
 
-                let firstRealError = null;
-                for (const modelName of verifiedGeminiModels.slice(0, 3)) {
+                const parts = [{ text: fullPrompt }];
+                if (imgBase64 && imgMime) {
+                    parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } });
+                }
+
+                let firstError = null;
+                for (const modelName of modelsToTry.slice(0, 3)) {
                     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
                     const res = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts }],
-                            generationConfig: { responseMimeType: "application/json" }
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                temperature: pwr.temperature,
+                                maxOutputTokens: pwr.maxTokens
+                            }
                         })
                     });
                     const data = await res.json();
@@ -593,15 +1014,13 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                         const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
                         return parseAIJson(rawText);
                     }
-                    if (!firstRealError) {
-                        firstRealError = new Error(data.error?.message || `Error from ${modelName}`);
-                    }
+                    if (!firstError) firstError = new Error(data.error?.message || `Error from ${modelName}`);
                 }
-                throw firstRealError || new Error('Gemini API request failed.');
+                throw firstError || new Error('Gemini API request failed.');
             }
 
             if (currentProvider === 'openai') {
-                const userContent = [{ type: 'text', text: userPrompt || 'Build this image in 3D.' }];
+                const userContent = [{ type: 'text', text: fullPrompt }];
                 if (imgBase64 && imgMime) {
                     userContent.push({
                         type: 'image_url',
@@ -609,6 +1028,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                     });
                 }
 
+                const oaModel = currentAIPower === 'low' ? 'gpt-4o-mini' : 'gpt-4o';
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -616,12 +1036,11 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                         'Authorization': `Bearer ${currentApiKey}`
                     },
                     body: JSON.stringify({
-                        model: 'gpt-4o-mini',
+                        model: oaModel,
+                        max_tokens: pwr.maxTokens,
+                        temperature: pwr.temperature,
                         response_format: { type: "json_object" },
-                        messages: [
-                            { role: 'system', content: ENGINE_SYSTEM_PROMPT },
-                            { role: 'user', content: userContent }
-                        ]
+                        messages: [{ role: 'user', content: userContent }]
                     })
                 });
                 const data = await res.json();
@@ -637,7 +1056,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                         source: { type: 'base64', media_type: imgMime, data: imgBase64 }
                     });
                 }
-                contentArr.push({ type: 'text', text: userPrompt || 'Build this image in 3D.' });
+                contentArr.push({ type: 'text', text: fullPrompt });
 
                 const res = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
@@ -649,8 +1068,8 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                     },
                     body: JSON.stringify({
                         model: 'claude-3-5-sonnet-latest',
-                        max_tokens: 4096,
-                        system: ENGINE_SYSTEM_PROMPT,
+                        max_tokens: pwr.maxTokens,
+                        temperature: pwr.temperature,
                         messages: [{ role: 'user', content: contentArr }]
                     })
                 });
@@ -668,18 +1087,16 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 const firstBrace = text.indexOf('{');
                 const lastBrace = text.lastIndexOf('}');
                 if (firstBrace !== -1 && lastBrace !== -1) {
-                    try {
-                        return JSON.parse(text.slice(firstBrace, lastBrace + 1));
-                    } catch (err) {}
+                    try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch (err) {}
                 }
-                return { reply: "3D model generated!", code: text };
+                return { reply: "Sculpted 3D model added to studio!", code: text };
             }
         }
 
         /**************************************************************
-         * 4. ULTRA-HIGH-QUALITY PBR 3D WORLD ENGINE
+         * 5. DARK STUDIO 3D WORLD (MATCHING VIDEO SHOWCASE AESTHETIC)
          **************************************************************/
-        let scene, camera, renderer, controls, infiniteGrid, infiniteFloor, clock, sunLight;
+        let scene, camera, renderer, controls, infiniteFloor, studioEmblem, clock;
 
         window.addEventListener('keydown', e => {
             if (document.activeElement.tagName === 'INPUT') return;
@@ -689,29 +1106,52 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             window.keysPressed[e.key.toLowerCase()] = false;
         });
 
-        function createStudioEnvironment(rendererInstance) {
-            const pmremGenerator = new THREE.PMREMGenerator(rendererInstance);
-            pmremGenerator.compileEquirectangularShader();
-            const envScene = new THREE.Scene();
-            envScene.background = new THREE.Color(0x1e293b);
+        function createDarkStudioFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#181a1f';
+            ctx.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 18000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const v = 20 + Math.random() * 14;
+                ctx.fillStyle = `rgb(${v},${v + 1},${v + 3})`;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(80, 80);
+            return tex;
+        }
 
-            const skyDome = new THREE.Mesh(
-                new THREE.SphereGeometry(100, 32, 16),
-                new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.BackSide })
-            );
-            envScene.add(skyDome);
+        function createStudioPedestalEmblem() {
+            // Subtle circular studio emblem on the floor just like the video
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 512);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+            ctx.lineWidth = 18;
+            ctx.beginPath();
+            ctx.arc(256, 256, 210, 0, Math.PI * 2);
+            ctx.stroke();
 
-            const strip1 = new THREE.Mesh(
-                new THREE.PlaneGeometry(80, 20),
-                new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
-            );
-            strip1.position.set(0, 40, 0);
-            strip1.rotation.x = Math.PI / 2;
-            envScene.add(strip1);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+            ctx.beginPath();
+            ctx.moveTo(256, 90);
+            ctx.lineTo(390, 256);
+            ctx.lineTo(256, 422);
+            ctx.lineTo(122, 256);
+            ctx.closePath();
+            ctx.fill();
 
-            const envMap = pmremGenerator.fromScene(envScene).texture;
-            pmremGenerator.dispose();
-            return envMap;
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 7.5), mat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.y = 0.015;
+            return mesh;
         }
 
         function init3DWorld() {
@@ -719,11 +1159,11 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 
             const container = document.getElementById('canvasContainer');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0b132b);
-            scene.fog = new THREE.FogExp2(0x0b132b, 0.0018);
+            scene.background = new THREE.Color(0x14161b);
+            scene.fog = new THREE.FogExp2(0x14161b, 0.012);
 
-            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
-            camera.position.set(0, 14, 32);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 4.6, 8.2);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -732,56 +1172,64 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.15;
+            renderer.toneMappingExposure = 1.18;
             container.appendChild(renderer.domElement);
 
-            // Realistic Metallic & Glass Reflections
-            scene.environment = createStudioEnvironment(renderer);
-
             controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 2.3, 0);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-            // High-Quality Hemisphere + Sun Lighting
-            const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.85);
-            hemiLight.position.set(0, 200, 0);
-            scene.add(hemiLight);
+            // 3-Point Cinema Studio Lighting (Warm Key, Cool Rim, Soft Fill)
+            const ambient = new THREE.HemisphereLight(0xdbeafe, 0x111318, 0.65);
+            scene.add(ambient);
 
-            sunLight = new THREE.DirectionalLight(0xfffbeb, 1.6);
-            sunLight.position.set(80, 140, 90);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 500;
-            const d = 120;
-            sunLight.shadow.camera.left = -d;
-            sunLight.shadow.camera.right = d;
-            sunLight.shadow.camera.top = d;
-            sunLight.shadow.camera.bottom = -d;
-            sunLight.shadow.bias = -0.0005;
-            scene.add(sunLight);
+            const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.85);
+            keyLight.position.set(6, 12, 7);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            keyLight.shadow.camera.near = 0.5;
+            keyLight.shadow.camera.far = 60;
+            const d = 12;
+            keyLight.shadow.camera.left = -d;
+            keyLight.shadow.camera.right = d;
+            keyLight.shadow.camera.top = d;
+            keyLight.shadow.camera.bottom = -d;
+            keyLight.shadow.bias = -0.0005;
+            scene.add(keyLight);
 
-            // Infinite Realistic Ground Plane
-            const floorGeo = new THREE.PlaneGeometry(12000, 12000);
+            const rimLight = new THREE.DirectionalLight(0x93c5fd, 1.15);
+            rimLight.position.set(-7, 8, -8);
+            scene.add(rimLight);
+
+            const fillLight = new THREE.DirectionalLight(0xfca5a5, 0.45);
+            fillLight.position.set(-6, 4, 6);
+            scene.add(fillLight);
+
+            // Dark Matte Textured Studio Floor (Matching Video)
+            const floorTex = createDarkStudioFloorTexture();
+            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
             const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x0f172a,
-                roughness: 0.75,
-                metalness: 0.15
+                map: floorTex,
+                BumpMap: floorTex,
+                bumpScale: 0.015,
+                roughness: 0.88,
+                metalness: 0.08
             });
             infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
             infiniteFloor.receiveShadow = true;
             scene.add(infiniteFloor);
 
-            infiniteGrid = new THREE.GridHelper(2000, 200, 0x38bdf8, 0x1e293b);
-            infiniteGrid.position.y = 0.02;
-            infiniteGrid.material.opacity = 0.45;
-            infiniteGrid.material.transparent = true;
-            scene.add(infiniteGrid);
+            studioEmblem = createStudioPedestalEmblem();
+            scene.add(studioEmblem);
 
             clock = new THREE.Clock();
+
+            // Spawn Default Sculpted Showcase Character (Doctor Strange style from the video) so user immediately sees the ultra quality!
+            spawnInitialShowcaseCharacter();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -792,19 +1240,72 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             animate3D();
         }
 
+        function spawnInitialShowcaseCharacter() {
+            const prevChildren = [...scene.children];
+            const prevUpdates = [...window.updateFunctions];
+
+            const hero = window.APEX_GRAPHICS.createSculptedCharacter({
+                tunicColor: 0x465b73,
+                capeColor: 0x8c3330,
+                sashColor: 0x4a3b31,
+                pose: 'mystic'
+            });
+            scene.add(hero.root);
+            window.createdObjects.push(hero.root);
+
+            const baseCapePos = hero.capeObj ? hero.capeObj.geo.attributes.position.array.slice() : null;
+
+            const updateFn = (delta, time) => {
+                // Subtle breathing & turntable or player movement
+                const moveX = (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) + window.joystickVector.x;
+                const moveZ = (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) + window.joystickVector.y;
+
+                if (Math.abs(moveX) > 0.05 || Math.abs(moveZ) > 0.05) {
+                    hero.root.position.x += moveX * delta * 4.5;
+                    hero.root.position.z += moveZ * delta * 4.5;
+                    hero.root.rotation.y = Math.atan2(moveX, moveZ);
+                    hero.leftLeg.rotation.x = Math.sin(time * 9) * 0.45;
+                    hero.rightLeg.rotation.x = -Math.sin(time * 9) * 0.45;
+                } else {
+                    // Slow showcase rotation like the video
+                    hero.root.rotation.y += delta * 0.45;
+                    hero.leftLeg.rotation.x = 0;
+                    hero.rightLeg.rotation.x = 0;
+                }
+
+                // Dynamic cloth ripple on the sculpted cape
+                if (hero.capeObj && baseCapePos) {
+                    const pos = hero.capeObj.geo.attributes.position;
+                    for (let i = 0; i < pos.count; i++) {
+                        const origY = baseCapePos[i * 3 + 1];
+                        const origZ = baseCapePos[i * 3 + 2];
+                        const normY = (1.625 - origY) / 3.25;
+                        const wind = Math.sin(time * 3.2 + origY * 2.5) * 0.035 * normY;
+                        pos.setZ(i, origZ + wind);
+                    }
+                    pos.needsUpdate = true;
+                }
+            };
+            window.updateFunctions.push(updateFn);
+
+            const newObjects = scene.children.filter(c => !prevChildren.includes(c));
+            const newUpdates = window.updateFunctions.filter(f => !prevUpdates.includes(f));
+            buildHistoryStack.push({
+                code: '// Initial Sculpted Showcase Character',
+                objects: newObjects,
+                updateFns: newUpdates,
+                domNodes: []
+            });
+
+            document.getElementById('actionButtons').classList.remove('hidden');
+            document.getElementById('actionButtons').classList.add('flex');
+        }
+
         function animate3D() {
             requestAnimationFrame(animate3D);
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsedTime = clock.getElapsedTime();
 
-            // Infinite Grid & Sun Shadow Follow
-            const snap = 10;
-            infiniteGrid.position.x = Math.floor(camera.position.x / snap) * snap;
-            infiniteGrid.position.z = Math.floor(camera.position.z / snap) * snap;
-            infiniteFloor.position.x = camera.position.x;
-            infiniteFloor.position.z = camera.position.z;
-
-            // Only run AI vehicle/character control updates when NOT exited
             if (!window.isControlExited) {
                 for (let i = 0; i < window.updateFunctions.length; i++) {
                     try {
@@ -820,12 +1321,12 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
         }
 
         /**************************************************************
-         * 5. MOBILE JOYSTICK (MATCHING IMAGE 2)
+         * 6. MOBILE JOYSTICK
          **************************************************************/
         function initJoystick() {
             const zone = document.getElementById('joystickZone');
             const knob = document.getElementById('joystickKnob');
-            const maxRadius = 32;
+            const maxRadius = 30;
             let activeTouchId = null;
             let isDraggingMouse = false;
 
@@ -843,31 +1344,21 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 }
 
                 knob.style.transform = `translate(${dx}px, ${dy}px)`;
+                window.joystickVector.x = dx / maxRadius;
+                window.joystickVector.y = dy / maxRadius;
 
-                const normX = dx / maxRadius;
-                const normY = dy / maxRadius;
-                window.joystickVector.x = normX;
-                window.joystickVector.y = normY;
-
-                // Map joystick to WASD & Arrow keys automatically for all AI games
                 const threshold = 0.25;
-                window.keysPressed['w'] = normY < -threshold;
-                window.keysPressed['arrowup'] = normY < -threshold;
-                window.keysPressed['s'] = normY > threshold;
-                window.keysPressed['arrowdown'] = normY > threshold;
-                window.keysPressed['a'] = normX < -threshold;
-                window.keysPressed['arrowleft'] = normX < -threshold;
-                window.keysPressed['d'] = normX > threshold;
-                window.keysPressed['arrowright'] = normX > threshold;
+                window.keysPressed['w'] = window.joystickVector.y < -threshold;
+                window.keysPressed['s'] = window.joystickVector.y > threshold;
+                window.keysPressed['a'] = window.joystickVector.x < -threshold;
+                window.keysPressed['d'] = window.joystickVector.x > threshold;
             }
 
             function resetStick() {
                 knob.style.transform = `translate(0px, 0px)`;
                 window.joystickVector.x = 0;
                 window.joystickVector.y = 0;
-                ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].forEach(k => {
-                    window.keysPressed[k] = false;
-                });
+                ['w', 'a', 's', 'd'].forEach(k => window.keysPressed[k] = false);
             }
 
             zone.addEventListener('touchstart', e => {
@@ -897,47 +1388,29 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 }
             });
 
-            // Mouse fallback for testing joystick on PC
-            zone.addEventListener('mousedown', e => {
-                isDraggingMouse = true;
-                updateStick(e.clientX, e.clientY);
-            });
-            window.addEventListener('mousemove', e => {
-                if (isDraggingMouse) updateStick(e.clientX, e.clientY);
-            });
-            window.addEventListener('mouseup', () => {
-                if (isDraggingMouse) {
-                    isDraggingMouse = false;
-                    resetStick();
-                }
-            });
+            zone.addEventListener('mousedown', e => { isDraggingMouse = true; updateStick(e.clientX, e.clientY); });
+            window.addEventListener('mousemove', e => { if (isDraggingMouse) updateStick(e.clientX, e.clientY); });
+            window.addEventListener('mouseup', () => { if (isDraggingMouse) { isDraggingMouse = false; resetStick(); } });
         }
 
         /**************************************************************
-         * 6. UNDO, CLEAN ALL, AND EXIT CONTROL BUTTONS
+         * 7. UNDO, CLEAN ALL, AND EXIT CONTROL
          **************************************************************/
         function undoLastStep() {
             if (buildHistoryStack.length === 0) {
                 appendChatMessage('ai', 'Nothing left to undo!');
                 return;
             }
-
             const lastStep = buildHistoryStack.pop();
-
-            // Remove 3D objects created in that step
             lastStep.objects.forEach(obj => {
                 scene.remove(obj);
                 const idx = window.createdObjects.indexOf(obj);
                 if (idx > -1) window.createdObjects.splice(idx, 1);
             });
-
-            // Remove update loops created in that step
             lastStep.updateFns.forEach(fn => {
                 const idx = window.updateFunctions.indexOf(fn);
                 if (idx > -1) window.updateFunctions.splice(idx, 1);
             });
-
-            // Remove any DOM overlays created in that step
             lastStep.domNodes.forEach(node => {
                 if (node && node.parentNode) node.parentNode.removeChild(node);
             });
@@ -946,8 +1419,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 document.getElementById('actionButtons').classList.add('hidden');
                 document.getElementById('actionButtons').classList.remove('flex');
             }
-
-            appendChatMessage('ai', '↩️ Undid last build step.');
+            appendChatMessage('ai', '↩️ Undid last step.');
         }
 
         function cleanAllWorld() {
@@ -957,10 +1429,9 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             window.createdObjects.forEach(obj => scene.remove(obj));
             window.createdObjects = [];
             window.updateFunctions = [];
-            document.getElementById('aiHudContainer').innerHTML = '';
             document.getElementById('actionButtons').classList.add('hidden');
             document.getElementById('actionButtons').classList.remove('flex');
-            appendChatMessage('ai', '🧹 Cleaned all objects from the 3D world!');
+            appendChatMessage('ai', '🧹 Studio floor cleaned!');
         }
 
         function toggleExitControl() {
@@ -969,23 +1440,20 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             const txt = document.getElementById('exitBtnText');
 
             if (window.isControlExited) {
-                // Clear pressed keys and unlock OrbitControls so user can freely move camera
                 Object.keys(window.keysPressed).forEach(k => window.keysPressed[k] = false);
                 controls.enabled = true;
-                camera.position.y += 6;
-                camera.position.z += 10;
                 txt.innerText = 'Resume';
                 btn.className = 'glass bg-amber-500/20 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-400 flex items-center gap-1 shadow-md transition-all';
-                appendChatMessage('ai', '🚪 Exited vehicle/character control. Free camera enabled! Click "Resume" to control again.');
+                appendChatMessage('ai', '🚪 Exited character/vehicle control. Free studio camera enabled!');
             } else {
                 txt.innerText = 'Exit';
                 btn.className = 'glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all';
-                appendChatMessage('ai', '🎮 Resumed vehicle/character control!');
+                appendChatMessage('ai', '🎮 Resumed control!');
             }
         }
 
         /**************************************************************
-         * 7. COLLAPSIBLE CHAT, IMAGE UPLOAD & LIVE BUILD TIMER
+         * 8. ETA COUNTDOWN TIMER & CHAT EXECUTION
          **************************************************************/
         function toggleChatBox(show) {
             const chat = document.getElementById('chatWrapper');
@@ -1033,26 +1501,57 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             bar.classList.remove('flex');
         }
 
-        function startBuildTimer() {
-            const badge = document.getElementById('buildTimerBadge');
-            const text = document.getElementById('buildTimerText');
-            badge.classList.remove('hidden');
-            badge.classList.add('flex');
-            const startTime = performance.now();
+        // Starts an intelligent ETA Countdown Timer based on the chosen AI Power level
+        function startEtaCountdown() {
+            const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
+            const totalEst = pwr.estimatedSeconds;
+            const etaBar = document.getElementById('buildEtaBar');
+            const etaText = document.getElementById('buildEtaText');
+            const stageText = document.getElementById('buildStageText');
+            const progBar = document.getElementById('buildProgressBar');
 
+            etaBar.classList.remove('hidden');
+            etaBar.classList.add('flex');
+            progBar.style.width = '2%';
+
+            const startTime = performance.now();
             clearInterval(buildTimerInterval);
+
             buildTimerInterval = setInterval(() => {
-                const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-                text.innerText = `Building ${elapsed}s`;
+                const elapsed = (performance.now() - startTime) / 1000;
+                let remaining = totalEst - elapsed;
+
+                // Smooth asymptotic countdown if AI takes slightly longer than estimate
+                if (remaining <= 0.8) {
+                    remaining = Math.max(0.4, 0.8 * Math.exp(-(elapsed - totalEst) * 0.25));
+                }
+
+                const pct = Math.min(96, Math.round((elapsed / (elapsed + remaining)) * 100));
+                progBar.style.width = `${pct}%`;
+
+                if (pct < 30) {
+                    stageText.innerText = `[${pwr.label}] Designing 3D geometry...`;
+                } else if (pct < 70) {
+                    stageText.innerText = `[${pwr.label}] Sculpting cloth & PBR shaders...`;
+                } else {
+                    stageText.innerText = `[${pwr.label}] Finalizing studio lighting...`;
+                }
+
+                etaText.innerText = `Ready in ~${remaining.toFixed(1)}s (${pct}%)`;
             }, 100);
+
             return startTime;
         }
 
-        function stopBuildTimer(startTime) {
+        function stopEtaCountdown(startTime) {
             clearInterval(buildTimerInterval);
-            const badge = document.getElementById('buildTimerBadge');
-            badge.classList.add('hidden');
-            badge.classList.remove('flex');
+            const progBar = document.getElementById('buildProgressBar');
+            progBar.style.width = '100%';
+            setTimeout(() => {
+                const etaBar = document.getElementById('buildEtaBar');
+                etaBar.classList.add('hidden');
+                etaBar.classList.remove('flex');
+            }, 250);
             return ((performance.now() - startTime) / 1000).toFixed(1);
         }
 
@@ -1066,20 +1565,19 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
 
             input.value = '';
             clearAttachedImage();
-            appendChatMessage('user', text || '📷 [Build from attached image]');
+            appendChatMessage('user', text || '📷 [Sculpt from reference image]');
 
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
             sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[10px]"></i>`;
 
-            const timerStart = startBuildTimer();
+            const timerStart = startEtaCountdown();
 
             try {
                 const result = await callAIProvider(text, sentImageBase64, sentImageMime, false);
-                const totalSeconds = stopBuildTimer(timerStart);
+                const totalSeconds = stopEtaCountdown(timerStart);
 
                 if (result.code && result.code.trim() !== '') {
-                    // Snapshot scene, update functions, and body children before execution for Undo support
                     const prevSceneChildren = [...scene.children];
                     const prevUpdateFns = [...window.updateFunctions];
                     const prevBodyChildren = [...document.body.children];
@@ -1090,7 +1588,6 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                     const execFn = new Function('THREE', 'scene', 'camera', 'renderer', 'controls', result.code);
                     execFn(THREE, scene, camera, renderer, controls);
 
-                    // Collect newly created items in this step
                     const newObjects = scene.children.filter(c => !prevSceneChildren.includes(c));
                     const newUpdateFns = window.updateFunctions.filter(fn => !prevUpdateFns.includes(fn));
                     const newDomNodes = [...document.body.children].filter(el => !prevBodyChildren.includes(el));
@@ -1119,9 +1616,9 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                     actionBtns.classList.add('flex');
                 }
 
-                appendChatMessage('ai', `✅ (${totalSeconds}s) ${result.reply || 'Built in high-detail 3D!'}`);
+                appendChatMessage('ai', `✅ Built in ${totalSeconds}s (${currentAIPower.toUpperCase()}): ${result.reply || 'Sculpted in studio 3D!'}`);
             } catch (err) {
-                stopBuildTimer(timerStart);
+                stopEtaCountdown(timerStart);
                 appendChatMessage('ai', `⚠️ Error: ${err.message}`);
             } finally {
                 sendBtn.disabled = false;
@@ -1145,7 +1642,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
         }
 
         /**************************************************************
-         * 8. SAVE & INSTALL SYSTEM
+         * 9. SAVE & INSTALL SYSTEM
          **************************************************************/
         function openProjectModal(mode) {
             currentModalMode = mode;
@@ -1177,7 +1674,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
         }
 
         function executeProjectAction() {
-            const projectName = document.getElementById('projectNameInput').value.trim() || 'ApexGen_3D_Game';
+            const projectName = document.getElementById('projectNameInput').value.trim() || 'ApexGen_Studio_3D';
             const iconUrl = projectIconDataUrl || 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png';
             const activeScripts = buildHistoryStack.map(s => s.code);
 
@@ -1196,7 +1693,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
                 const html = buildStandaloneGameFile(projectName, iconUrl, activeScripts);
                 const blob = new Blob([html], { type: 'text/html' });
                 triggerDownload(blob, `${projectName}.html`);
-                appendChatMessage('ai', `🚀 "${projectName}" installed to your device!`);
+                appendChatMessage('ai', `🚀 "${projectName}" downloaded to your device!`);
             }
             closeProjectModal();
         }
@@ -1224,12 +1721,13 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
     <link rel="apple-touch-icon" href="${icon}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b132b; font-family: sans-serif; touch-action: none; user-select: none; }
-        #hud { position: fixed; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; background: rgba(15,23,42,0.85); color: white; padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; font-size: 13px; }
+        body { margin: 0; overflow: hidden; background: #14161b; font-family: sans-serif; touch-action: none; user-select: none; }
+        #hud { position: fixed; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; background: rgba(18,21,28,0.85); color: white; padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; font-size: 13px; }
         #hud img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
-        .joystick-base { width: 116px; height: 116px; border-radius: 50%; background: radial-gradient(circle, #5c5c5c 0%, #5c5c5c 53%, #9e9e9e 56%, #474747 59%, #b8b8b8 62%, #525252 65%, #595959 100%); position: fixed; bottom: 24px; left: 24px; z-index: 20; display: flex; align-items: center; justify-content: center; }
-        .joystick-knob { width: 52px; height: 52px; border-radius: 50%; background: #fff; border: 5px solid #b3b3b3; position: absolute; pointer-events: none; }
+        .joystick-base { width: 112px; height: 112px; border-radius: 50%; background: radial-gradient(circle, #5c5c5c 0%, #5c5c5c 53%, #9e9e9e 56%, #474747 59%, #b8b8b8 62%, #525252 65%, #595959 100%); position: fixed; bottom: 24px; left: 24px; z-index: 20; display: flex; align-items: center; justify-content: center; }
+        .joystick-knob { width: 50px; height: 50px; border-radius: 50%; background: #fff; border: 5px solid #b3b3b3; position: absolute; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -1241,6 +1739,7 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
         window.keysPressed = {};
         window.joystickVector = { x: 0, y: 0 };
         window.isControlExited = false;
+        window.APEX_GRAPHICS = ${ serializeApexGraphics() };
         window.addEventListener('keydown', e => window.keysPressed[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => window.keysPressed[e.key.toLowerCase()] = false);
 
@@ -1253,41 +1752,45 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             let dx = t.clientX - (r.left + r.width/2);
             let dy = t.clientY - (r.top + r.height/2);
             const d = Math.sqrt(dx*dx + dy*dy);
-            if (d > 32) { dx = dx/d*32; dy = dy/d*32; }
+            if (d > 30) { dx = dx/d*30; dy = dy/d*30; }
             knob.style.transform = \`translate(\${dx}px, \${dy}px)\`;
+            window.joystickVector.x = dx/30; window.joystickVector.y = dy/30;
             window.keysPressed['w'] = dy < -8; window.keysPressed['s'] = dy > 8;
             window.keysPressed['a'] = dx < -8; window.keysPressed['d'] = dx > 8;
         }, { passive: false });
         zone.addEventListener('touchend', () => {
             knob.style.transform = 'translate(0px,0px)';
+            window.joystickVector.x = 0; window.joystickVector.y = 0;
             ['w','a','s','d'].forEach(k => window.keysPressed[k] = false);
         });
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0b132b);
-        scene.fog = new THREE.FogExp2(0x0b132b, 0.0018);
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
-        camera.position.set(0, 14, 32);
+        scene.background = new THREE.Color(0x14161b);
+        scene.fog = new THREE.FogExp2(0x14161b, 0.012);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 4.6, 8.2);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.body.appendChild(renderer.domElement);
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 2.3, 0);
         controls.enableDamping = true;
 
-        scene.add(new THREE.HemisphereLight(0xe0f2fe, 0x0f172a, 0.85));
-        const sun = new THREE.DirectionalLight(0xfffbeb, 1.6);
-        sun.position.set(80, 140, 90);
-        sun.castShadow = true;
-        scene.add(sun);
+        scene.add(new THREE.HemisphereLight(0xdbeafe, 0x111318, 0.65));
+        const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.85);
+        keyLight.position.set(6, 12, 7);
+        keyLight.castShadow = true;
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(0x93c5fd, 1.15);
+        rimLight.position.set(-7, 8, -8);
+        scene.add(rimLight);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.75 }));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x181a1f, roughness: 0.88 }));
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         scene.add(floor);
-        const grid = new THREE.GridHelper(2000, 200, 0x38bdf8, 0x1e293b);
-        scene.add(grid);
 
         try { ${combinedCode} } catch(e) { console.error(e); }
 
@@ -1296,10 +1799,6 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
             requestAnimationFrame(animate);
             const delta = Math.min(clock.getDelta(), 0.1);
             const elapsed = clock.getElapsedTime();
-            grid.position.x = Math.floor(camera.position.x / 10) * 10;
-            grid.position.z = Math.floor(camera.position.z / 10) * 10;
-            floor.position.x = camera.position.x;
-            floor.position.z = camera.position.z;
             window.updateFunctions.forEach(fn => fn(delta, elapsed));
             controls.update();
             renderer.render(scene, camera);
@@ -1308,6 +1807,19 @@ Respond ONLY with a valid JSON object (no markdown fences) in this exact format:
     <\/script>
 </body>
 </html>`;
+        }
+
+        function serializeApexGraphics() {
+            return `{
+                _cache: {},
+                getFabricBumpMap: ${window.APEX_GRAPHICS.getFabricBumpMap.toString()},
+                clothMaterial: ${window.APEX_GRAPHICS.clothMaterial.toString()},
+                leatherMaterial: ${window.APEX_GRAPHICS.leatherMaterial.toString()},
+                skinMaterial: ${window.APEX_GRAPHICS.skinMaterial.toString()},
+                goldMaterial: ${window.APEX_GRAPHICS.goldMaterial.toString()},
+                createSculptedCape: ${window.APEX_GRAPHICS.createSculptedCape.toString()},
+                createSculptedCharacter: ${window.APEX_GRAPHICS.createSculptedCharacter.toString()}
+            }`;
         }
     </script>
 </body>
