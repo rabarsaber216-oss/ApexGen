@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AAA 3D AI Game Engine</title>
+    <title>ApexGen - Real GLTF & Solid Physics 3D Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js Core & Post-Processing / Loaders -->
+    <!-- Three.js Core, OrbitControls, GLTFLoader & SkeletonUtils -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
@@ -81,7 +82,7 @@
 </head>
 <body class="w-screen h-screen relative">
 
-    <!-- 1. SPLASH SCREEN (Welcome to ApexGen) -->
+    <!-- 1. SPLASH SCREEN -->
     <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050608] transition-opacity duration-1000">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
         <div class="relative z-10 text-center px-4">
@@ -92,7 +93,7 @@
                 Welcome to ApexGen
             </h1>
             <p class="mt-4 text-slate-400 text-base md:text-xl tracking-wide">
-                AAA Physics, GLSL Shaders & AI 3D Game Engine
+                Real GLTF 3D Models, PBR Textures & Solid Collision Engine
             </p>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
                 <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2000ms] ease-out"></div>
@@ -156,7 +157,7 @@
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-plug-circle-bolt"></i>
-                <span>Connect & Launch Empty 3D World</span>
+                <span>Connect & Launch 3D World</span>
             </button>
         </div>
     </div>
@@ -168,7 +169,6 @@
 
         <!-- COMPACT TOP NAVIGATION BAR -->
         <div class="fixed top-2.5 left-2.5 right-2.5 z-30 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
-            <!-- Left: Brand + Settings -->
             <div class="glass px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-auto shadow-md">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
                 <span class="font-cyber font-bold text-xs text-sky-400">ApexGen</span>
@@ -178,31 +178,27 @@
                 </button>
             </div>
 
-            <!-- Right: Compact Action Buttons (Undo, Clean All, Show Code, Exit, Save, Install) -->
             <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-                <button onclick="undoLastStep()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md transition-all" title="Undo Last Step">
+                <button onclick="undoLastStep()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md transition-all">
                     <i class="fa-solid fa-rotate-left"></i>
                     <span>Undo</span>
                 </button>
 
-                <button onclick="cleanAllWorld()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-rose-400 border border-rose-500/30 flex items-center gap-1 shadow-md transition-all" title="Clean All Objects">
+                <button onclick="cleanAllWorld()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-rose-400 border border-rose-500/30 flex items-center gap-1 shadow-md transition-all">
                     <i class="fa-solid fa-trash-can"></i>
                     <span>Clean All</span>
                 </button>
 
-                <!-- SHOW CODE BUTTON -->
-                <button onclick="openCodeModal()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-md transition-all" title="View & Edit Generated 3D Code">
+                <button onclick="openCodeModal()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-md transition-all">
                     <i class="fa-solid fa-code"></i>
                     <span>Show Code</span>
                 </button>
 
-                <!-- EXIT CONTROL BUTTON -->
-                <button id="exitControlBtn" onclick="toggleExitControl()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all" title="Exit Vehicle or Character Control">
+                <button id="exitControlBtn" onclick="toggleExitControl()" class="glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-md transition-all">
                     <i class="fa-solid fa-person-walking-arrow-right"></i>
                     <span id="exitBtnText">Exit</span>
                 </button>
 
-                <!-- SAVE & INSTALL (Visible once something is built) -->
                 <div id="actionButtons" class="hidden items-center gap-1.5">
                     <button onclick="openProjectModal('save')" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-floppy-disk"></i>
@@ -244,10 +240,8 @@
             <span>Open AI Chat</span>
         </button>
 
-        <!-- COMPACT, COLLAPSIBLE BOTTOM AI CHAT BOX -->
+        <!-- COMPACT BOTTOM AI CHAT BOX -->
         <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-md pointer-events-auto transition-all duration-300">
-            
-            <!-- Header Bar: AI Power Selector (Low / Medium / High) + Collapse/Close -->
             <div class="glass rounded-t-xl px-2.5 py-1.5 flex items-center justify-between border-b border-slate-800/80">
                 <div class="flex items-center gap-1.5">
                     <i class="fa-solid fa-fire-flame-curved text-sky-400 text-xs"></i>
@@ -275,14 +269,14 @@
                 </div>
             </div>
 
-            <!-- REAL LIVE TIMER & WEB SEARCH STATUS BAR -->
+            <!-- REAL LIVE TIMER & STATUS BAR -->
             <div id="liveTimerBar" class="hidden glass px-3 py-1.5 border-t-0 border-b-0 bg-slate-950/95 flex-col gap-1">
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
-                        <strong id="liveStageText">Searching web & compiling shaders...</strong>
+                        <strong id="liveStageText">Loading 3D meshes & colliders...</strong>
                     </span>
-                    <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s | ~12s est</span>
+                    <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s</span>
                 </div>
                 <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                     <div id="liveProgressBar" class="h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-emerald-400 w-0 transition-all duration-100"></div>
@@ -292,7 +286,7 @@
             <!-- Compact Chat History Drawer -->
             <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
                 <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
-                    <strong class="text-sky-400">Empty Map Ready:</strong> Tell AI what to build (e.g., <em>"Build Kratos with Blades of Chaos and combat animation"</em> or <em>"Build a GTA IV realistic sports car with suspension physics"</em>).
+                    <strong class="text-emerald-400">Real GLTF & Solid Physics Active:</strong> Characters use real 3D animated meshes, houses/trees use HD textures, and solid collision blocks walking through walls, wells, or trees!
                 </div>
             </div>
 
@@ -307,24 +301,22 @@
                 </button>
             </div>
 
-            <!-- Compact Chat Input Bar with Build & Stop Buttons -->
+            <!-- Compact Chat Input Bar -->
             <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5">
                 <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image">
                     <i class="fa-solid fa-image text-xs"></i>
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
-                <input id="promptInput" type="text" placeholder="Describe character, car, or game to build..." 
+                <input id="promptInput" type="text" placeholder="Describe village, soldier, car, or game..." 
                     class="flex-1 bg-transparent px-2 py-1.5 text-white placeholder-slate-400 text-xs outline-none"
                     onkeydown="if(event.key === 'Enter') sendPromptToAI()">
 
-                <!-- BUILD BUTTON -->
                 <button id="sendBtn" onclick="sendPromptToAI()" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all">
                     <i class="fa-solid fa-paper-plane text-[10px]"></i>
                     <span>Build</span>
                 </button>
 
-                <!-- STOP CODING BUTTON (Appears while AI is coding) -->
                 <button id="stopBtn" onclick="stopAICoding()" class="hidden px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs items-center gap-1.5 shrink-0 shadow-lg shadow-rose-600/40 animate-pulse transition-all">
                     <i class="fa-solid fa-stop text-[10px]"></i>
                     <span>Stop</span>
@@ -333,7 +325,7 @@
         </div>
     </div>
 
-    <!-- 4. SHOW CODE MODAL (View, Copy & Live-Edit Generated Code) -->
+    <!-- 4. SHOW CODE MODAL -->
     <div id="codeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-3xl rounded-3xl p-5 md:p-6 border border-emerald-500/30 flex flex-col max-h-[85vh]">
             <div class="flex items-center justify-between mb-3">
@@ -373,7 +365,7 @@
 
             <div class="mb-4">
                 <label class="block text-xs font-semibold text-slate-300 mb-1.5">Project Name:</label>
-                <input id="projectNameInput" type="text" placeholder="e.g., GTA IV Physics Sandbox" 
+                <input id="projectNameInput" type="text" placeholder="e.g., Realistic Village 3D" 
                     class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-white text-xs outline-none">
             </div>
 
@@ -402,7 +394,7 @@
 
     <script>
         /**************************************************************
-         * 1. STATE, REAL AI POWER LEVELS & CONFIGURATION
+         * 1. STATE & AI POWER CONFIGURATION
          **************************************************************/
         const PROVIDERS = {
             gemini: {
@@ -425,36 +417,36 @@
             }
         };
 
-        // Truly Functional AI Power Levels (Controls Model Tier, Web Search Grounding, Token Budget & Shader Complexity)
         const AI_POWER_CONFIG = {
             low: {
-                label: 'LOW (Fast)',
+                label: 'LOW',
                 estSeconds: 5.0,
                 maxTokens: 2500,
                 temperature: 0.3,
                 useWebSearch: false,
                 preferProModel: false,
-                directive: `AI POWER MODE: LOW (FAST BUILD). Build a clean, lightweight 3D object or character using window.AAA_ENGINE helpers with ~15-25 meshes and basic movement so code generation finishes in a few seconds.`
+                directive: `AI POWER MODE: LOW (Fast Build). Use window.AAA_ENGINE pre-built realistic generators (spawnAAACharacter, spawnRealisticHouse, spawnRealisticTree, spawnStoneWell, spawnAAAVehicle) so the scene builds quickly with real GLTF models and solid colliders.`
             },
             medium: {
-                label: 'MEDIUM (Balanced)',
+                label: 'MEDIUM',
                 estSeconds: 11.0,
                 maxTokens: 6144,
                 temperature: 0.5,
                 useWebSearch: true,
                 preferProModel: false,
-                directive: `AI POWER MODE: MEDIUM (BALANCED AAA). Use window.AAA_ENGINE PBR materials, realistic proportions, articulated skeletal limbs, and smooth WASD/Joystick locomotion & physics.`
+                directive: `AI POWER MODE: MEDIUM (Balanced Realism). Combine window.AAA_ENGINE real GLTF characters, textured houses, organic trees, cobblestone wells, and custom textured props with full solid collision.`
             },
             high: {
-                label: 'HIGH (Ultra GTA4 / GoW3 Engine)',
-                estSeconds: 19.0,
+                label: 'HIGH',
+                estSeconds: 18.0,
                 maxTokens: 16384,
                 temperature: 0.65,
                 useWebSearch: true,
                 preferProModel: true,
-                directive: `AI POWER MODE: HIGH (MAXIMUM AAA GOW3 & GTA IV REALISM).
-- Use full skeletal articulation (window.AAA_ENGINE.spawnAAACharacter or window.AAA_ENGINE.spawnAAAVehicle) plus custom high-polygon details, musculature, armor/cloth drapery, glowing runes/headlights, particle trails, and dynamic point lights.
-- Implement full Euphoria-style momentum/leaning physics (body tilts into turns, suspension compresses on braking/acceleration, camera shake on heavy attacks) and God of War 3 heavy melee attacks when pressing 'e' or ATTACK button!`
+                directive: `AI POWER MODE: HIGH (MAXIMUM AAA REALISM - ZERO PRIMITIVE BOXES/CONES).
+- NEVER build characters, trees, houses, or wells out of plain colored boxes or cones!
+- ALWAYS use window.AAA_ENGINE.spawnAAACharacter() for real animated 3D GLB characters (Soldier, Robot, Fox, Horse), window.AAA_ENGINE.spawnRealisticHouse() for textured brick/stone/timber buildings, window.AAA_ENGINE.spawnRealisticTree() for organic multi-branch foliage trees, window.AAA_ENGINE.spawnStoneWell() for cobblestone wells, and window.AAA_ENGINE.material(type) for real procedural brick/stone/wood/rooftile/bark/grass PBR textures.
+- Register every obstacle with window.PHYSICS.addStaticCollider(mesh) so nothing can ever walk through walls, wells, or trees!`
             }
         };
 
@@ -469,7 +461,7 @@
         let attachedImageMimeType = null;
         let autoConnectTimer = null;
         let buildTimerInterval = null;
-        let activeAbortController = null; // Real AbortController for the Stop button
+        let activeAbortController = null;
 
         window.updateFunctions = [];
         window.createdObjects = [];
@@ -478,298 +470,363 @@
         window.isControlExited = false;
 
         /**************************************************************
-         * 2. BUILT-IN AAA GRAPHICS, IK ANIMATION & PHYSICS ENGINE (GTA IV / GOW3)
+         * 2. SOLID 3D PHYSICS & COLLISION ENGINE (BLOCKS WALKING THROUGH WALLS/WELLS/TREES)
+         **************************************************************/
+        window.PHYSICS = {
+            colliders: [], // Array of { object, box: THREE.Box3, isTrigger: false }
+            dynamicBodies: [], // Array of { root, radius, lastSafePos }
+
+            // Registers any 3D object (house, wall, well, tree, rock) as a solid physical obstacle
+            addStaticCollider(object3D, padding = 0.05) {
+                if (!object3D) return;
+                object3D.updateMatrixWorld(true);
+                const box = new THREE.Box3().setFromObject(object3D);
+                if (box.isEmpty()) return;
+                box.expandByScalar(padding);
+                this.colliders.push({ object: object3D, box });
+            },
+
+            // Automatically scans newly created scene objects and makes all static structures solid
+            autoRegisterSceneObstacles(objectsArray, excludeRoot = null) {
+                objectsArray.forEach(obj => {
+                    if (!obj || obj === excludeRoot || obj.userData.isPlayer || obj.userData.noCollide) return;
+                    // If it's a group of environment items, register children or the object itself
+                    this.addStaticCollider(obj, 0.02);
+                });
+            },
+
+            // Registers a moving character or vehicle so the engine enforces collision every frame
+            registerDynamicBody(rootObject, radius = 0.65) {
+                if (!rootObject) return;
+                rootObject.userData.isPlayer = true;
+                // Remove self from static colliders if accidentally added
+                this.colliders = this.colliders.filter(c => c.object !== rootObject && !rootObject.children.includes(c.object));
+                this.dynamicBodies.push({
+                    root: rootObject,
+                    radius: radius,
+                    prevPos: rootObject.position.clone()
+                });
+            },
+
+            // Resolves movement for a character/car at (x, z) with given radius; slides smoothly along walls & wells!
+            resolveHorizontalCollision(pos, prevPos, radius = 0.65) {
+                // Clean out removed objects
+                this.colliders = this.colliders.filter(c => c.object && c.object.parent);
+
+                for (let iter = 0; iter < 3; iter++) {
+                    for (let i = 0; i < this.colliders.length; i++) {
+                        const col = this.colliders[i];
+                        if (!col.object || col.object.userData.isPlayer) continue;
+
+                        col.box.setFromObject(col.object);
+                        const min = col.box.min;
+                        const max = col.box.max;
+
+                        // Ignore floor-flat objects or objects high above the character's head
+                        if (max.y < pos.y + 0.25 || min.y > pos.y + 2.5) continue;
+
+                        // Find closest point on the AABB in XZ plane to player center
+                        const closestX = Math.max(min.x, Math.min(pos.x, max.x));
+                        const closestZ = Math.max(min.z, Math.min(pos.z, max.z));
+
+                        const dx = pos.x - closestX;
+                        const dz = pos.z - closestZ;
+                        const distSq = dx * dx + dz * dz;
+
+                        if (distSq < radius * radius) {
+                            const dist = Math.sqrt(distSq);
+                            if (dist > 0.0001) {
+                                // Push character out along normal (smooth sliding along wells/walls/trees)
+                                const overlap = radius - dist;
+                                pos.x += (dx / dist) * overlap;
+                                pos.z += (dz / dist) * overlap;
+                            } else {
+                                // Player center is deep inside box: push out along shallowest axis
+                                const leftPen = Math.abs(pos.x - min.x);
+                                const rightPen = Math.abs(max.x - pos.x);
+                                const backPen = Math.abs(pos.z - min.z);
+                                const frontPen = Math.abs(max.z - pos.z);
+                                const minPen = Math.min(leftPen, rightPen, backPen, frontPen);
+
+                                if (minPen === leftPen) pos.x = min.x - radius;
+                                else if (minPen === rightPen) pos.x = max.x + radius;
+                                else if (minPen === backPen) pos.z = min.z - radius;
+                                else pos.z = max.z + radius;
+                            }
+                        }
+                    }
+                }
+            },
+
+            // Called every frame by the main engine loop to guarantee NO character ever clips inside anything
+            enforceAllCollisions() {
+                this.dynamicBodies = this.dynamicBodies.filter(b => b.root && b.root.parent);
+                for (let i = 0; i < this.dynamicBodies.length; i++) {
+                    const body = this.dynamicBodies[i];
+                    this.resolveHorizontalCollision(body.root.position, body.prevPos, body.radius);
+                    body.prevPos.copy(body.root.position);
+                }
+            },
+
+            clearAll() {
+                this.colliders = [];
+                this.dynamicBodies = [];
+            }
+        };
+
+        /**************************************************************
+         * 3. REAL GLTF 3D MODELS + HD PROCEDURAL PBR TEXTURES (AAA_ENGINE)
          **************************************************************/
         window.AAA_ENGINE = {
             _texCache: {},
+            _gltfCache: {},
+            _mixers: [],
+            gltfLoader: new THREE.GLTFLoader(),
 
-            // Procedural Micro-Normal / Bump Map for Asphalt, Leather, Brushed Metal & Skin
-            createMicroBump(type = 'metal') {
-                if (this._texCache[type]) return this._texCache[type];
+            // Official High-Detail Rigged GLB Models (Soldier, Robot, Horse, Fox, Flamingo)
+            MODEL_URLS: {
+                soldier: 'https://threejs.org/examples/models/gltf/Soldier.glb',
+                robot: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+                xbot: 'https://threejs.org/examples/models/gltf/Xbot.glb',
+                horse: 'https://threejs.org/examples/models/gltf/Horse.glb',
+                flamingo: 'https://threejs.org/examples/models/gltf/Flamingo.glb'
+            },
+
+            // High-Resolution Procedural PBR Textures (Brick, Cobblestone, Wood Planks, Roof Tiles, Bark, Foliage)
+            getTexture(type = 'brick', repeatX = 4, repeatY = 4) {
+                const key = `${type}_${repeatX}_${repeatY}`;
+                if (this._texCache[key]) return this._texCache[key];
+
                 const canvas = document.createElement('canvas');
-                canvas.width = 256; canvas.height = 256;
+                canvas.width = 512; canvas.height = 512;
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#808080';
-                ctx.fillRect(0, 0, 256, 256);
 
-                for (let y = 0; y < 256; y += 2) {
-                    for (let x = 0; x < 256; x += 2) {
-                        let d = (Math.random() - 0.5) * 35;
-                        if (type === 'cloth') d += ((x + y) % 4 === 0) ? 22 : -18;
-                        if (type === 'asphalt') d = (Math.random() - 0.5) * 65;
-                        const v = Math.max(0, Math.min(255, Math.floor(128 + d)));
-                        ctx.fillStyle = `rgb(${v},${v},${v})`;
-                        ctx.fillRect(x, y, 2, 2);
+                if (type === 'brick') {
+                    ctx.fillStyle = '#cbd5e1'; // Mortar
+                    ctx.fillRect(0, 0, 512, 512);
+                    const rows = 16, cols = 8;
+                    const bh = 512 / rows, bw = 512 / cols;
+                    for (let r = 0; r < rows; r++) {
+                        const offset = (r % 2) * (bw / 2);
+                        for (let c = -1; c <= cols; c++) {
+                            const shade = 135 + Math.floor(Math.random() * 45);
+                            ctx.fillStyle = `rgb(${shade}, ${Math.floor(shade * 0.48)}, ${Math.floor(shade * 0.38)})`;
+                            ctx.fillRect(c * bw + offset + 3, r * bh + 3, bw - 6, bh - 6);
+                        }
+                    }
+                } else if (type === 'stone') {
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let i = 0; i < 220; i++) {
+                        const x = Math.random() * 512, y = Math.random() * 512;
+                        const rx = 16 + Math.random() * 24, ry = 12 + Math.random() * 18;
+                        const v = 90 + Math.floor(Math.random() * 70);
+                        ctx.fillStyle = `rgb(${v},${v + 3},${v + 6})`;
+                        ctx.beginPath();
+                        ctx.ellipse(x, y, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#1e293b';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+                } else if (type === 'wood') {
+                    ctx.fillStyle = '#78472a';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let y = 0; y < 512; y += 2) {
+                        const wave = Math.sin(y * 0.06) * 12 + (Math.random() - 0.5) * 14;
+                        const r = Math.min(255, Math.max(0, Math.floor(115 + wave)));
+                        const g = Math.min(255, Math.max(0, Math.floor(72 + wave * 0.6)));
+                        const b = Math.min(255, Math.max(0, Math.floor(42 + wave * 0.4)));
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        ctx.fillRect(0, y, 512, 2);
+                    }
+                    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                    for (let p = 0; p < 512; p += 64) ctx.fillRect(0, p, 512, 3);
+                } else if (type === 'rooftile') {
+                    ctx.fillStyle = '#7c2d12';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let r = 0; r < 16; r++) {
+                        for (let c = 0; c < 16; c++) {
+                            const shade = 120 + Math.floor(Math.random() * 35);
+                            ctx.fillStyle = `rgb(${shade}, ${Math.floor(shade * 0.42)}, ${Math.floor(shade * 0.25)})`;
+                            ctx.beginPath();
+                            ctx.arc(c * 32 + 16, r * 32 + 16, 16, 0, Math.PI, false);
+                            ctx.fill();
+                            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    }
+                } else if (type === 'bark') {
+                    ctx.fillStyle = '#4a3525';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let x = 0; x < 512; x += 3) {
+                        const v = 55 + Math.floor(Math.random() * 35);
+                        ctx.fillStyle = `rgb(${v + 15},${v},${v - 12})`;
+                        ctx.fillRect(x, 0, 3, 512);
+                    }
+                } else if (type === 'foliage') {
+                    ctx.fillStyle = '#166534';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let i = 0; i < 1200; i++) {
+                        const g = 75 + Math.floor(Math.random() * 85);
+                        ctx.fillStyle = `rgb(${Math.floor(g * 0.35)}, ${g}, ${Math.floor(g * 0.4)})`;
+                        ctx.beginPath();
+                        ctx.arc(Math.random() * 512, Math.random() * 512, 4 + Math.random() * 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                } else if (type === 'plaster') {
+                    ctx.fillStyle = '#e2dcd3';
+                    ctx.fillRect(0, 0, 512, 512);
+                    for (let i = 0; i < 6000; i++) {
+                        const v = 210 + Math.floor(Math.random() * 30);
+                        ctx.fillStyle = `rgb(${v},${v - 4},${v - 10})`;
+                        ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
                     }
                 }
+
                 const tex = new THREE.CanvasTexture(canvas);
                 tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-                tex.repeat.set(type === 'asphalt' ? 60 : 10, type === 'asphalt' ? 60 : 10);
-                this._texCache[type] = tex;
+                tex.repeat.set(repeatX, repeatY);
+                this._texCache[key] = tex;
                 return tex;
             },
 
-            // PBR Material Presets (GTA IV Metallic Car Paint, GoW3 Bronze/Armor, Realistic Skin, Cloth)
+            material(type = 'brick', repeatX = 4, repeatY = 4, tintHex = 0xffffff) {
+                const tex = this.getTexture(type, repeatX, repeatY);
+                return new THREE.MeshStandardMaterial({
+                    color: tintHex,
+                    map: tex,
+                    bumpMap: tex,
+                    bumpScale: 0.04,
+                    roughness: 0.82,
+                    metalness: 0.06
+                });
+            },
+
             carPaintMaterial(colorHex = 0xb91c1c) {
                 return new THREE.MeshPhysicalMaterial({
-                    color: colorHex,
-                    metalness: 0.75,
-                    roughness: 0.18,
-                    clearcoat: 1.0,
-                    clearcoatRoughness: 0.06
+                    color: colorHex, metalness: 0.78, roughness: 0.16, clearcoat: 1.0, clearcoatRoughness: 0.05
                 });
             },
 
             armorMaterial(colorHex = 0xc59b27, roughness = 0.28) {
-                return new THREE.MeshStandardMaterial({
-                    color: colorHex,
-                    metalness: 0.88,
-                    roughness: roughness,
-                    bumpMap: this.createMicroBump('metal'),
-                    bumpScale: 0.025
-                });
+                return new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.88, roughness: roughness });
             },
 
             skinMaterial(colorHex = 0xd6a384) {
-                return new THREE.MeshPhysicalMaterial({
-                    color: colorHex,
-                    roughness: 0.52,
-                    metalness: 0.02,
-                    clearcoat: 0.14,
-                    clearcoatRoughness: 0.65,
-                    bumpMap: this.createMicroBump('skin'),
-                    bumpScale: 0.008
-                });
+                return new THREE.MeshPhysicalMaterial({ color: colorHex, roughness: 0.52, metalness: 0.02, clearcoat: 0.14 });
             },
 
             clothMaterial(colorHex = 0x7f1d1d) {
-                return new THREE.MeshPhysicalMaterial({
-                    color: colorHex,
-                    roughness: 0.78,
-                    metalness: 0.05,
-                    bumpMap: this.createMicroBump('cloth'),
-                    bumpScale: 0.035,
-                    side: THREE.DoubleSide
-                });
+                return new THREE.MeshPhysicalMaterial({ color: colorHex, roughness: 0.78, metalness: 0.05, side: THREE.DoubleSide });
             },
 
-            // Spawns a Fully Articulated AAA Character with GTA IV Euphoria Leaning + GoW3 Combat & Walk/Run Animations
+            // 1. REAL 3D GLTF CHARACTER SPAWNER (Loads real Soldier.glb / RobotExpressive.glb with Skeletal AnimationMixer + Solid Collision!)
             spawnAAACharacter(opts = {}) {
                 const cfg = Object.assign({
-                    skinColor: 0xd19c7c,
-                    tunicColor: 0x273447,
-                    armorColor: 0xb48828,
-                    capeColor: 0x881b1b,
-                    hairColor: 0x1c1917,
-                    hasCape: true,
-                    hasWeapons: true,
-                    weaponColor: 0xff5500,
-                    scale: 1.0,
-                    speed: 9.0,
-                    followCamera: true
+                    modelType: 'soldier', // 'soldier', 'robot', 'xbot'
+                    x: 0,
+                    z: 0,
+                    scale: 1.75,
+                    speed: 8.5,
+                    followCamera: true,
+                    radius: 0.65
                 }, opts);
 
                 const root = new THREE.Group();
-                root.scale.setScalar(cfg.scale);
-
-                const skinMat = this.skinMaterial(cfg.skinColor);
-                const tunicMat = this.clothMaterial(cfg.tunicColor);
-                const armorMat = this.armorMaterial(cfg.armorColor);
-                const capeMat = this.clothMaterial(cfg.capeColor);
-                const hairMat = this.clothMaterial(cfg.hairColor);
-
-                // Pelvis & Spine Hierarchy (For Euphoria physics leaning & breathing)
-                const pelvis = new THREE.Group();
-                pelvis.position.y = 2.1;
-                root.add(pelvis);
-
-                const spine = new THREE.Group();
-                pelvis.add(spine);
-
-                // Muscular Sculpted Chest & Abs
-                const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.44, 1.35, 32, 12), tunicMat);
-                chest.scale.set(1.18, 1, 0.82);
-                chest.position.y = 0.75;
-                spine.add(chest);
-
-                // Shoulder Pauldrons / Armor
-                [-1, 1].forEach(side => {
-                    const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6), armorMat);
-                    pauldron.position.set(side * 0.68, 1.32, 0);
-                    pauldron.rotation.z = -side * 0.4;
-                    spine.add(pauldron);
-                });
-
-                // Armored Waist Belt & Battle Skirt
-                const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.49, 0.52, 0.32, 32), armorMat);
-                belt.scale.set(1.16, 1, 0.86);
-                belt.position.y = 0.05;
-                spine.add(belt);
-
-                const skirtGeo = new THREE.CylinderGeometry(0.48, 0.72, 1.05, 36, 12, true);
-                const skirt = new THREE.Mesh(skirtGeo, capeMat);
-                skirt.position.y = -0.45;
-                pelvis.add(skirt);
-
-                // Head, Face & Hair
-                const neck = new THREE.Group();
-                neck.position.set(0, 1.55, 0.02);
-                spine.add(neck);
-
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), skinMat);
-                head.scale.set(0.92, 1.12, 0.98);
-                head.position.y = 0.25;
-                neck.add(head);
-
-                const jawBeard = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.10, 0.30, 20), hairMat);
-                jawBeard.position.set(0, 0.06, 0.14);
-                neck.add(jawBeard);
-
-                const hair = new THREE.Mesh(new THREE.SphereGeometry(0.37, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat);
-                hair.position.set(0, 0.30, -0.02);
-                hair.rotation.x = -0.25;
-                neck.add(hair);
-
-                // Articulated Arms (Upper Arm -> Forearm -> Hand -> Dual Blades/Weapons)
-                function createLimbArm(side) {
-                    const shoulder = new THREE.Group();
-                    shoulder.position.set(side * 0.72, 1.28, 0);
-                    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.135, 0.68, 20), skinMat);
-                    upper.position.y = -0.32;
-                    shoulder.add(upper);
-
-                    const elbow = new THREE.Group();
-                    elbow.position.y = -0.66;
-                    shoulder.add(elbow);
-
-                    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.105, 0.65, 20), armorMat);
-                    forearm.position.y = -0.30;
-                    elbow.add(forearm);
-
-                    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.08), skinMat);
-                    hand.position.y = -0.66;
-                    elbow.add(hand);
-
-                    // Weapon / Blade attachment (GoW3 style)
-                    let weapon = null;
-                    if (cfg.hasWeapons) {
-                        weapon = new THREE.Group();
-                        const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35, 12), armorMat);
-                        hilt.rotation.x = Math.PI / 2;
-                        weapon.add(hilt);
-
-                        const bladeGeo = new THREE.ConeGeometry(0.14, 1.25, 6);
-                        bladeGeo.scale(0.22, 1, 1);
-                        const bladeMat = new THREE.MeshStandardMaterial({
-                            color: 0xffedd5,
-                            emissive: cfg.weaponColor,
-                            emissiveIntensity: 0.85,
-                            metalness: 0.9,
-                            roughness: 0.15
-                        });
-                        const blade = new THREE.Mesh(bladeGeo, bladeMat);
-                        blade.rotation.x = Math.PI / 2;
-                        blade.position.z = 0.75;
-                        weapon.add(blade);
-
-                        weapon.position.set(0, -0.70, 0.05);
-                        elbow.add(weapon);
-                    }
-
-                    spine.add(shoulder);
-                    return { shoulder, elbow, weapon };
-                }
-
-                const leftArm = createLimbArm(-1);
-                const rightArm = createLimbArm(1);
-
-                // Articulated Legs (Hip -> Knee -> Boot)
-                function createLimbLeg(side) {
-                    const hip = new THREE.Group();
-                    hip.position.set(side * 0.26, 0, 0);
-                    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.16, 0.98, 20), tunicMat);
-                    thigh.position.y = -0.48;
-                    hip.add(thigh);
-
-                    const knee = new THREE.Group();
-                    knee.position.y = -0.96;
-                    hip.add(knee);
-
-                    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.125, 0.98, 20), armorMat);
-                    calf.position.y = -0.48;
-                    knee.add(calf);
-
-                    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.48), armorMat);
-                    foot.position.set(0, -1.02, 0.10);
-                    knee.add(foot);
-
-                    pelvis.add(hip);
-                    return { hip, knee };
-                }
-
-                const leftLeg = createLimbLeg(-1);
-                const rightLeg = createLimbLeg(1);
-
-                // Flowing Vertex-Sculpted Cape
-                let capeMesh = null, baseCapeVerts = null;
-                if (cfg.hasCape) {
-                    const capeGeo = new THREE.PlaneGeometry(2.2, 3.1, 32, 32);
-                    const pos = capeGeo.attributes.position;
-                    for (let i = 0; i < pos.count; i++) {
-                        const u = pos.getX(i), v = pos.getY(i);
-                        const normY = (1.55 - v) / 3.1;
-                        const fold = Math.sin(u * 9) * 0.12 * normY;
-                        pos.setXYZ(i, u * (0.65 + normY * 0.45), v, -0.25 - normY * 0.35 + fold);
-                    }
-                    capeGeo.computeVertexNormals();
-                    baseCapeVerts = pos.array.slice();
-                    capeMesh = new THREE.Mesh(capeGeo, capeMat);
-                    capeMesh.position.set(0, 0.1, -0.25);
-                    spine.add(capeMesh);
-                }
-
-                root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                root.position.set(cfg.x, 0, cfg.z);
+                root.userData.isPlayer = true;
                 scene.add(root);
                 window.createdObjects.push(root);
 
-                // Euphoria Physics & GoW3 Combat / Locomotion State
+                // Register with Solid Physics Engine so this character NEVER walks through wells, walls, or trees!
+                window.PHYSICS.registerDynamicBody(root, cfg.radius);
+
+                let mixer = null;
+                const actions = {};
+                let activeAction = null;
+
+                function fadeToAction(name, duration = 0.2) {
+                    const nextAction = actions[name];
+                    if (!nextAction || activeAction === nextAction) return;
+                    if (activeAction) activeAction.fadeOut(duration);
+                    nextAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(duration).play();
+                    activeAction = nextAction;
+                }
+
+                const url = this.MODEL_URLS[cfg.modelType] || this.MODEL_URLS.soldier;
+                this.gltfLoader.load(url, (gltf) => {
+                    const model = gltf.scene;
+                    model.scale.setScalar(cfg.scale);
+                    // Soldier.glb faces +Z when rotated by Math.PI
+                    if (cfg.modelType === 'soldier') model.rotation.y = Math.PI;
+
+                    model.traverse(obj => {
+                        if (obj.isMesh) {
+                            obj.castShadow = true;
+                            obj.receiveShadow = true;
+                        }
+                    });
+                    root.add(model);
+
+                    if (gltf.animations && gltf.animations.length > 0) {
+                        mixer = new THREE.AnimationMixer(model);
+                        gltf.animations.forEach(clip => {
+                            actions[clip.name.toLowerCase()] = mixer.clipAction(clip);
+                        });
+                        // Default idle animation
+                        const idleKey = Object.keys(actions).find(k => k.includes('idle')) || Object.keys(actions)[0];
+                        if (idleKey) fadeToAction(idleKey, 0.1);
+                    }
+                });
+
                 const state = {
                     velX: 0, velZ: 0, velY: 0,
                     isGrounded: true,
-                    heading: 0,
-                    leanRoll: 0,
-                    leanPitch: 0,
-                    walkCycle: 0,
-                    attackTimer: 0
+                    heading: 0
                 };
 
-                const updateFn = (delta, time) => {
+                const updateFn = (delta) => {
+                    if (mixer) mixer.update(delta);
+
                     const inputX = (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) + window.joystickVector.x;
                     const inputZ = (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) + window.joystickVector.y;
-                    const isSprint = window.keysPressed['shift'];
-                    const isAttack = window.keysPressed['e'];
+                    const isSprint = window.keysPressed['shift'] || Math.hypot(inputX, inputZ) > 0.85;
                     const isJump = window.keysPressed[' '];
+                    const isAttack = window.keysPressed['e'];
 
-                    const maxSpeed = cfg.speed * (isSprint ? 1.65 : 1.0);
-                    const targetVX = inputX * maxSpeed;
-                    const targetVZ = inputZ * maxSpeed;
+                    // Move relative to camera view direction for intuitive 3D control
+                    const camForward = new THREE.Vector3();
+                    camera.getWorldDirection(camForward);
+                    camForward.y = 0;
+                    camForward.normalize();
+                    const camRight = new THREE.Vector3(-camForward.z, 0, camForward.x);
 
-                    // Smooth Inertia & Momentum (GTA IV Euphoria style)
-                    const accel = 8.5 * delta;
-                    state.velX += (targetVX - state.velX) * accel;
-                    state.velZ += (targetVZ - state.velZ) * accel;
+                    const moveVec = new THREE.Vector3()
+                        .addScaledVector(camRight, inputX)
+                        .addScaledVector(camForward, -inputZ);
 
-                    const speedMag = Math.hypot(state.velX, state.velZ);
+                    if (moveVec.length() > 1) moveVec.normalize();
+
+                    const maxSpeed = cfg.speed * (isSprint ? 1.55 : 1.0);
+                    state.velX += (moveVec.x * maxSpeed - state.velX) * Math.min(1, delta * 10);
+                    state.velZ += (moveVec.z * maxSpeed - state.velZ) * Math.min(1, delta * 10);
+
+                    const prevPos = root.position.clone();
                     root.position.x += state.velX * delta;
                     root.position.z += state.velZ * delta;
 
+                    // Immediate Solid Collision Resolution against all wells, walls, houses & trees
+                    window.PHYSICS.resolveHorizontalCollision(root.position, prevPos, cfg.radius);
+
                     // Jump & Gravity
                     if (isJump && state.isGrounded) {
-                        state.velY = 11.5;
+                        state.velY = 10.5;
                         state.isGrounded = false;
                     }
                     if (!state.isGrounded) {
-                        state.velY -= 26.0 * delta;
+                        state.velY -= 25.0 * delta;
                         root.position.y += state.velY * delta;
                         if (root.position.y <= 0) {
                             root.position.y = 0;
@@ -778,156 +835,272 @@
                         }
                     }
 
-                    // Dynamic Turning & Body Leaning
+                    const speedMag = Math.hypot(state.velX, state.velZ);
                     if (speedMag > 0.25) {
                         const targetHeading = Math.atan2(state.velX, state.velZ);
                         let diff = targetHeading - state.heading;
                         while (diff > Math.PI) diff -= Math.PI * 2;
                         while (diff < -Math.PI) diff += Math.PI * 2;
-                        state.heading += diff * Math.min(1, delta * 10);
+                        state.heading += diff * Math.min(1, delta * 12);
                         root.rotation.y = state.heading;
 
-                        state.leanRoll += (-diff * 0.35 - state.leanRoll) * delta * 8;
-                        state.leanPitch += (Math.min(0.32, speedMag * 0.022) - state.leanPitch) * delta * 8;
+                        if (isSprint && actions['run']) fadeToAction('run', 0.15);
+                        else if (actions['walk']) fadeToAction('walk', 0.15);
+                        else if (actions['running']) fadeToAction('running', 0.15);
                     } else {
-                        state.leanRoll *= 0.85;
-                        state.leanPitch *= 0.85;
+                        if (isAttack && actions['punch']) fadeToAction('punch', 0.1);
+                        else if (actions['idle']) fadeToAction('idle', 0.2);
                     }
 
-                    spine.rotation.z = state.leanRoll;
-                    spine.rotation.x = state.leanPitch;
-
-                    // Skeletal IK Walk / Run Cycle
-                    if (speedMag > 0.25) {
-                        const freq = isSprint ? 13 : 9;
-                        state.walkCycle += delta * freq * (speedMag / cfg.speed + 0.3);
-                        const s = Math.sin(state.walkCycle);
-                        const c = Math.cos(state.walkCycle);
-
-                        leftLeg.hip.rotation.x = s * 0.75;
-                        leftLeg.knee.rotation.x = Math.max(0, -c * 0.85);
-                        rightLeg.hip.rotation.x = -s * 0.75;
-                        rightLeg.knee.rotation.x = Math.max(0, c * 0.85);
-
-                        pelvis.position.y = 2.1 + Math.abs(Math.sin(state.walkCycle * 2)) * 0.12;
-
-                        if (state.attackTimer <= 0) {
-                            leftArm.shoulder.rotation.x = -s * 0.65;
-                            leftArm.elbow.rotation.x = -0.45 - Math.max(0, s * 0.4);
-                            rightArm.shoulder.rotation.x = s * 0.65;
-                            rightArm.elbow.rotation.x = -0.45 - Math.max(0, -s * 0.4);
-                        }
-                    } else {
-                        // Idle Breathing
-                        pelvis.position.y = 2.1 + Math.sin(time * 2.5) * 0.03;
-                        leftLeg.hip.rotation.x *= 0.85;
-                        rightLeg.hip.rotation.x *= 0.85;
-                        leftLeg.knee.rotation.x *= 0.85;
-                        rightLeg.knee.rotation.x *= 0.85;
-                        if (state.attackTimer <= 0) {
-                            leftArm.shoulder.rotation.x = Math.sin(time * 2.5) * 0.06;
-                            rightArm.shoulder.rotation.x = -Math.sin(time * 2.5) * 0.06;
-                            leftArm.elbow.rotation.x = -0.35;
-                            rightArm.elbow.rotation.x = -0.35;
-                        }
-                    }
-
-                    // God of War 3 Heavy Dual-Blade Combo Animation
-                    if (isAttack && state.attackTimer <= 0) {
-                        state.attackTimer = 0.65;
-                    }
-                    if (state.attackTimer > 0) {
-                        state.attackTimer -= delta;
-                        const phase = (0.65 - state.attackTimer) / 0.65;
-                        const swing = Math.sin(phase * Math.PI * 2);
-                        leftArm.shoulder.rotation.x = -1.4 + swing * 1.6;
-                        leftArm.shoulder.rotation.z = -0.6 + swing * 0.8;
-                        rightArm.shoulder.rotation.x = -1.4 - swing * 1.6;
-                        rightArm.shoulder.rotation.z = 0.6 - swing * 0.8;
-                        spine.rotation.y = swing * 0.45;
-                    } else {
-                        leftArm.shoulder.rotation.z = -0.12;
-                        rightArm.shoulder.rotation.z = 0.12;
-                        spine.rotation.y *= 0.85;
-                    }
-
-                    // Dynamic Cloth Wind Physics
-                    if (capeMesh && baseCapeVerts) {
-                        const pos = capeMesh.geometry.attributes.position;
-                        const windStrength = 0.04 + speedMag * 0.025;
-                        for (let i = 0; i < pos.count; i++) {
-                            const oy = baseCapeVerts[i * 3 + 1];
-                            const oz = baseCapeVerts[i * 3 + 2];
-                            const normY = (1.55 - oy) / 3.1;
-                            const wave = Math.sin(time * (4 + speedMag * 0.8) + oy * 3) * windStrength * normY;
-                            pos.setZ(i, oz - normY * Math.min(0.65, speedMag * 0.05) + wave);
-                        }
-                        pos.needsUpdate = true;
-                    }
-
-                    // Smooth Third-Person Chase Camera
                     if (cfg.followCamera) {
-                        controls.target.lerp(new THREE.Vector3(root.position.x, root.position.y + 2.6, root.position.z), delta * 7);
+                        const targetFocus = new THREE.Vector3(root.position.x, root.position.y + 1.8, root.position.z);
+                        const offset = targetFocus.clone().sub(controls.target);
+                        controls.target.add(offset);
+                        camera.position.add(offset);
                     }
                 };
 
                 window.updateFunctions.push(updateFn);
-                return { root, pelvis, spine, leftArm, rightArm, leftLeg, rightLeg, state };
+                return { root, state };
             },
 
-            // Spawns a Realistic GTA IV Vehicle with Soft Suspension Roll/Pitch, Steering & Headlights
+            // 2. REALISTIC MULTI-PART ARCHITECTURAL HOUSE (Brick/Plaster/Timber + Tiled Roof + Framed Windows + Solid Collision)
+            spawnRealisticHouse(x = 0, z = 0, opts = {}) {
+                const cfg = Object.assign({
+                    width: 7.5,
+                    depth: 6.5,
+                    height: 4.5,
+                    wallType: 'plaster', // 'plaster', 'brick', 'stone', 'wood'
+                    rotationY: 0
+                }, opts);
+
+                const house = new THREE.Group();
+                house.position.set(x, 0, z);
+                house.rotation.y = cfg.rotationY;
+
+                const stoneFoundationMat = this.material('stone', 4, 1);
+                const wallMat = this.material(cfg.wallType, 4, 2);
+                const woodMat = this.material('wood', 2, 2);
+                const roofMat = this.material('rooftile', 6, 4);
+                const glassMat = new THREE.MeshPhysicalMaterial({
+                    color: 0xfef08a, emissive: 0xfef08a, emissiveIntensity: 0.25, roughness: 0.1, metalness: 0.1
+                });
+
+                // Stone Foundation
+                const found = new THREE.Mesh(new THREE.BoxGeometry(cfg.width + 0.3, 0.55, cfg.depth + 0.3), stoneFoundationMat);
+                found.position.y = 0.275;
+                house.add(found);
+
+                // Main Textured Walls
+                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(cfg.width, cfg.height, cfg.depth), wallMat);
+                mainBody.position.y = 0.55 + cfg.height / 2;
+                house.add(mainBody);
+
+                // Timber Framing Pillars & Beams (Tudor/Medieval realistic architectural detail)
+                const corners = [
+                    [-cfg.width / 2, -cfg.depth / 2], [cfg.width / 2, -cfg.depth / 2],
+                    [-cfg.width / 2, cfg.depth / 2], [cfg.width / 2, cfg.depth / 2]
+                ];
+                corners.forEach(([cx, cz]) => {
+                    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.28, cfg.height + 0.1, 0.28), woodMat);
+                    beam.position.set(cx, 0.55 + cfg.height / 2, cz);
+                    house.add(beam);
+                });
+
+                // Pitched Gable Roof with Overhangs & Chimney
+                const roofHeight = 2.6;
+                const roofShape = new THREE.Shape();
+                const rw = cfg.width / 2 + 0.65;
+                roofShape.moveTo(-rw, 0);
+                roofShape.lineTo(0, roofHeight);
+                roofShape.lineTo(rw, 0);
+                roofShape.closePath();
+
+                const roofGeo = new THREE.ExtrudeGeometry(roofShape, {
+                    depth: cfg.depth + 1.1,
+                    bevelEnabled: true,
+                    bevelSegments: 2,
+                    steps: 1,
+                    bevelSize: 0.08,
+                    bevelThickness: 0.08
+                });
+                const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+                roofMesh.position.set(0, 0.55 + cfg.height - 0.05, -(cfg.depth + 1.1) / 2);
+                house.add(roofMesh);
+
+                // Brick Chimney
+                const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.8, 0.95), this.material('brick', 2, 4));
+                chimney.position.set(cfg.width * 0.28, 0.55 + cfg.height + 1.4, -cfg.depth * 0.2);
+                house.add(chimney);
+
+                // Recessed Wooden Door + Stone Porch Steps
+                const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 0.22), woodMat);
+                doorFrame.position.set(0, 1.8, cfg.depth / 2 + 0.04);
+                house.add(doorFrame);
+
+                const steps = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.45, 0.95), stoneFoundationMat);
+                steps.position.set(0, 0.225, cfg.depth / 2 + 0.48);
+                house.add(steps);
+
+                // Framed Paned Windows
+                [-cfg.width * 0.28, cfg.width * 0.28].forEach(wx => {
+                    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(1.35, 1.45, 0.18), woodMat);
+                    winFrame.position.set(wx, 2.6, cfg.depth / 2 + 0.03);
+                    house.add(winFrame);
+
+                    const pane = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.2, 0.22), glassMat);
+                    pane.position.set(wx, 2.6, cfg.depth / 2 + 0.03);
+                    house.add(pane);
+                });
+
+                house.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                scene.add(house);
+                window.createdObjects.push(house);
+
+                // Register Solid Collision Box so player can NEVER walk inside the house!
+                window.PHYSICS.addStaticCollider(mainBody, 0.35);
+                return house;
+            },
+
+            // 3. ORGANIC MULTI-BRANCH TREE (Textured Bark Trunk, Branches & Clustered Foliage Spheres - NO FLAT CONES!)
+            spawnRealisticTree(x = 0, z = 0, scale = 1.0) {
+                const tree = new THREE.Group();
+                tree.position.set(x, 0, z);
+                tree.scale.setScalar(scale);
+
+                const barkMat = this.material('bark', 2, 4);
+                const leafMat = this.material('foliage', 3, 3);
+
+                // Organic Tapered Trunk
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.58, 3.6, 16), barkMat);
+                trunk.position.y = 1.8;
+                tree.add(trunk);
+
+                // 4 Main Limbs + Lush Organic Leaf Canopy Clusters
+                const canopyGroup = new THREE.Group();
+                canopyGroup.position.y = 3.4;
+                tree.add(canopyGroup);
+
+                const clusterOffsets = [
+                    [0, 1.6, 0, 1.85],
+                    [-1.2, 0.7, 0.8, 1.45],
+                    [1.25, 0.8, -0.7, 1.5],
+                    [-0.9, 0.9, -1.1, 1.4],
+                    [1.0, 0.6, 1.1, 1.35],
+                    [0, 2.5, 0, 1.35]
+                ];
+
+                clusterOffsets.forEach(([cx, cy, cz, rad], idx) => {
+                    const geo = new THREE.IcosahedronGeometry(rad, 2);
+                    const pos = geo.attributes.position;
+                    for (let i = 0; i < pos.count; i++) {
+                        const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+                        const n = 1 + Math.sin(vx * 3 + idx) * 0.12 + Math.cos(vz * 3) * 0.12;
+                        pos.setXYZ(i, vx * n, vy * 0.88 * n, vz * n);
+                    }
+                    geo.computeVertexNormals();
+                    const bush = new THREE.Mesh(geo, leafMat);
+                    bush.position.set(cx, cy, cz);
+                    canopyGroup.add(bush);
+                });
+
+                tree.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                scene.add(tree);
+                window.createdObjects.push(tree);
+
+                // Solid Collision on the Tree Trunk!
+                window.PHYSICS.addStaticCollider(trunk, 0.25);
+                return tree;
+            },
+
+            // 4. COBBLESTONE WATER WELL WITH SOLID COLLISION (Fixes walking inside the well in Screenshot 2!)
+            spawnStoneWell(x = 0, z = 0) {
+                const well = new THREE.Group();
+                well.position.set(x, 0, z);
+
+                const stoneMat = this.material('stone', 4, 2);
+                const woodMat = this.material('wood', 2, 2);
+                const roofMat = this.material('rooftile', 3, 2);
+
+                // Thick Cobblestone Wall Ring
+                const baseWall = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.55, 1.15, 28), stoneMat);
+                baseWall.position.y = 0.575;
+                well.add(baseWall);
+
+                // Inner Water Surface
+                const water = new THREE.Mesh(
+                    new THREE.CylinderGeometry(1.22, 1.22, 0.95, 24),
+                    new THREE.MeshPhysicalMaterial({ color: 0x0284c7, roughness: 0.08, metalness: 0.1, clearcoat: 1.0 })
+                );
+                water.position.y = 0.52;
+                well.add(water);
+
+                // Wooden Support Posts & Winch Roller
+                [-1.25, 1.25].forEach(px => {
+                    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 2.3, 12), woodMat);
+                    post.position.set(px, 2.1, 0);
+                    well.add(post);
+                });
+
+                const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 12), woodMat);
+                crossbar.rotation.z = Math.PI / 2;
+                crossbar.position.y = 2.85;
+                well.add(crossbar);
+
+                // Bucket & Rope
+                const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.1, 8), woodMat);
+                rope.position.y = 2.3;
+                well.add(rope);
+
+                const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.36, 16), woodMat);
+                bucket.position.y = 1.75;
+                well.add(bucket);
+
+                // Pitched Wooden/Tiled Canopy Roof
+                const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.95, 1.15, 4), roofMat);
+                canopy.rotation.y = Math.PI / 4;
+                canopy.position.y = 3.65;
+                well.add(canopy);
+
+                well.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+                scene.add(well);
+                window.createdObjects.push(well);
+
+                // Solid Collision on the Well Base so no character can ever enter it!
+                window.PHYSICS.addStaticCollider(baseWall, 0.25);
+                return well;
+            },
+
+            // 5. REALISTIC VEHICLE WITH SUSPENSION & COLLISION
             spawnAAAVehicle(opts = {}) {
                 const cfg = Object.assign({
-                    bodyColor: 0xdc2626,
-                    wheelRadius: 0.55,
-                    maxSpeed: 28,
-                    followCamera: true
+                    x: 0, z: 0, bodyColor: 0xdc2626, wheelRadius: 0.55, maxSpeed: 26, followCamera: true
                 }, opts);
 
                 const root = new THREE.Group();
+                root.position.set(cfg.x, 0, cfg.z);
+                root.userData.isPlayer = true;
                 const chassis = new THREE.Group();
                 chassis.position.y = 0.85;
                 root.add(chassis);
 
                 const paintMat = this.carPaintMaterial(cfg.bodyColor);
-                const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x0f172a, roughness: 0.08, metalness: 0.1, transmission: 0.65, transparent: true, opacity: 0.85 });
+                const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x0f172a, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.85 });
                 const darkMat = this.armorMaterial(0x1e293b, 0.45);
                 const chromeMat = this.armorMaterial(0xe2e8f0, 0.12);
 
-                // Sleek Aerodynamic Lower Body
                 const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.68, 4.9), paintMat);
                 lowerBody.position.y = 0.25;
                 chassis.add(lowerBody);
 
-                // Sculpted Hood & Cabin
                 const cabin = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.48, 0.68, 4), glassMat);
                 cabin.rotation.y = Math.PI / 4;
                 cabin.scale.set(1.08, 1, 1.55);
                 cabin.position.set(0, 0.82, -0.25);
                 chassis.add(cabin);
 
-                // Glowing Headlights & Taillights
-                const headLightMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
-                const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff1111 });
-                [-0.78, 0.78].forEach(x => {
-                    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.1), headLightMat);
-                    hl.position.set(x, 0.32, 2.46);
-                    chassis.add(hl);
-
-                    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.16, 0.1), tailLightMat);
-                    tl.position.set(x, 0.36, -2.46);
-                    chassis.add(tl);
-                });
-
-                // 4 Detailed Wheels with Chrome Rims
                 const wheels = [];
-                const wheelPositions = [
-                    [-1.18, 0.55, 1.58, true],
-                    [1.18, 0.55, 1.58, true],
-                    [-1.18, 0.55, -1.58, false],
-                    [1.18, 0.55, -1.58, false]
-                ];
-                wheelPositions.forEach(([wx, wy, wz, isFront]) => {
+                [[-1.18, 0.55, 1.58, true], [1.18, 0.55, 1.58, true], [-1.18, 0.55, -1.58, false], [1.18, 0.55, -1.58, false]].forEach(([wx, wy, wz, isFront]) => {
                     const wGroup = new THREE.Group();
                     wGroup.position.set(wx, wy, wz);
                     const tire = new THREE.Mesh(new THREE.CylinderGeometry(cfg.wheelRadius, cfg.wheelRadius, 0.38, 28), darkMat);
@@ -943,39 +1116,26 @@
                 root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
                 scene.add(root);
                 window.createdObjects.push(root);
+                window.PHYSICS.registerDynamicBody(root, 1.6);
 
-                const state = { speed: 0, steer: 0, heading: 0, pitch: 0, roll: 0 };
-
+                const state = { speed: 0, steer: 0, heading: 0 };
                 const updateFn = (delta) => {
                     const throttle = (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) - (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - window.joystickVector.y;
                     const turn = (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) - (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - window.joystickVector.x;
-                    const boost = window.keysPressed['shift'] ? 1.45 : 1.0;
 
-                    const prevSpeed = state.speed;
-                    if (Math.abs(throttle) > 0.05) {
-                        state.speed += throttle * 22 * boost * delta;
-                    } else {
-                        state.speed *= Math.pow(0.25, delta);
-                    }
-                    state.speed = Math.max(-cfg.maxSpeed * 0.5, Math.min(cfg.maxSpeed * boost, state.speed));
+                    if (Math.abs(throttle) > 0.05) state.speed += throttle * 22 * delta;
+                    else state.speed *= Math.pow(0.25, delta);
+                    state.speed = Math.max(-cfg.maxSpeed * 0.5, Math.min(cfg.maxSpeed, state.speed));
 
                     state.steer += (turn * 0.55 - state.steer) * delta * 9;
-                    if (Math.abs(state.speed) > 0.3) {
-                        state.heading += state.steer * (state.speed / cfg.maxSpeed) * delta * 3.2;
-                    }
+                    if (Math.abs(state.speed) > 0.3) state.heading += state.steer * (state.speed / cfg.maxSpeed) * delta * 3.2;
 
+                    const prevPos = root.position.clone();
                     root.rotation.y = state.heading;
                     root.position.x += Math.sin(state.heading) * state.speed * delta;
                     root.position.z += Math.cos(state.heading) * state.speed * delta;
 
-                    // GTA IV Soft Suspension Body Roll & Acceleration Squat / Brake Dive
-                    const accelG = (state.speed - prevSpeed) / Math.max(0.001, delta);
-                    const targetPitch = -accelG * 0.0045;
-                    const targetRoll = state.steer * (state.speed / cfg.maxSpeed) * 0.22;
-                    state.pitch += (targetPitch - state.pitch) * delta * 8;
-                    state.roll += (targetRoll - state.roll) * delta * 8;
-                    chassis.rotation.x = state.pitch;
-                    chassis.rotation.z = state.roll;
+                    window.PHYSICS.resolveHorizontalCollision(root.position, prevPos, 1.6);
 
                     wheels.forEach(w => {
                         w.tire.rotation.x += (state.speed / cfg.wheelRadius) * delta;
@@ -986,14 +1146,13 @@
                         controls.target.lerp(new THREE.Vector3(root.position.x, root.position.y + 1.5, root.position.z), delta * 8);
                     }
                 };
-
                 window.updateFunctions.push(updateFn);
                 return { root, chassis, wheels, state };
             }
         };
 
         /**************************************************************
-         * 3. INITIALIZATION & AUTHENTICATION
+         * 4. INITIALIZATION & AUTHENTICATION
          **************************************************************/
         window.addEventListener('DOMContentLoaded', () => {
             setAIPower(currentAIPower);
@@ -1128,7 +1287,7 @@
                     await callAIProvider("Reply // REPLY: OK", null, null, true, null);
                 }
 
-                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Opening Empty 3D World...</span>`;
+                status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Opening 3D World...</span>`;
                 document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
 
                 setTimeout(() => {
@@ -1141,7 +1300,7 @@
                 status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch Empty 3D World</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
             }
         }
 
@@ -1151,45 +1310,40 @@
         }
 
         /**************************************************************
-         * 4. BULLETPROOF CODE PARSER (NO MORE "Unexpected token ':'")
+         * 5. AI ENGINE PROMPT (ENFORCING REAL GLTF MODELS, TEXTURES & COLLISION)
          **************************************************************/
         const BASE_ENGINE_PROMPT = `
-You are the core AAA 3D Game Engine AI of "ApexGen" (combining GTA IV Euphoria Physics & God of War 3 Combat/Cinematic Graphics).
-The user is inside a live Three.js (r128) PBR 3D world.
+You are the core AAA 3D Game Engine AI of "ApexGen".
+The user is inside a live Three.js (r128) PBR 3D world with an active Solid Collision Physics Engine (\`window.PHYSICS\`).
 
 Available globals in execution scope:
-- THREE (Three.js r128 library)
+- THREE (Three.js r128 + THREE.GLTFLoader + THREE.SkeletonUtils)
 - scene, camera, renderer, controls
-- window.AAA_ENGINE: Built-in GTA IV / GoW3 Physics, Skeletal IK & PBR Shader library:
-  * \`window.AAA_ENGINE.spawnAAACharacter({ skinColor, tunicColor, armorColor, capeColor, hairColor, hasCape, hasWeapons, weaponColor, scale, speed, followCamera })\` -> Spawns a fully articulated humanoid character with skeletal limbs, cloth wind physics, GTA IV Euphoria turning lean, WASD/Joystick walking/sprinting, Space jumping, and GoW3 dual-blade melee combo attacks ('e' key or ATTACK button)! Returns \`{ root, pelvis, spine, leftArm, rightArm, leftLeg, rightLeg, state }\`. Always customize and add extra armor/weapons/environment around it!
-  * \`window.AAA_ENGINE.spawnAAAVehicle({ bodyColor, wheelRadius, maxSpeed, followCamera })\` -> Spawns a realistic sports vehicle with GTA IV soft suspension body roll, brake dive, steering, and glowing headlights/taillights! Returns \`{ root, chassis, wheels, state }\`.
-  * \`window.AAA_ENGINE.carPaintMaterial(colorHex)\`, \`window.AAA_ENGINE.armorMaterial(colorHex, roughness)\`, \`window.AAA_ENGINE.skinMaterial(colorHex)\`, \`window.AAA_ENGINE.clothMaterial(colorHex)\`
-- window.updateFunctions: Push per-frame callback \`(delta, time) => {}\` here.
-- window.keysPressed: Lowercase keys ('w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','shift','e').
-- window.joystickVector: \`{ x, y }\` (-1 to 1).
-- window.isControlExited: Boolean.
-- window.createdObjects: Push every root THREE.Group/Mesh added to \`scene\` into \`window.createdObjects\`.
+- window.PHYSICS:
+  * \`window.PHYSICS.addStaticCollider(meshOrGroup, padding)\` -> Registers a solid obstacle so players/vehicles can NEVER walk or drive through it!
+  * \`window.PHYSICS.registerDynamicBody(rootGroup, radius)\` -> Registers a moving character/vehicle for automatic collision resolution.
+- window.AAA_ENGINE: Built-in Real GLTF 3D Model & HD Textured Architecture Library:
+  * \`window.AAA_ENGINE.spawnAAACharacter({ modelType: 'soldier' | 'robot' | 'xbot', x, z, scale, speed, followCamera })\` -> Loads a REAL rigged & textured 3D GLTF character with skeletal animations (Idle, Walk, Run) and solid collision! ALWAYS use this when the user asks for a soldier, person, player, hero, or character! Never build characters out of primitive cylinders/cones!
+  * \`window.AAA_ENGINE.spawnRealisticHouse(x, z, { width, depth, height, wallType: 'plaster' | 'brick' | 'stone' | 'wood', rotationY })\` -> Spawns a multi-part textured architectural house with timber beams, tiled roof, chimney, framed windows, porch steps, and solid collision!
+  * \`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\` -> Spawns an organic bark-textured tree with multi-cluster icosahedron foliage (no flat cones!) and solid trunk collision!
+  * \`window.AAA_ENGINE.spawnStoneWell(x, z)\` -> Spawns a cobblestone water well with winch, bucket, tiled canopy, and solid collision!
+  * \`window.AAA_ENGINE.spawnAAAVehicle({ x, z, bodyColor, maxSpeed, followCamera })\` -> Spawns a controllable car with solid collision.
+  * \`window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)\` -> Returns a textured PBR material where \`type\` is \`'brick'\`, \`'stone'\`, \`'wood'\`, \`'rooftile'\`, \`'bark'\`, \`'foliage'\`, or \`'plaster'\`. ALWAYS use this instead of plain flat colors for any custom walls, bridges, fences, or props!
 
-CRITICAL OUTPUT FORMAT RULE (TO PREVENT JSON SYNTAX ERRORS):
+CRITICAL OUTPUT FORMAT RULE:
 Do NOT output JSON! Output ONLY valid, directly executable JavaScript code.
 On the very first line of your response, write a single-line comment starting with \`// REPLY:\` explaining briefly in English what you built, followed immediately by the JavaScript code.
-Example:
-// REPLY: Built Kratos with glowing Blades of Chaos, skeletal IK animations, and a Greek temple arena!
-const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
 `;
 
-        // Bulletproof extractor that NEVER fails on `Unexpected token ':'`
         function extractReplyAndCleanJS(rawText) {
             if (!rawText) return { reply: 'Done!', code: '' };
             let text = rawText.trim();
 
-            // 1. If the model accidentally returned a JSON object {"reply": "...", "code": "..."}, extract safely
             if (text.startsWith('{') && (text.includes('"code"') || text.includes('"reply"'))) {
                 try {
                     const parsed = JSON.parse(text);
                     return { reply: parsed.reply || 'Built in 3D!', code: parsed.code || '' };
                 } catch (e) {
-                    // If JSON was truncated mid-stream, extract the "code" string via regex
                     const codeIdx = text.indexOf('"code"');
                     if (codeIdx !== -1) {
                         let sub = text.slice(codeIdx + 6).replace(/^\s*:\s*"/, '');
@@ -1200,14 +1354,10 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                 }
             }
 
-            // 2. Extract // REPLY: line if present
-            let reply = 'Built in high-detail AAA 3D!';
+            let reply = 'Built with real 3D models & solid physics!';
             const replyMatch = text.match(/\/\/\s*REPLY:\s*([^\n\r]+)/i);
-            if (replyMatch) {
-                reply = replyMatch[1].trim();
-            }
+            if (replyMatch) reply = replyMatch[1].trim();
 
-            // 3. Extract inside ```javascript ... ``` if markdown fences were used
             const fenceMatch = text.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
             let code = fenceMatch ? fenceMatch[1].trim() : text.replace(/```(?:javascript|js)?/gi, '').replace(/```/g, '').trim();
 
@@ -1218,14 +1368,13 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
             const fullPrompt = isPing
                 ? '// REPLY: OK'
-                : `${BASE_ENGINE_PROMPT}\n\n${pwr.directive}\n\nUSER COMMAND: ${userPrompt || 'Build the object/character shown in the attached reference image in AAA 3D quality.'}`;
+                : `${BASE_ENGINE_PROMPT}\n\n${pwr.directive}\n\nUSER COMMAND: ${userPrompt || 'Build the scene shown in the attached reference image using realistic textured architecture, real GLTF characters, and solid colliders.'}`;
 
             if (currentProvider === 'gemini') {
                 if (verifiedGeminiModels.length === 0) {
                     verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
                 }
 
-                // Choose model based on Low / Medium / High power
                 let modelsToTry = [...verifiedGeminiModels];
                 if (pwr.preferProModel) {
                     modelsToTry.sort((a, b) => (b.includes('pro') || b.includes('3.8') ? 1 : -1));
@@ -1241,8 +1390,6 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                 let firstError = null;
                 for (const modelName of modelsToTry.slice(0, 3)) {
                     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
-
-                    // Try with Google Search Grounding enabled first when in Medium/High mode (and no image attached)
                     const tryWithSearch = pwr.useWebSearch && !imgBase64 && !isPing;
                     const configsToAttempt = tryWithSearch ? [true, false] : [false];
 
@@ -1254,9 +1401,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                                 maxOutputTokens: pwr.maxTokens
                             }
                         };
-                        if (useSearchTool) {
-                            bodyPayload.tools = [{ google_search: {} }];
-                        }
+                        if (useSearchTool) bodyPayload.tools = [{ google_search: {} }];
 
                         const res = await fetch(url, {
                             method: 'POST',
@@ -1281,19 +1426,13 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             if (currentProvider === 'openai') {
                 const userContent = [{ type: 'text', text: fullPrompt }];
                 if (imgBase64 && imgMime) {
-                    userContent.push({
-                        type: 'image_url',
-                        image_url: { url: `data:${imgMime};base64,${imgBase64}` }
-                    });
+                    userContent.push({ type: 'image_url', image_url: { url: `data:${imgMime};base64,${imgBase64}` } });
                 }
 
                 const oaModel = currentAIPower === 'low' ? 'gpt-4o-mini' : 'gpt-4o';
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentApiKey}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApiKey}` },
                     body: JSON.stringify({
                         model: oaModel,
                         max_tokens: Math.min(4096, pwr.maxTokens),
@@ -1310,10 +1449,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             if (currentProvider === 'claude') {
                 const contentArr = [];
                 if (imgBase64 && imgMime) {
-                    contentArr.push({
-                        type: 'image',
-                        source: { type: 'base64', media_type: imgMime, data: imgBase64 }
-                    });
+                    contentArr.push({ type: 'image', source: { type: 'base64', media_type: imgMime, data: imgBase64 } });
                 }
                 contentArr.push({ type: 'text', text: fullPrompt });
 
@@ -1340,7 +1476,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         }
 
         /**************************************************************
-         * 5. EMPTY AAA 3D WORLD INITIALIZATION (NO DOCTOR STRANGE)
+         * 6. 3D WORLD & AUTOMATIC COLLISION ENFORCEMENT LOOP
          **************************************************************/
         let scene, camera, renderer, controls, infiniteFloor, infiniteGrid, clock;
 
@@ -1357,8 +1493,8 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
 
             const container = document.getElementById('canvasContainer');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0c0f17);
-            scene.fog = new THREE.FogExp2(0x0c0f17, 0.0035);
+            scene.background = new THREE.Color(0x0c1017);
+            scene.fog = new THREE.FogExp2(0x0c1017, 0.003);
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 3000);
             camera.position.set(0, 8, 18);
@@ -1370,7 +1506,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
+            renderer.toneMappingExposure = 1.15;
             container.appendChild(renderer.domElement);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -1379,11 +1515,10 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-            // Cinema 3-Point + Sun Shadow Lighting
-            const hemi = new THREE.HemisphereLight(0xdbeafe, 0x090d16, 0.75);
+            const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x090d16, 0.85);
             scene.add(hemi);
 
-            const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.9);
+            const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.85);
             sunLight.position.set(45, 85, 55);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
@@ -1398,29 +1533,27 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             sunLight.shadow.bias = -0.0005;
             scene.add(sunLight);
 
-            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
-            rimLight.position.set(-40, 30, -45);
-            scene.add(rimLight);
-
-            // Infinite Realistic Asphalt/Studio Ground Floor (Completely Empty!)
-            const asphaltBump = window.AAA_ENGINE.createMicroBump('asphalt');
+            const floorTex = window.AAA_ENGINE.getTexture('stone', 180, 180);
             const floorGeo = new THREE.PlaneGeometry(4000, 4000);
             const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x141821,
-                roughness: 0.78,
-                metalness: 0.15,
-                bumpMap: asphaltBump,
-                bumpScale: 0.02
+                color: 0x1e2430,
+                map: floorTex,
+                bumpMap: floorTex,
+                bumpScale: 0.015,
+                roughness: 0.85,
+                metalness: 0.08
             });
             infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
             infiniteFloor.rotation.x = -Math.PI / 2;
             infiniteFloor.receiveShadow = true;
+            infiniteFloor.userData.noCollide = true;
             scene.add(infiniteFloor);
 
             infiniteGrid = new THREE.GridHelper(1000, 100, 0x0ea5e9, 0x1e293b);
             infiniteGrid.position.y = 0.01;
-            infiniteGrid.material.opacity = 0.35;
+            infiniteGrid.material.opacity = 0.25;
             infiniteGrid.material.transparent = true;
+            infiniteGrid.userData.noCollide = true;
             scene.add(infiniteGrid);
 
             clock = new THREE.Clock();
@@ -1453,6 +1586,8 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                         console.error("AI Update Loop Error:", e);
                     }
                 }
+                // Enforce Solid Physics Collision on all characters & vehicles every single frame!
+                window.PHYSICS.enforceAllCollisions();
             }
 
             controls.update();
@@ -1460,7 +1595,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         }
 
         /**************************************************************
-         * 6. MOBILE JOYSTICK
+         * 7. MOBILE JOYSTICK
          **************************************************************/
         function initJoystick() {
             const zone = document.getElementById('joystickZone');
@@ -1533,7 +1668,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         }
 
         /**************************************************************
-         * 7. UNDO, CLEAN ALL, SHOW CODE & EXIT CONTROL
+         * 8. UNDO, CLEAN ALL, SHOW CODE & EXIT CONTROL
          **************************************************************/
         function undoLastStep() {
             if (buildHistoryStack.length === 0) {
@@ -1570,9 +1705,10 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             window.createdObjects.forEach(obj => scene.remove(obj));
             window.createdObjects = [];
             window.updateFunctions = [];
+            window.PHYSICS.clearAll();
             document.getElementById('actionButtons').classList.add('hidden');
             document.getElementById('actionButtons').classList.remove('flex');
-            appendChatMessage('ai', '🧹 Cleaned all objects from the 3D world!');
+            appendChatMessage('ai', '🧹 Cleaned all objects & colliders from the 3D world!');
         }
 
         function openCodeModal() {
@@ -1628,7 +1764,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         }
 
         /**************************************************************
-         * 8. REAL TIMER, STOP BUTTON & SAFE CODE EXECUTION
+         * 9. REAL TIMER, STOP BUTTON & SAFE CODE EXECUTION WITH AUTO-COLLIDERS
          **************************************************************/
         function toggleChatBox(show) {
             const chat = document.getElementById('chatWrapper');
@@ -1699,12 +1835,12 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                 progBar.style.width = `${pct}%`;
                 timerText.innerText = `${elapsed.toFixed(2)}s | ~${rem.toFixed(1)}s left`;
 
-                if (elapsed < 2.2 && pwr.useWebSearch) {
-                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Scanning web references...`;
+                if (elapsed < 2.0 && pwr.useWebSearch) {
+                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Searching 3D references...`;
                 } else if (pct < 55) {
-                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Building 3D meshes & IK skeleton...`;
+                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Loading GLTF rigs & HD textures...`;
                 } else {
-                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Compiling PBR shaders & physics...`;
+                    stageText.innerText = `[${currentAIPower.toUpperCase()}] Baking solid physics colliders...`;
                 }
             }, 50);
 
@@ -1722,7 +1858,6 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             return ((performance.now() - startTime) / 1000).toFixed(2);
         }
 
-        // REAL STOP BUTTON FUNCTIONALITY
         function stopAICoding() {
             if (activeAbortController) {
                 activeAbortController.abort();
@@ -1745,6 +1880,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             const newUpdateFns = window.updateFunctions.filter(fn => !prevUpdateFns.includes(fn));
             const newDomNodes = [...document.body.children].filter(el => !prevBodyChildren.includes(el));
 
+            // Automatically apply shadows & register static solid colliders on all newly created obstacles!
             newObjects.forEach(obj => {
                 obj.traverse(sub => {
                     if (sub.isMesh) {
@@ -1756,6 +1892,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
                     window.createdObjects.push(obj);
                 }
             });
+            window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
             buildHistoryStack.push({
                 code: codeString,
@@ -1783,7 +1920,6 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             clearAttachedImage();
             appendChatMessage('user', text || '📷 [Build from reference image]');
 
-            // Show Stop Button, Hide Build Button
             const sendBtn = document.getElementById('sendBtn');
             const stopBtn = document.getElementById('stopBtn');
             sendBtn.classList.add('hidden');
@@ -1836,7 +1972,7 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         }
 
         /**************************************************************
-         * 9. SAVE & INSTALL SYSTEM
+         * 10. SAVE & INSTALL SYSTEM
          **************************************************************/
         function openProjectModal(mode) {
             currentModalMode = mode;
@@ -1903,19 +2039,6 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
             URL.revokeObjectURL(url);
         }
 
-        function serializeAAAEngine() {
-            return `{
-                _texCache: {},
-                createMicroBump: ${window.AAA_ENGINE.createMicroBump.toString()},
-                carPaintMaterial: ${window.AAA_ENGINE.carPaintMaterial.toString()},
-                armorMaterial: ${window.AAA_ENGINE.armorMaterial.toString()},
-                skinMaterial: ${window.AAA_ENGINE.skinMaterial.toString()},
-                clothMaterial: ${window.AAA_ENGINE.clothMaterial.toString()},
-                spawnAAACharacter: ${window.AAA_ENGINE.spawnAAACharacter.toString()},
-                spawnAAAVehicle: ${window.AAA_ENGINE.spawnAAAVehicle.toString()}
-            }`;
-        }
-
         function buildStandaloneGameFile(name, icon, scripts) {
             const combinedCode = scripts.join('\n\n');
             return `<!DOCTYPE html>
@@ -1928,8 +2051,9 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
     <link rel="apple-touch-icon" href="${icon}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>
     <style>
-        body { margin: 0; overflow: hidden; background: #0c0f17; font-family: sans-serif; touch-action: none; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #0c1017; font-family: sans-serif; touch-action: none; user-select: none; }
         #hud { position: fixed; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; background: rgba(14,17,23,0.85); color: white; padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(56,189,248,0.3); z-index: 10; font-size: 13px; }
         #hud img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
         .joystick-base { width: 112px; height: 112px; border-radius: 50%; background: radial-gradient(circle, #5c5c5c 0%, #5c5c5c 53%, #9e9e9e 56%, #474747 59%, #b8b8b8 62%, #525252 65%, #595959 100%); position: fixed; bottom: 24px; left: 24px; z-index: 20; display: flex; align-items: center; justify-content: center; }
@@ -1945,34 +2069,12 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         window.keysPressed = {};
         window.joystickVector = { x: 0, y: 0 };
         window.isControlExited = false;
-        window.AAA_ENGINE = ${serializeAAAEngine()};
         window.addEventListener('keydown', e => window.keysPressed[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', e => window.keysPressed[e.key.toLowerCase()] = false);
 
-        const zone = document.getElementById('joyZone');
-        const knob = document.getElementById('joyKnob');
-        zone.addEventListener('touchmove', e => {
-            e.preventDefault();
-            const t = e.touches[0];
-            const r = zone.getBoundingClientRect();
-            let dx = t.clientX - (r.left + r.width/2);
-            let dy = t.clientY - (r.top + r.height/2);
-            const d = Math.sqrt(dx*dx + dy*dy);
-            if (d > 30) { dx = dx/d*30; dy = dy/d*30; }
-            knob.style.transform = \`translate(\${dx}px, \${dy}px)\`;
-            window.joystickVector.x = dx/30; window.joystickVector.y = dy/30;
-            window.keysPressed['w'] = dy < -8; window.keysPressed['s'] = dy > 8;
-            window.keysPressed['a'] = dx < -8; window.keysPressed['d'] = dx > 8;
-        }, { passive: false });
-        zone.addEventListener('touchend', () => {
-            knob.style.transform = 'translate(0px,0px)';
-            window.joystickVector.x = 0; window.joystickVector.y = 0;
-            ['w','a','s','d'].forEach(k => window.keysPressed[k] = false);
-        });
-
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0c0f17);
-        scene.fog = new THREE.FogExp2(0x0c0f17, 0.0035);
+        scene.background = new THREE.Color(0x0c1017);
+        scene.fog = new THREE.FogExp2(0x0c1017, 0.003);
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 3000);
         camera.position.set(0, 8, 18);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1983,18 +2085,16 @@ const hero = window.AAA_ENGINE.spawnAAACharacter({ ... });
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        scene.add(new THREE.HemisphereLight(0xdbeafe, 0x090d16, 0.75));
-        const sun = new THREE.DirectionalLight(0xfff7ed, 1.9);
+        scene.add(new THREE.HemisphereLight(0xe0f2fe, 0x090d16, 0.85));
+        const sun = new THREE.DirectionalLight(0xfff7ed, 1.85);
         sun.position.set(45, 85, 55);
         sun.castShadow = true;
         scene.add(sun);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x141821, roughness: 0.78 }));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x1e2430, roughness: 0.85 }));
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         scene.add(floor);
-        const grid = new THREE.GridHelper(1000, 100, 0x0ea5e9, 0x1e293b);
-        scene.add(grid);
 
         try { ${combinedCode} } catch(e) { console.error(e); }
 
