@@ -1,5 +1,5 @@
 /********************************************************************
- * ai-core.js - Async Sketchfab-First AI Brain & Execution Engine
+ * ai-core.js - Pure Procedural GTA V / GoW3 AI Brain (Zero Sketchfab!)
  ********************************************************************/
 const PROVIDERS = {
     gemini: { name: 'Gemini', placeholder: 'Paste your Gemini API Key (AIzaSy...)', keyUrl: 'https://aistudio.google.com/app/apikey', storageKey: 'apexgen_key_gemini' },
@@ -9,19 +9,21 @@ const PROVIDERS = {
 
 const AI_POWER_CONFIG = {
     low: {
-        estSeconds: 6.0, maxTokens: 2500, temperature: 0.25, useWebSearch: false,
-        directive: `AI POWER: LOW. Download the requested main model from Sketchfab using \`await window.AAA_ENGINE.spawnFromSketchfab(query, opts)\` and place it cleanly.`
+        estSeconds: 5.0, maxTokens: 2500, temperature: 0.3, useWebSearch: false,
+        directive: `AI POWER: LOW. Use window.AAA_ENGINE.spawnAAACharacter(), spawnAAAVehicle(), spawnRealisticHouse(), and spawnRealisticTree() for fast AAA scene creation.`
     },
     medium: {
-        estSeconds: 11.0, maxTokens: 6144, temperature: 0.4, useWebSearch: true,
-        directive: `AI POWER: MEDIUM. Download all requested characters, buildings, or vehicles from Sketchfab using \`await window.AAA_ENGINE.spawnFromSketchfab(query, opts)\` with 60-bone rigging and 0.1cm solid collision.`
+        estSeconds: 10.0, maxTokens: 6144, temperature: 0.5, useWebSearch: true,
+        directive: `AI POWER: MEDIUM. Combine window.AAA_ENGINE 60-bone sculpted characters, GTA V vehicles, architectural houses, and custom game mechanics.`
     },
     high: {
-        estSeconds: 16.0, maxTokens: 16384, temperature: 0.5, useWebSearch: true,
-        directive: `AI POWER: HIGH (100% REAL SKETCHFAB 3D MODELS + 60-BONE SKELETON).
-- STRICT RULE: NEVER create characters, houses, cars, or trees out of THREE.SphereGeometry, THREE.ConeGeometry, THREE.CylinderGeometry, or THREE.BoxGeometry!
-- You MUST download every character, creature, house, car, or prop from Sketchfab first using \`await window.AAA_ENGINE.spawnFromSketchfab("exact search query", { x, z, height, isCharacter, isPlayer, speed, followCamera })\`!
-- Wait for the download with \`await\` before doing anything else.`
+        estSeconds: 15.0, maxTokens: 16384, temperature: 0.6, useWebSearch: true,
+        directive: `AI POWER: HIGH (GTA V & GOD OF WAR 3 PROCEDURAL ENGINE).
+- Build everything directly with window.AAA_ENGINE and window.SKELETON_ENGINE!
+- For Kratos / Heroes / Characters: call \`const hero = window.AAA_ENGINE.spawnAAACharacter({ name: 'Kratos', hasTattoo: true, hasWeapons: true, weaponColor: 0xff4500, x: 0, z: 0, followCamera: true });\`
+- For Cars / Vehicles: call \`const car = window.AAA_ENGINE.spawnAAAVehicle({ bodyColor: 0xdc2626, x: 5, z: 5, followCamera: true });\`
+- For Houses / Cities: call \`window.AAA_ENGINE.spawnRealisticHouse(x, z, { width, depth, height, wallType: 'brick' | 'stone' | 'plaster' });\`
+- Add rich environments, enemies, lighting, and interactive gameplay loops!`
     }
 };
 
@@ -199,27 +201,26 @@ function openAuthSettings() {
 }
 
 const BASE_ENGINE_PROMPT = `
-You are the core AAA 3D Game Engine AI of "ApexGen".
-Your code runs inside an \`async\` function where \`await\` is fully supported.
-
-CRITICAL RULE - ALWAYS DOWNLOAD FROM SKETCHFAB FIRST:
-Whenever the user asks to create ANY character (e.g. Kratos, Doctor Strange, Soldier, Bonnie, Zombie), building, house, vehicle, weapon, or environment object:
-1. NEVER build characters, houses, or trees out of primitive spheres, cones, cylinders, or boxes!
-2. ALWAYS download the real 3D model from Sketchfab and wait for it to finish downloading using:
-   \`const model = await window.AAA_ENGINE.spawnFromSketchfab("search query", { x: 0, z: 0, height: 3.8, isCharacter: true, isPlayer: true, speed: 8.5, followCamera: true });\`
-   - For a character/hero (like Kratos): \`await window.AAA_ENGINE.spawnFromSketchfab("Kratos God of War", { x: 0, z: 0, height: 3.8, isCharacter: true, isPlayer: true, followCamera: true });\`
-   - For a house/building: \`await window.AAA_ENGINE.spawnFromSketchfab("medieval house", { x: 10, z: -12, height: 7.5, isCharacter: false, isPlayer: false });\`
-   - For a car/vehicle: \`await window.AAA_ENGINE.spawnFromSketchfab("sports car", { x: 0, z: 5, height: 2.2, isCharacter: false, isPlayer: true, speed: 26 });\`
-3. Do NOT try to attach primitive cone/box swords to undefined properties! The downloaded Sketchfab model already has its real 3D geometry, textures, and 60-bone rig automatically injected!
+You are the core AAA 3D Game Engine AI of "ApexGen" (GTA V & God of War 3 Procedural Sculpting & Physics Engine).
+Globals available:
+- THREE, scene, camera, renderer, controls
+- window.AAA_ENGINE:
+  * \`window.AAA_ENGINE.spawnAAACharacter({ name, skinHex, tattooColor, hasTattoo, hasBeard, kiltColor, armorColor, hasWeapons, weaponColor, x, z, scale, speed, isPlayer, followCamera })\` -> Builds a 60-bone anatomically sculpted muscular character (pectorals, 6-pack abs, sculpted face/beard, Spartan tattoo, Flowing Kilt, Blades of Chaos with fire trails, and full 60-bone IK walking, sprinting, jumping & melee attack animations!). Returns \`root\` with \`root.head\`, \`root.chest\`, \`root.leftArm\`, \`root.rightArm\`, \`root.leftLeg\`, \`root.rightLeg\`.
+  * \`window.AAA_ENGINE.spawnAAAVehicle({ x, z, bodyColor, maxSpeed, followCamera })\` -> Spawns a GTA V aerodynamic supercar with suspension physics, carbon wing, and alloy wheels.
+  * \`window.AAA_ENGINE.spawnRealisticHouse(x, z, { width, depth, height, wallType: 'brick'|'stone'|'plaster', rotationY })\`
+  * \`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\`
+  * \`window.AAA_ENGINE.spawnStoneWell(x, z)\`
+  * \`window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)\`
+- window.PHYSICS.addStaticCollider(mesh, 0.001) -> 0.1cm solid collision.
 
 OUTPUT FORMAT RULE:
-Do NOT output JSON! Output ONLY valid async JavaScript code starting with a first line comment \`// REPLY: <short explanation>\`.
+Do NOT output JSON! Output ONLY executable JavaScript code starting with a first line comment \`// REPLY: <short explanation>\`.
 `;
 
 function extractReplyAndCleanJS(rawText) {
     if (!rawText) return { reply: 'Done!', code: '' };
     let text = rawText.trim();
-    let reply = 'Downloaded 3D model from Sketchfab & injected 60-Bone Rig!';
+    let reply = 'Sculpted in AAA 3D with 60-Bone IK & Solid Physics!';
     const replyMatch = text.match(/\/\/\s*REPLY:\s*([^\n\r]+)/i);
     if (replyMatch) reply = replyMatch[1].trim();
     const fenceMatch = text.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
@@ -435,7 +436,6 @@ function stopRealLiveTimer(startTime) {
 
 function stopAICoding() { if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; } }
 
-// ASYNC EXECUTION ENGINE: Waits for Sketchfab downloads to finish 100% before completing!
 async function execute3DCodeSafely(codeString, replyMsg) {
     const prevScene = [...scene.children];
     const prevFns = [...window.updateFunctions];
@@ -451,7 +451,7 @@ async function execute3DCodeSafely(codeString, replyMsg) {
 
     buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
     const ab = document.getElementById('actionButtons');
-    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
+    if (ab) { ab.classList.remove('hidden'); ab.classList.remove('flex'); }
     appendChatMessage('ai', replyMsg);
 }
 
@@ -472,10 +472,10 @@ async function sendPromptToAI() {
     const t0 = startRealLiveTimer();
     try {
         const res = await callAIProvider(text, imgB64, imgMime, false, activeAbortController.signal);
+        const dt = stopRealLiveTimer(t0);
         if (res.code) {
-            await execute3DCodeSafely(res.code, `✅ Downloaded & Rigged: ${res.reply}`);
+            await execute3DCodeSafely(res.code, `✅ Built in ${dt}s [${currentAIPower.toUpperCase()}]: ${res.reply}`);
         }
-        stopRealLiveTimer(t0);
     } catch (err) {
         const dt = stopRealLiveTimer(t0);
         appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Stopped at ${dt}s.` : `⚠️ Error: ${err.message}`);
