@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AAA 3D AI Game Engine</title>
+    <title>ApexGen - Sketchfab & 60-Bone AI 3D Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js Core, OrbitControls, GLTFLoader & SkeletonUtils -->
+    <!-- Three.js Core, OrbitControls, GLTFLoader, SkeletonUtils & JSZip (for Sketchfab archives) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
@@ -20,7 +21,7 @@
 </head>
 <body class="w-screen h-screen relative">
 
-    <!-- 1. SPLASH SCREEN (Welcome to ApexGen) -->
+    <!-- 1. SPLASH SCREEN -->
     <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030712] transition-opacity duration-1000">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
         <div class="relative z-10 text-center px-4">
@@ -31,7 +32,7 @@
                 Welcome to ApexGen
             </h1>
             <p class="mt-4 text-slate-400 text-base md:text-xl tracking-wide">
-                60-Bone Skeletal Rig, 0.1cm Solid Physics & AI 3D Engine
+                Sketchfab Cloud + Universal 60-Bone Auto-Rigger & AI 3D Engine
             </p>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
                 <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[2000ms] ease-out"></div>
@@ -39,58 +40,75 @@
         </div>
     </div>
 
-    <!-- 2. API KEY SETUP MODAL -->
-    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500">
-        <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
-            <div class="flex items-center justify-between mb-5">
+    <!-- 2. API KEY & SKETCHFAB SETUP MODAL -->
+    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500 overflow-y-auto">
+        <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-7 relative z-10 border border-sky-500/30 my-auto">
+            <div class="flex items-center justify-between mb-4">
                 <div>
                     <h2 class="font-cyber text-2xl font-extrabold text-sky-400">ApexGen Setup</h2>
-                    <p class="text-slate-400 text-xs mt-1">Select your AI engine and connect your API Key</p>
+                    <p class="text-slate-400 text-xs mt-0.5">Connect your AI Engine & Sketchfab 3D Cloud</p>
                 </div>
                 <div class="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
                     <i class="fa-solid fa-microchip text-xl text-sky-400"></i>
                 </div>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-2.5">1. Select AI Provider:</label>
-            <div class="grid grid-cols-3 gap-2.5 mb-5">
-                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
-                    <i class="fa-solid fa-wand-magic-sparkles text-xl text-sky-400 mb-1"></i>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select AI Brain Provider:</label>
+            <div class="grid grid-cols-3 gap-2.5 mb-4">
+                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-lg text-sky-400 mb-1"></i>
                     <span class="font-bold text-xs">Gemini</span>
                     <span class="text-[10px] text-sky-300">Google AI</span>
                 </button>
-                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-bolt text-xl text-emerald-400 mb-1"></i>
+                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-bolt text-lg text-emerald-400 mb-1"></i>
                     <span class="font-bold text-xs">OpenAI</span>
                     <span class="text-[10px] text-slate-400">GPT-4o</span>
                 </button>
-                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-brain text-xl text-amber-400 mb-1"></i>
+                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-brain text-lg text-amber-400 mb-1"></i>
                     <span class="font-bold text-xs">Claude</span>
                     <span class="text-[10px] text-slate-400">Anthropic</span>
                 </button>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-2">2. Enter API Key:</label>
-            <div class="flex items-center gap-2 mb-3">
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">2. AI API Key (Required):</label>
+            <div class="flex items-center gap-2 mb-4">
                 <div class="relative flex-1">
-                    <input id="apiKeyInput" type="password" placeholder="Paste your API Key here..." 
-                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-3 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    <input id="apiKeyInput" type="password" placeholder="Paste your AI API Key here..." 
+                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                         oninput="handleKeyInput(this.value)">
                     <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
                         <i id="eyeIcon" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
                 <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank"
-                    class="px-3.5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
+                    class="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
                     <i class="fa-solid fa-key"></i>
                     <span>Get Key</span>
                 </a>
             </div>
 
-            <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-start gap-2 min-h-[20px]">
+            <!-- SKETCHFAB API KEY CONNECTION -->
+            <label class="block text-xs font-semibold text-cyan-300 mb-1.5">
+                <i class="fa-solid fa-cube mr-1"></i> 3. Sketchfab API Token (For Real 3D Models & Auto-Rigging):
+            </label>
+            <div class="flex items-center gap-2 mb-3">
+                <div class="relative flex-1">
+                    <input id="sketchfabKeyInput" type="password" placeholder="Paste Sketchfab API Token (e.g. a1b2c3d4...)" 
+                        class="w-full bg-slate-950/90 border border-cyan-500/40 focus:border-cyan-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                        oninput="handleSketchfabKeyInput(this.value)">
+                </div>
+                <a href="https://sketchfab.com/settings/password" target="_blank"
+                    class="px-3 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg shadow-cyan-600/30 transition-all">
+                    <i class="fa-solid fa-cube"></i>
+                    <span>Get Token</span>
+                </a>
+            </div>
+
+            <div id="authStatus" class="text-xs text-slate-400 mb-4 flex items-start gap-2 min-h-[20px]">
                 <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
-                <span>Your API Key is automatically saved and connected as soon as you paste it.</span>
+                <span>Keys are automatically saved as soon as you paste them.</span>
             </div>
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
@@ -102,7 +120,6 @@
 
     <!-- 3. MAIN 3D WORKSPACE -->
     <div id="workspace" class="fixed inset-0 hidden">
-        <!-- Three.js Infinite 3D Map Container -->
         <div id="canvasContainer" class="w-full h-full"></div>
 
         <!-- TOP NAVIGATION BAR -->
@@ -117,6 +134,18 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+                <!-- SKETCHFAB CLOUD & GLB IMPORT BUTTON -->
+                <button onclick="openSketchfabModal()" class="top-action-btn glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-sky-300 border border-sky-400/40 flex items-center gap-1 shadow-md">
+                    <i class="fa-solid fa-cloud-arrow-down text-sky-400"></i>
+                    <span>Sketchfab</span>
+                </button>
+
+                <!-- 60-BONE X-RAY SKELETON VIEW TOGGLE -->
+                <button id="xrayBoneBtn" onclick="toggleSkeletonXRay()" class="top-action-btn glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-fuchsia-300 border border-fuchsia-500/30 flex items-center gap-1 shadow-md" title="Toggle 60-Bone X-Ray View">
+                    <i class="fa-solid fa-bone"></i>
+                    <span>60-Bones</span>
+                </button>
+
                 <button onclick="undoLastStep()" class="top-action-btn glass hover:bg-slate-800 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md">
                     <i class="fa-solid fa-rotate-left"></i>
                     <span>Undo</span>
@@ -150,7 +179,7 @@
             </div>
         </div>
 
-        <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a character or vehicle is created!) -->
+        <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a character or vehicle is spawned!) -->
         <div id="mobileControls" class="controller-hidden fixed bottom-24 left-3.5 z-20 items-center select-none">
             <div id="joystickZone" class="joystick-base">
                 <div id="joystickKnob" class="joystick-knob"></div>
@@ -159,7 +188,7 @@
 
         <div id="mobileActionBtns" class="controller-hidden fixed bottom-28 right-3.5 z-20 flex-col gap-2 select-none">
             <button ontouchstart="window.keysPressed['e']=true" ontouchend="window.keysPressed['e']=false"
-                 onmousedown="window.keysPressed['e']=true" onmouseup="window.keysPressed['e']=false"
+                onmousedown="window.keysPressed['e']=true" onmouseup="window.keysPressed['e']=false"
                 class="action-pad-btn w-11 h-11 rounded-full glass border border-rose-400/50 text-rose-300 font-bold text-[9px] shadow-lg flex items-center justify-center">
                 ATTACK
             </button>
@@ -209,7 +238,7 @@
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
-                        <strong id="liveStageText">Searching web & building 3D rig...</strong>
+                        <strong id="liveStageText">Scanning Sketchfab & 60-Bone Rigging...</strong>
                     </span>
                     <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s</span>
                 </div>
@@ -221,7 +250,7 @@
             <!-- Chat History -->
             <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
                 <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
-                    <strong class="text-sky-400">ApexGen 6-Module Engine Ready:</strong> 60-Bone Skeletal Rig & 0.1cm Solid Collision active. Controls will appear automatically when you spawn a character or vehicle!
+                    <strong class="text-sky-400">Sketchfab + Universal 60-Bone Auto-Rigger Ready:</strong> Click <strong>Sketchfab</strong> above or ask AI to import & rig any character (e.g., <em>"Import Kratos from Sketchfab and make him fight"</em>)!
                 </div>
             </div>
 
@@ -243,7 +272,7 @@
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
-                <input id="promptInput" type="text" placeholder="Describe character, car, village, or game..." 
+                <input id="promptInput" type="text" placeholder="Ask AI or type 'Spawn Kratos from Sketchfab'..." 
                     class="flex-1 bg-transparent px-2 py-1.5 text-white placeholder-slate-400 text-xs outline-none"
                     onkeydown="if(event.key === 'Enter') sendPromptToAI()">
 
@@ -260,7 +289,70 @@
         </div>
     </div>
 
-    <!-- 4. SHOW CODE MODAL -->
+    <!-- 4. SKETCHFAB SEARCH & LOCAL GLB AUTO-RIGGER MODAL -->
+    <div id="sketchfabModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-3">
+        <div class="glass neon-shadow w-full max-w-2xl rounded-3xl p-5 border border-sky-500/40 flex flex-col max-h-[86vh]">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-cubes text-sky-400 text-lg"></i>
+                    <div>
+                        <h3 class="text-sm md:text-base font-extrabold text-sky-400 font-cyber">Sketchfab 3D Cloud & 60-Bone Auto-Rigger</h3>
+                        <p class="text-[10px] text-slate-400">Search downloadable 3D models or upload any .glb file to auto-rig with 60 bones</p>
+                    </div>
+                </div>
+                <button onclick="closeSketchfabModal()" class="text-slate-400 hover:text-white text-base px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Search Bar + Local .GLB Upload -->
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <div class="flex-1 flex items-center gap-1.5 bg-slate-950/90 border border-slate-700 rounded-xl px-3 py-1.5">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs"></i>
+                    <input id="sfSearchInput" type="text" placeholder="Search Sketchfab (e.g., Kratos, Doctor Strange, Soldier, Sports Car)..." 
+                        class="flex-1 bg-transparent text-xs text-white outline-none"
+                        onkeydown="if(event.key === 'Enter') searchSketchfabUI()">
+                </div>
+                <button onclick="searchSketchfabUI()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5">
+                    <span>Search</span>
+                </button>
+                <label class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Upload .GLB</span>
+                    <input type="file" accept=".glb,.gltf" class="hidden" onchange="handleLocalGlbUpload(event)">
+                </label>
+            </div>
+
+            <!-- Import Mode Selection (60-Bone Playable Character vs Solid Prop/Vehicle) -->
+            <div class="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 mb-3 text-xs">
+                <span class="text-slate-300 font-semibold">Import Mode:</span>
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1.5 cursor-pointer text-sky-300 font-bold">
+                        <input type="radio" name="sfImportRole" value="character" checked class="accent-sky-400">
+                        <span>60-Bone Playable Character</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer text-emerald-300 font-bold">
+                        <input type="radio" name="sfImportRole" value="vehicle" class="accent-emerald-400">
+                        <span>Drivable Vehicle</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 cursor-pointer text-amber-300 font-bold">
+                        <input type="radio" name="sfImportRole" value="static" class="accent-amber-400">
+                        <span>Solid Building/Map</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="sfResultsGrid" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-1 min-h-[240px]">
+                <div class="col-span-full flex flex-col items-center justify-center text-slate-400 text-xs py-12">
+                    <i class="fa-solid fa-cube text-3xl text-sky-400/50 mb-2"></i>
+                    <span>Type any character, car, or object above and click Search!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. SHOW CODE MODAL -->
     <div id="codeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-3xl rounded-3xl p-5 md:p-6 border border-emerald-500/30 flex flex-col max-h-[85vh]">
             <div class="flex items-center justify-between mb-3">
@@ -288,7 +380,7 @@
         </div>
     </div>
 
-    <!-- 5. SAVE / INSTALL PROJECT MODAL -->
+    <!-- 6. SAVE / INSTALL PROJECT MODAL -->
     <div id="projectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-md rounded-3xl p-6 border border-sky-500/30">
             <div class="flex items-center justify-between mb-5">
@@ -300,7 +392,7 @@
 
             <div class="mb-4">
                 <label class="block text-xs font-semibold text-slate-300 mb-1.5">Project Name:</label>
-                <input id="projectNameInput" type="text" placeholder="e.g., ApexGen AAA World" 
+                <input id="projectNameInput" type="text" placeholder="e.g., God of War 3D Sandbox" 
                     class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl px-3.5 py-2.5 text-white text-xs outline-none">
             </div>
 
