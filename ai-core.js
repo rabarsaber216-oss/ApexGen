@@ -1,6 +1,5 @@
 /********************************************************************
- * FILE 6: ai-core.js - Real AI Brain (Gemini, OpenAI, Claude),
- * Live Web Search Grounding, Low/Medium/High Power & Project Manager
+ * ai-core.js - Async Sketchfab-First AI Brain & Execution Engine
  ********************************************************************/
 const PROVIDERS = {
     gemini: { name: 'Gemini', placeholder: 'Paste your Gemini API Key (AIzaSy...)', keyUrl: 'https://aistudio.google.com/app/apikey', storageKey: 'apexgen_key_gemini' },
@@ -10,19 +9,19 @@ const PROVIDERS = {
 
 const AI_POWER_CONFIG = {
     low: {
-        estSeconds: 5.0, maxTokens: 2500, temperature: 0.3, useWebSearch: false, preferProModel: false,
-        directive: `AI POWER: LOW (Fast Build). Use window.AAA_ENGINE generators (spawnAAACharacter, spawnRealisticHouse, spawnRealisticTree, spawnStoneWell, spawnAAAVehicle) for rapid scene creation.`
+        estSeconds: 6.0, maxTokens: 2500, temperature: 0.25, useWebSearch: false,
+        directive: `AI POWER: LOW. Download the requested main model from Sketchfab using \`await window.AAA_ENGINE.spawnFromSketchfab(query, opts)\` and place it cleanly.`
     },
     medium: {
-        estSeconds: 11.0, maxTokens: 6144, temperature: 0.5, useWebSearch: true, preferProModel: false,
-        directive: `AI POWER: MEDIUM (Balanced AAA). Combine window.AAA_ENGINE real GLTF/60-bone characters, textured houses, organic trees, and custom Lathe/Extrude props with 0.1cm solid collision.`
+        estSeconds: 11.0, maxTokens: 6144, temperature: 0.4, useWebSearch: true,
+        directive: `AI POWER: MEDIUM. Download all requested characters, buildings, or vehicles from Sketchfab using \`await window.AAA_ENGINE.spawnFromSketchfab(query, opts)\` with 60-bone rigging and 0.1cm solid collision.`
     },
     high: {
-        estSeconds: 18.0, maxTokens: 16384, temperature: 0.65, useWebSearch: true, preferProModel: true,
-        directive: `AI POWER: HIGH (MAXIMUM AAA REALISM - ZERO PRIMITIVE BOXES OR TRIANGLES).
-- Use window.AAA_ENGINE.spawnAAACharacter({ modelType: 'soldier' | 'robot' | '60bone' }) for characters (includes 60-bone anatomical rig & GLB skeletal animations).
-- Use window.AAA_ENGINE.spawnRealisticHouse(), spawnRealisticTree(), spawnStoneWell(), and spawnAAAVehicle() for realistic environments.
-- Register every obstacle with window.PHYSICS.addStaticCollider(mesh, 0.001) for 0.1cm solid collision!`
+        estSeconds: 16.0, maxTokens: 16384, temperature: 0.5, useWebSearch: true,
+        directive: `AI POWER: HIGH (100% REAL SKETCHFAB 3D MODELS + 60-BONE SKELETON).
+- STRICT RULE: NEVER create characters, houses, cars, or trees out of THREE.SphereGeometry, THREE.ConeGeometry, THREE.CylinderGeometry, or THREE.BoxGeometry!
+- You MUST download every character, creature, house, car, or prop from Sketchfab first using \`await window.AAA_ENGINE.spawnFromSketchfab("exact search query", { x, z, height, isCharacter, isPlayer, speed, followCamera })\`!
+- Wait for the download with \`await\` before doing anything else.`
     }
 };
 
@@ -47,17 +46,21 @@ window.isControlExited = false;
 
 window.addEventListener('DOMContentLoaded', () => {
     setAIPower(currentAIPower);
-    setTimeout(() => { document.getElementById('splashProgress').style.width = '100%'; }, 80);
+    setTimeout(() => {
+        const prog = document.getElementById('splashProgress');
+        if (prog) prog.style.width = '100%';
+    }, 80);
     setTimeout(() => {
         const splash = document.getElementById('splashScreen');
-        splash.style.opacity = '0';
-        setTimeout(() => {
-            splash.classList.add('hidden');
-            const auth = document.getElementById('authScreen');
-            auth.classList.remove('hidden');
-            auth.classList.add('flex');
-            selectProvider(currentProvider);
-        }, 650);
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                const auth = document.getElementById('authScreen');
+                if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
+                selectProvider(currentProvider);
+            }, 650);
+        }
     }, 2000);
 
     initJoystick();
@@ -88,24 +91,29 @@ function selectProvider(provider) {
     localStorage.setItem('apexgen_provider', provider);
     ['gemini', 'openai', 'claude'].forEach(p => {
         const btn = document.getElementById(`btn-${p}`);
+        if (!btn) return;
         btn.className = p === provider
             ? 'provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20'
             : 'provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
     });
     const config = PROVIDERS[provider];
     const input = document.getElementById('apiKeyInput');
-    input.placeholder = config.placeholder;
-    document.getElementById('getKeyLink').href = config.keyUrl;
-    const savedKey = localStorage.getItem(config.storageKey) || '';
-    input.value = savedKey;
-    currentApiKey = savedKey;
+    if (input) {
+        input.placeholder = config.placeholder;
+        const savedKey = localStorage.getItem(config.storageKey) || '';
+        input.value = savedKey;
+        currentApiKey = savedKey;
+    }
+    const link = document.getElementById('getKeyLink');
+    if (link) link.href = config.keyUrl;
 }
 
 function toggleKeyVisibility() {
     const input = document.getElementById('apiKeyInput');
     const icon = document.getElementById('eyeIcon');
+    if (!input) return;
     input.type = input.type === 'password' ? 'text' : 'password';
-    icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    if (icon) icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
 }
 
 function handleKeyInput(val) {
@@ -113,7 +121,8 @@ function handleKeyInput(val) {
     currentApiKey = trimmed;
     localStorage.setItem(PROVIDERS[currentProvider].storageKey, trimmed);
     if (trimmed.length > 20) {
-        document.getElementById('authStatus').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key saved! Connecting...</span>`;
+        const st = document.getElementById('authStatus');
+        if (st) st.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key saved! Connecting...</span>`;
         clearTimeout(autoConnectTimer);
         autoConnectTimer = setTimeout(() => verifyAndConnect(), 650);
     }
@@ -139,19 +148,22 @@ async function fetchActiveGeminiModels(apiKey) {
 
 async function verifyAndConnect() {
     clearTimeout(autoConnectTimer);
-    const key = document.getElementById('apiKeyInput').value.trim();
+    const input = document.getElementById('apiKeyInput');
+    const key = input ? input.value.trim() : currentApiKey;
     const status = document.getElementById('authStatus');
     const btn = document.getElementById('connectBtn');
 
     if (!key || key.length < 15) {
-        status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key!</span>`;
+        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key!</span>`;
         return;
     }
 
     currentApiKey = key;
     localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
+    }
 
     try {
         if (currentProvider === 'gemini') {
@@ -160,51 +172,54 @@ async function verifyAndConnect() {
             await callAIProvider("Reply // REPLY: OK", null, null, true, null);
         }
 
-        status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Launching 3D World...</span>`;
-        document.getElementById('activeProviderBadge').innerText = PROVIDERS[currentProvider].name;
+        if (status) status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Launching 3D World...</span>`;
+        const badge = document.getElementById('activeProviderBadge');
+        if (badge) badge.innerText = PROVIDERS[currentProvider].name;
 
         setTimeout(() => {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('authScreen').classList.remove('flex');
-            document.getElementById('workspace').classList.remove('hidden');
+            const auth = document.getElementById('authScreen');
+            if (auth) { auth.classList.add('hidden'); auth.classList.remove('flex'); }
+            const ws = document.getElementById('workspace');
+            if (ws) ws.classList.remove('hidden');
             init3DWorld();
         }, 300);
     } catch (err) {
-        status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
+        if (status) status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
+        }
     }
 }
 
 function openAuthSettings() {
-    document.getElementById('authScreen').classList.remove('hidden');
-    document.getElementById('authScreen').classList.add('flex');
+    const auth = document.getElementById('authScreen');
+    if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
 }
 
 const BASE_ENGINE_PROMPT = `
 You are the core AAA 3D Game Engine AI of "ApexGen".
-Globals available:
-- THREE, scene, camera, renderer, controls
-- window.SKELETON_ENGINE.build60BoneCharacter(opts) -> Builds a 60-bone anatomical human with knee patella joints & 30 finger bones.
-- window.PHYSICS.addStaticCollider(mesh, 0.001) -> Registers a 0.1cm solid obstacle.
-- window.PHYSICS.registerDynamicBody(root, radius) -> Registers controllable player/vehicle & reveals mobile Joystick/Action buttons!
-- window.AAA_ENGINE:
-  * window.AAA_ENGINE.spawnAAACharacter({ modelType: 'soldier' | 'robot' | '60bone', x, z, scale, speed, followCamera })
-  * window.AAA_ENGINE.spawnAAAVehicle({ x, z, bodyColor, maxSpeed, followCamera })
-  * window.AAA_ENGINE.spawnRealisticHouse(x, z, { width, depth, height, wallType, rotationY })
-  * window.AAA_ENGINE.spawnRealisticTree(x, z, scale)
-  * window.AAA_ENGINE.spawnStoneWell(x, z)
-  * window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)
+Your code runs inside an \`async\` function where \`await\` is fully supported.
+
+CRITICAL RULE - ALWAYS DOWNLOAD FROM SKETCHFAB FIRST:
+Whenever the user asks to create ANY character (e.g. Kratos, Doctor Strange, Soldier, Bonnie, Zombie), building, house, vehicle, weapon, or environment object:
+1. NEVER build characters, houses, or trees out of primitive spheres, cones, cylinders, or boxes!
+2. ALWAYS download the real 3D model from Sketchfab and wait for it to finish downloading using:
+   \`const model = await window.AAA_ENGINE.spawnFromSketchfab("search query", { x: 0, z: 0, height: 3.8, isCharacter: true, isPlayer: true, speed: 8.5, followCamera: true });\`
+   - For a character/hero (like Kratos): \`await window.AAA_ENGINE.spawnFromSketchfab("Kratos God of War", { x: 0, z: 0, height: 3.8, isCharacter: true, isPlayer: true, followCamera: true });\`
+   - For a house/building: \`await window.AAA_ENGINE.spawnFromSketchfab("medieval house", { x: 10, z: -12, height: 7.5, isCharacter: false, isPlayer: false });\`
+   - For a car/vehicle: \`await window.AAA_ENGINE.spawnFromSketchfab("sports car", { x: 0, z: 5, height: 2.2, isCharacter: false, isPlayer: true, speed: 26 });\`
+3. Do NOT try to attach primitive cone/box swords to undefined properties! The downloaded Sketchfab model already has its real 3D geometry, textures, and 60-bone rig automatically injected!
 
 OUTPUT FORMAT RULE:
-Do NOT output JSON! Output ONLY executable JavaScript code starting with a first line comment \`// REPLY: <short explanation>\`.
+Do NOT output JSON! Output ONLY valid async JavaScript code starting with a first line comment \`// REPLY: <short explanation>\`.
 `;
 
 function extractReplyAndCleanJS(rawText) {
     if (!rawText) return { reply: 'Done!', code: '' };
     let text = rawText.trim();
-    let reply = 'Built with 60-Bone Rig & 0.1cm Solid Physics!';
+    let reply = 'Downloaded 3D model from Sketchfab & injected 60-Bone Rig!';
     const replyMatch = text.match(/\/\/\s*REPLY:\s*([^\n\r]+)/i);
     if (replyMatch) reply = replyMatch[1].trim();
     const fenceMatch = text.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
@@ -224,19 +239,15 @@ async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPi
         let firstError = null;
         for (const modelName of verifiedGeminiModels.slice(0, 3)) {
             const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
-            const trySearch = pwr.useWebSearch && !imgBase64 && !isPing;
-            for (const useSearchTool of (trySearch ? [true, false] : [false])) {
-                const payload = { contents: [{ parts }], generationConfig: { temperature: pwr.temperature, maxOutputTokens: pwr.maxTokens } };
-                if (useSearchTool) payload.tools = [{ google_search: {} }];
+            const payload = { contents: [{ parts }], generationConfig: { temperature: pwr.temperature, maxOutputTokens: pwr.maxTokens } };
 
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: abortSignal });
-                const data = await res.json();
-                if (res.ok) {
-                    const rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    return extractReplyAndCleanJS(rawText);
-                }
-                if (!useSearchTool && !firstError) firstError = new Error(data.error?.message || 'Gemini Error');
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: abortSignal });
+            const data = await res.json();
+            if (res.ok) {
+                const rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                return extractReplyAndCleanJS(rawText);
             }
+            if (!firstError) firstError = new Error(data.error?.message || 'Gemini Error');
         }
         throw firstError || new Error('Gemini API request failed.');
     }
@@ -274,6 +285,7 @@ async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPi
 function initJoystick() {
     const zone = document.getElementById('joystickZone');
     const knob = document.getElementById('joystickKnob');
+    if (!zone || !knob) return;
     const maxRadius = 30;
     let activeTouchId = null, isDraggingMouse = false;
 
@@ -318,8 +330,8 @@ function undoLastStep() {
     last.updateFns.forEach(fn => { const i = window.updateFunctions.indexOf(fn); if (i > -1) window.updateFunctions.splice(i, 1); });
     window.PHYSICS.updateControllerVisibility();
     if (buildHistoryStack.length === 0) {
-        document.getElementById('actionButtons').classList.add('hidden');
-        document.getElementById('actionButtons').classList.remove('flex');
+        const ab = document.getElementById('actionButtons');
+        if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
     }
     appendChatMessage('ai', '↩️ Undid last build step.');
 }
@@ -333,34 +345,45 @@ function cleanAllWorld() {
     window.createdObjects = [];
     window.updateFunctions = [];
     window.PHYSICS.clearAll();
-    document.getElementById('actionButtons').classList.add('hidden');
-    document.getElementById('actionButtons').classList.remove('flex');
+    if (window.SKELETON_ENGINE) {
+        window.SKELETON_ENGINE.xrayHelpers.forEach(h => scene.remove(h));
+        window.SKELETON_ENGINE.xrayHelpers = [];
+    }
+    const ab = document.getElementById('actionButtons');
+    if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
     appendChatMessage('ai', '🧹 Cleaned all objects! Map & controls reset.');
 }
 
 function toggleExitControl() {
     window.isControlExited = !window.isControlExited;
-    document.getElementById('exitBtnText').innerText = window.isControlExited ? 'Resume' : 'Exit';
+    const txt = document.getElementById('exitBtnText');
+    if (txt) txt.innerText = window.isControlExited ? 'Resume' : 'Exit';
     window.PHYSICS.updateControllerVisibility();
 }
 
 function openCodeModal() {
     const modal = document.getElementById('codeModal');
-    document.getElementById('codeViewerTextarea').value = buildHistoryStack.length
-        ? buildHistoryStack.map((s, i) => `// === STEP ${i + 1} ===\n${s.code}`).join('\n\n')
-        : '// No 3D code generated yet.';
-    modal.classList.remove('hidden'); modal.classList.add('flex');
+    const ta = document.getElementById('codeViewerTextarea');
+    if (ta) {
+        ta.value = buildHistoryStack.length
+            ? buildHistoryStack.map((s, i) => `// === STEP ${i + 1} ===\n${s.code}`).join('\n\n')
+            : '// No 3D code generated yet.';
+    }
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 }
-function closeCodeModal() { document.getElementById('codeModal').classList.add('hidden'); document.getElementById('codeModal').classList.remove('flex'); }
+function closeCodeModal() { const m = document.getElementById('codeModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
 function copyGeneratedCode() { navigator.clipboard.writeText(document.getElementById('codeViewerTextarea').value); }
-function runEditedCode() { const c = document.getElementById('codeViewerTextarea').value; if (c.trim()) { cleanAllWorld(); execute3DCodeSafely(c, 'Custom code executed!'); closeCodeModal(); } }
+async function runEditedCode() {
+    const c = document.getElementById('codeViewerTextarea').value;
+    if (c.trim()) { cleanAllWorld(); closeCodeModal(); await execute3DCodeSafely(c, 'Custom code executed!'); }
+}
 
 function toggleChatBox(show) {
-    document.getElementById('chatWrapper').classList.toggle('hidden', !show);
-    document.getElementById('showChatBtn').classList.toggle('hidden', show);
-    document.getElementById('showChatBtn').classList.toggle('flex', !show);
+    document.getElementById('chatWrapper')?.classList.toggle('hidden', !show);
+    document.getElementById('showChatBtn')?.classList.toggle('hidden', show);
+    document.getElementById('showChatBtn')?.classList.toggle('flex', !show);
 }
-function toggleHistoryView() { document.getElementById('chatHistory').classList.toggle('hidden'); }
+function toggleHistoryView() { document.getElementById('chatHistory')?.classList.toggle('hidden'); }
 
 function handleChatImageSelect(e) {
     const file = e.target.files[0];
@@ -370,96 +393,110 @@ function handleChatImageSelect(e) {
         attachedImageMimeType = file.type || 'image/jpeg';
         attachedImageBase64 = ev.target.result.split(',')[1];
         document.getElementById('attachedImagePreview').src = ev.target.result;
-        document.getElementById('imageAttachmentBar').classList.remove('hidden');
-        document.getElementById('imageAttachmentBar').classList.add('flex');
+        document.getElementById('imageAttachmentBar')?.classList.remove('hidden');
+        document.getElementById('imageAttachmentBar')?.classList.add('flex');
     };
     reader.readAsDataURL(file);
 }
 function clearAttachedImage() {
     attachedImageBase64 = null; attachedImageMimeType = null;
-    document.getElementById('imageAttachmentBar').classList.add('hidden');
-    document.getElementById('imageAttachmentBar').classList.remove('flex');
+    document.getElementById('imageAttachmentBar')?.classList.add('hidden');
+    document.getElementById('imageAttachmentBar')?.classList.remove('flex');
 }
 
 function startRealLiveTimer() {
     const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
     const bar = document.getElementById('liveTimerBar');
-    bar.classList.remove('hidden'); bar.classList.add('flex');
+    if (bar) { bar.classList.remove('hidden'); bar.classList.add('flex'); }
     const startTime = performance.now();
     clearInterval(buildTimerInterval);
     buildTimerInterval = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
         const rem = Math.max(0.4, pwr.estSeconds - elapsed);
         const pct = Math.min(95, Math.round((elapsed / Math.max(pwr.estSeconds, elapsed + 1)) * 100));
-        document.getElementById('liveProgressBar').style.width = `${pct}%`;
-        document.getElementById('liveTimerText').innerText = `${elapsed.toFixed(2)}s | ~${rem.toFixed(1)}s`;
+        const pb = document.getElementById('liveProgressBar');
+        const tt = document.getElementById('liveTimerText');
+        if (pb) pb.style.width = `${pct}%`;
+        if (tt) tt.innerText = `${elapsed.toFixed(2)}s | ~${rem.toFixed(1)}s`;
     }, 50);
     return startTime;
 }
 
 function stopRealLiveTimer(startTime) {
     clearInterval(buildTimerInterval);
-    document.getElementById('liveProgressBar').style.width = '100%';
-    setTimeout(() => { document.getElementById('liveTimerBar').classList.add('hidden'); document.getElementById('liveTimerBar').classList.remove('flex'); }, 250);
+    const pb = document.getElementById('liveProgressBar');
+    if (pb) pb.style.width = '100%';
+    setTimeout(() => {
+        const bar = document.getElementById('liveTimerBar');
+        if (bar) { bar.classList.add('hidden'); bar.classList.remove('flex'); }
+    }, 250);
     return ((performance.now() - startTime) / 1000).toFixed(2);
 }
 
 function stopAICoding() { if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; } }
 
-function execute3DCodeSafely(codeString, replyMsg) {
+// ASYNC EXECUTION ENGINE: Waits for Sketchfab downloads to finish 100% before completing!
+async function execute3DCodeSafely(codeString, replyMsg) {
     const prevScene = [...scene.children];
     const prevFns = [...window.updateFunctions];
     window.isControlExited = false;
 
-    const execFn = new Function('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
-    execFn(THREE, scene, camera, renderer, controls);
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
+    await execFn(THREE, scene, camera, renderer, controls);
 
     const newObjects = scene.children.filter(c => !prevScene.includes(c));
     const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
     window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
     buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
-    document.getElementById('actionButtons').classList.remove('hidden');
-    document.getElementById('actionButtons').classList.add('flex');
+    const ab = document.getElementById('actionButtons');
+    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
     appendChatMessage('ai', replyMsg);
 }
 
 async function sendPromptToAI() {
     const input = document.getElementById('promptInput');
-    const text = input.value.trim();
+    const text = input ? input.value.trim() : '';
     if (!text && !attachedImageBase64) return;
     const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
-    input.value = ''; clearAttachedImage();
+    if (input) input.value = '';
+    clearAttachedImage();
     appendChatMessage('user', text || '📷 [Reference Image]');
 
     const sendBtn = document.getElementById('sendBtn'), stopBtn = document.getElementById('stopBtn');
-    sendBtn.classList.add('hidden'); stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex');
+    if (sendBtn) sendBtn.classList.add('hidden');
+    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
 
     activeAbortController = new AbortController();
     const t0 = startRealLiveTimer();
     try {
         const res = await callAIProvider(text, imgB64, imgMime, false, activeAbortController.signal);
-        const dt = stopRealLiveTimer(t0);
-        if (res.code) execute3DCodeSafely(res.code, `✅ Built in ${dt}s [${currentAIPower.toUpperCase()}]: ${res.reply}`);
+        if (res.code) {
+            await execute3DCodeSafely(res.code, `✅ Downloaded & Rigged: ${res.reply}`);
+        }
+        stopRealLiveTimer(t0);
     } catch (err) {
         const dt = stopRealLiveTimer(t0);
         appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Stopped at ${dt}s.` : `⚠️ Error: ${err.message}`);
     } finally {
         activeAbortController = null;
-        stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); sendBtn.classList.remove('hidden');
+        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
+        if (sendBtn) sendBtn.classList.remove('hidden');
     }
 }
 
 function appendChatMessage(role, msg) {
     const h = document.getElementById('chatHistory');
+    if (!h) return;
     const d = document.createElement('div');
     d.className = role === 'user' ? 'bg-indigo-950/70 border border-indigo-800/50 rounded-lg px-2.5 py-1 text-indigo-100' : 'bg-slate-900/80 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200';
     d.innerHTML = `<strong class="${role === 'user' ? 'text-indigo-400' : 'text-sky-400'}">${role === 'user' ? 'You' : 'AI'}:</strong> ${msg}`;
     h.appendChild(d); h.scrollTop = h.scrollHeight;
 }
 
-function openProjectModal(mode) { currentModalMode = mode; document.getElementById('projectModal').classList.remove('hidden'); document.getElementById('projectModal').classList.add('flex'); }
-function closeProjectModal() { document.getElementById('projectModal').classList.add('hidden'); document.getElementById('projectModal').classList.remove('flex'); }
+function openProjectModal(mode) { currentModalMode = mode; document.getElementById('projectModal')?.classList.remove('hidden'); document.getElementById('projectModal')?.classList.add('flex'); }
+function closeProjectModal() { document.getElementById('projectModal')?.classList.add('hidden'); document.getElementById('projectModal')?.classList.remove('flex'); }
 function handleIconUpload(e) {
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
@@ -467,7 +504,7 @@ function handleIconUpload(e) {
     r.readAsDataURL(f);
 }
 function executeProjectAction() {
-    const name = document.getElementById('projectNameInput').value.trim() || 'ApexGen_3D_Game';
+    const name = document.getElementById('projectNameInput')?.value.trim() || 'ApexGen_3D_Game';
     const scripts = buildHistoryStack.map(s => s.code);
     const blob = new Blob([JSON.stringify({ name, scripts }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${name}.json`; a.click();
