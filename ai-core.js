@@ -1,6 +1,7 @@
 /********************************************************************
- * FILE: ai-core.js - Story & Game Logic Director (Gemini, Claude, OpenAI)
- * + User-Entered Hugging Face 3D Builder Token Manager
+ * FILE: ai-core.js - Dual-Chat Engine Controller
+ * - Top Chat (Hugging Face): "say something to make or build" -> Builds 3D
+ * - Bottom Chat (Gemini/OpenAI/Claude): "make the story" -> Makes Story
  ********************************************************************/
 const PROVIDERS = {
     gemini: {
@@ -24,9 +25,9 @@ const PROVIDERS = {
 };
 
 const AI_POWER_CONFIG = {
-    low:    { estSeconds: 5.0,  maxTokens: 3072,  temperature: 0.3, useWebSearch: false },
-    medium: { estSeconds: 10.0, maxTokens: 8192,  temperature: 0.5, useWebSearch: true  },
-    high:   { estSeconds: 16.0, maxTokens: 16384, temperature: 0.6, useWebSearch: true  }
+    low:    { estSeconds: 4.5,  maxTokens: 3072,  temperature: 0.3, useWebSearch: false },
+    medium: { estSeconds: 9.0,  maxTokens: 8192,  temperature: 0.5, useWebSearch: true  },
+    high:   { estSeconds: 14.0, maxTokens: 16384, temperature: 0.6, useWebSearch: true  }
 };
 
 let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
@@ -76,6 +77,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const hfInput = document.getElementById('hfKeyInput');
     if (hfInput && currentHfKey) hfInput.value = currentHfKey;
 
+    const storyProvName = document.getElementById('storyProviderName');
+    if (storyProvName) storyProvName.innerText = PROVIDERS[currentProvider].name;
+
     setTimeout(() => {
         const prog = document.getElementById('splashProgress');
         if (prog) prog.style.width = '100%';
@@ -88,8 +92,7 @@ window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (splash) splash.classList.add('hidden');
 
-            // Auto-login directly into 3D map if both Story AI key and HF key are already saved!
-            if (currentApiKey && currentApiKey.length >= 15 && currentHfKey && currentHfKey.length >= 10) {
+            if (currentApiKey && currentApiKey.length >= 15) {
                 const badge = document.getElementById('activeProviderBadge');
                 if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
                 const ws = document.getElementById('workspace');
@@ -155,6 +158,8 @@ function selectProvider(provider) {
     }
     const link = document.getElementById('getKeyLink');
     if (link) link.href = config.keyUrl;
+    const storyProvName = document.getElementById('storyProviderName');
+    if (storyProvName) storyProvName.innerText = config.name;
 }
 
 function toggleKeyVisibility(inputId, iconId) {
@@ -214,27 +219,23 @@ async function verifyAndConnect() {
         return;
     }
 
-    if (!hfVal || hfVal.length < 10) {
-        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i> <span class="text-amber-400">Please enter your Hugging Face API Token (hf_...)!</span>`;
-        return;
-    }
-
     currentApiKey = key;
     localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
-    handleHfKeyInput(hfVal);
+    if (hfVal) handleHfKeyInput(hfVal);
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting ${PROVIDERS[currentProvider].name} & Hugging Face...</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting...</span>`;
     }
 
     try {
         if (currentProvider === 'gemini') {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         }
-        if (status) status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Both Keys Saved! Launching 3D World...</span>`;
         const badge = document.getElementById('activeProviderBadge');
         if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
+        const storyProvName = document.getElementById('storyProviderName');
+        if (storyProvName) storyProvName.innerText = PROVIDERS[currentProvider].name;
 
         setTimeout(() => {
             const auth = document.getElementById('authScreen');
@@ -242,7 +243,7 @@ async function verifyAndConnect() {
             const ws = document.getElementById('workspace');
             if (ws) ws.classList.remove('hidden');
             init3DWorld();
-        }, 250);
+        }, 200);
     } catch (err) {
         if (status) status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
     } finally {
@@ -260,54 +261,171 @@ function openAuthSettings() {
 }
 
 /********************************************************************
- * 2. DUAL-ENGINE PIPELINE:
- *    - Gemini / Claude / OpenAI -> Writes Story, Quests, Rules & Logic
- *    - Hugging Face (huggingface.js) -> Builds the 3D Objects & Scene
+ * 2. TOP CHAT HANDLER: HUGGING FACE 3D BUILDER ("say something to make or build")
  ********************************************************************/
-const STORY_AND_DIRECTOR_PROMPT = `
-You are the Creative Game Director & Story Writer AI (powered by Gemini/Claude/OpenAI) working with the Hugging Face 3D Builder inside "ApexGen".
-Analyze the user's request carefully.
+async function sendHfBuildPrompt() {
+    const input = document.getElementById('hfPromptInput');
+    const text = input ? input.value.trim() : '';
+    if (!text && !attachedImageBase64) return;
 
-STRICT INTENT MATCHING:
-- Identify the EXACT object, vehicle, character, or game the user wants!
-- NEVER confuse a car with a house! If the user asks for a car, the blueprint must ONLY describe building that exact car.
-- If the user asks for a game or story (e.g., horror game, FNAF, RPG, mission, racing), write an exciting short story/mission intro AND provide complete Three.js code for the requested objects, game rules, and story events.
+    const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
+    if (input) input.value = '';
+    clearAttachedImage();
+    appendChatMessage('hf-user', text || '📷 [3D Build from Image]');
 
-AVAILABLE THREE.JS ENGINE TOOLS:
-- \`await window.AAA_ENGINE.spawnAAACharacter({ name: 'soldier'|'robot'|'xbot'|'michelle', x: 0, z: 0, scale: 1.85, speed: 9.0, isPlayer: true, followCamera: true })\` -> Use ONLY if a character/person/robot is requested.
-- \`window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 32, isPlayer: true, followCamera: true })\` -> Use ONLY if a car/vehicle is requested.
-- \`window.AAA_ENGINE.spawnRealisticHouse(x, z, opts)\` -> Use ONLY if a house/building is requested.
-- \`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\` -> Use ONLY if trees are requested.
-- \`window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)\` -> Textured PBR materials ('brick', 'stone', 'asphalt', 'wood', 'rooftile', 'bark', 'foliage', 'building_facade').
-- \`window.PHYSICS.addStaticCollider(mesh, 0.001)\` & \`window.PHYSICS.registerDynamicBody(group, radius)\`.
-- \`window.updateFunctions.push((delta, time) => { ... })\` -> Game loop.
+    const stopBtn = document.getElementById('stopBtn');
+    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
 
-Output format:
-Line 1: \`// STORY: <Write a vivid 1-2 sentence story, mission objective, or description of what was created>\`
-Line 2+: Valid async Three.js JavaScript code that builds ONLY the requested item(s) and game mechanics. Do NOT wrap in JSON!
-`;
+    activeAbortController = new AbortController();
+    const t0 = startRealLiveTimer();
+    const stageEl = document.getElementById('liveStageText');
+    if (stageEl) stageEl.innerText = `🔨 [Hugging Face] Building "${text}" in 3D...`;
 
-function parseDirectorOutput(rawText) {
-    if (!rawText) return { story: '', code: '' };
-    const text = rawText.trim();
-    let story = 'Story & 3D world ready!';
-    const storyMatch = text.match(/\/\/\s*(?:STORY|REPLY|HF_BUILT):\s*([^\n\r]+)/i);
-    if (storyMatch) story = storyMatch[1].trim();
-    const fenceMatch = text.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
-    const code = fenceMatch ? fenceMatch[1].trim() : text.replace(/```(?:javascript|js)?/gi, '').replace(/```/g, '').trim();
-    return { story, code };
+    try {
+        let codeToRun = '';
+        let builderLabel = 'Hugging Face 3D';
+
+        // 1. Try Hugging Face 3D Builder first
+        if (window.HUGGINGFACE_BUILDER && !imgB64) {
+            const hfRes = await window.HUGGINGFACE_BUILDER.generate3DCode(text, currentAIPower, activeAbortController.signal);
+            if (hfRes && hfRes.code && hfRes.code.length > 20) {
+                codeToRun = hfRes.code;
+                builderLabel = hfRes.modelUsed;
+            }
+        }
+
+        // 2. If HF returned empty or image was attached, use the AI 3D Code Generator
+        if (!codeToRun || codeToRun.length < 20) {
+            if (stageEl) stageEl.innerText = `🔨 Synthesizing 3D meshes for "${text}"...`;
+            const backupRes = await callAIFor3DBuild(text, imgB64, imgMime, activeAbortController.signal);
+            codeToRun = backupRes.code;
+        }
+
+        const dt = stopRealLiveTimer(t0);
+        await execute3DCodeWithGuarantee(codeToRun, text, `🔨 <strong>Built (${builderLabel}) in ${dt}s:</strong> "${text}" is now live on the 3D map!`);
+    } catch (err) {
+        const dt = stopRealLiveTimer(t0);
+        if (err.name === 'AbortError') {
+            appendChatMessage('ai', `🛑 Build stopped at ${dt}s.`);
+        } else {
+            // Even on API error, guarantee the user gets their requested 3D object on the map!
+            const fallbackCode = window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(text);
+            await execute3DCodeWithGuarantee(fallbackCode, text, `🔨 <strong>Built in ${dt}s:</strong> Spawned "${text}" on the 3D map!`);
+        }
+    } finally {
+        activeAbortController = null;
+        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
+    }
 }
 
-async function callStoryDirectorAI(userPrompt, imgBase64 = null, imgMime = null, abortSignal = null) {
+/********************************************************************
+ * 3. BOTTOM CHAT HANDLER: GEMINI / OPENAI / CLAUDE ("make the story")
+ ********************************************************************/
+async function sendStoryPrompt() {
+    const input = document.getElementById('storyPromptInput');
+    const text = input ? input.value.trim() : '';
+    if (!text) return;
+
+    input.value = '';
+    appendChatMessage('story-user', text);
+
+    const stopBtn = document.getElementById('stopBtn');
+    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
+
+    activeAbortController = new AbortController();
+    const t0 = startRealLiveTimer();
+    const stageEl = document.getElementById('liveStageText');
+    if (stageEl) stageEl.innerText = `📖 [${PROVIDERS[currentProvider].name}] Writing story & world events...`;
+
+    try {
+        const storyRes = await callStoryAI(text, activeAbortController.signal);
+        const dt = stopRealLiveTimer(t0);
+
+        if (storyRes.code && storyRes.code.length > 15) {
+            try {
+                await execute3DCodeSafely(storyRes.code);
+            } catch (e) {}
+        }
+
+        appendChatMessage('story-ai', `📖 <strong>${PROVIDERS[currentProvider].name} Story (${dt}s):</strong>${storyRes.story}`);
+    } catch (err) {
+        const dt = stopRealLiveTimer(t0);
+        appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Story stopped at ${dt}s.` : `⚠️ Story Error: ${err.message}`);
+    } finally {
+        activeAbortController = null;
+        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
+    }
+}
+
+/********************************************************************
+ * 4. GUARANTEED 3D EXECUTION (NEVER LEAVES THE 3D MAP EMPTY!)
+ ********************************************************************/
+async function execute3DCodeWithGuarantee(codeString, userPromptText, successMsg) {
+    const prevScene = [...scene.children];
+    const prevFns = [...window.updateFunctions];
+    window.isControlExited = false;
+
+    try {
+        if (codeString && codeString.trim().length > 0) {
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
+            await execFn(THREE, scene, camera, renderer, controls);
+        }
+    } catch (execErr) {
+        console.warn('AI code runtime fallback triggered:', execErr);
+    }
+
+    let newObjects = scene.children.filter(c => !prevScene.includes(c));
+
+    // GUARANTEE: If the AI code failed to add any visible 3D object to the scene, run our instant 3D builder!
+    if (newObjects.length === 0 && window.HUGGINGFACE_BUILDER) {
+        const guaranteedCode = window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(userPromptText);
+        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+        const fallbackFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', guaranteedCode);
+        await fallbackFn(THREE, scene, camera, renderer, controls);
+        codeString = guaranteedCode;
+        newObjects = scene.children.filter(c => !prevScene.includes(c));
+    }
+
+    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
+    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
+
+    buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
+    const ab = document.getElementById('actionButtons');
+    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
+    appendChatMessage('hf-ai', successMsg);
+}
+
+async function execute3DCodeSafely(codeString, replyMsg = null) {
+    const prevScene = [...scene.children];
+    const prevFns = [...window.updateFunctions];
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
+    await execFn(THREE, scene, camera, renderer, controls);
+
+    const newObjects = scene.children.filter(c => !prevScene.includes(c));
+    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
+    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
+
+    if (newObjects.length > 0 || newFns.length > 0) {
+        buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
+        const ab = document.getElementById('actionButtons');
+        if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
+    }
+    if (replyMsg) appendChatMessage('ai', replyMsg);
+}
+
+/********************************************************************
+ * 5. AI API CALLERS (3D BUILDER & STORY WRITER)
+ ********************************************************************/
+async function callAIFor3DBuild(userPrompt, imgBase64, imgMime, abortSignal) {
     const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
-    const fullPrompt = `${STORY_AND_DIRECTOR_PROMPT}\n\nUSER COMMAND: "${userPrompt}"`;
+    const prompt = `${window.HUGGINGFACE_BUILDER.BUILDER_SYSTEM_PROMPT}\n\nUSER BUILD REQUEST: "${userPrompt}"`;
 
     if (currentProvider === 'gemini') {
-        if (verifiedGeminiModels.length === 0) {
-            verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
-        }
+        if (verifiedGeminiModels.length === 0) verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         const candidates = [...verifiedGeminiModels, 'models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
-        const parts = [{ text: fullPrompt }];
+        const parts = [{ text: prompt }];
         if (imgBase64 && imgMime) parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } });
 
         for (const modelName of candidates) {
@@ -325,7 +443,47 @@ async function callStoryDirectorAI(userPrompt, imgBase64 = null, imgMime = null,
                 const data = await res.json();
                 if (res.ok) {
                     const txt = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    if (txt.trim()) return parseDirectorOutput(txt);
+                    if (txt.trim()) return { code: window.HUGGINGFACE_BUILDER.cleanCode(txt) };
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') throw e;
+            }
+        }
+    }
+    return { code: window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(userPrompt) };
+}
+
+async function callStoryAI(storyPrompt, abortSignal) {
+    const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
+    const sysPrompt = `You are the Story & Game Lore Director (${PROVIDERS[currentProvider].name}) inside "ApexGen".
+Write an engaging, dramatic story, quest objective, or dialogue based on the user's request: "${storyPrompt}".
+Optionally, after the story, you may include Three.js atmosphere code (lighting/fog) inside a \`\`\`javascript block.
+Start line 1 with: // STORY: <your dramatic story text>`;
+
+    if (currentProvider === 'gemini') {
+        if (verifiedGeminiModels.length === 0) verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
+        const candidates = [...verifiedGeminiModels, 'models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
+        for (const modelName of candidates) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: sysPrompt }] }],
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                    }),
+                    signal: abortSignal
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const raw = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                    const m = raw.match(/\/\/\s*STORY:\s*([^\n\r]+)/i);
+                    const fence = raw.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
+                    return {
+                        story: m ? m[1].trim() : raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(),
+                        code: fence ? fence[1].trim() : ''
+                    };
                 }
             } catch (e) {
                 if (e.name === 'AbortError') throw e;
@@ -336,15 +494,16 @@ async function callStoryDirectorAI(userPrompt, imgBase64 = null, imgMime = null,
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApiKey}` },
             body: JSON.stringify({
-                model: currentAIPower === 'low' ? 'gpt-4o-mini' : 'gpt-4o',
-                max_tokens: Math.min(4096, pwr.maxTokens),
-                temperature: pwr.temperature,
-                messages: [{ role: 'user', content: fullPrompt }]
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: sysPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (res.ok) return parseDirectorOutput(data.choices[0].message.content);
+        if (res.ok) {
+            const raw = data.choices[0].message.content;
+            return { story: raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(), code: '' };
+        }
     } else if (currentProvider === 'claude') {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -356,106 +515,23 @@ async function callStoryDirectorAI(userPrompt, imgBase64 = null, imgMime = null,
             },
             body: JSON.stringify({
                 model: 'claude-3-5-sonnet-latest',
-                max_tokens: 4096,
-                temperature: pwr.temperature,
-                messages: [{ role: 'user', content: fullPrompt }]
+                max_tokens: 1024,
+                messages: [{ role: 'user', content: sysPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (res.ok) return parseDirectorOutput(data.content[0].text);
+        if (res.ok) {
+            const raw = data.content[0].text;
+            return { story: raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(), code: '' };
+        }
     }
 
-    return { story: `Building "${userPrompt}"...`, code: '' };
+    return { story: storyPrompt, code: '' };
 }
 
 /********************************************************************
- * 3. EXECUTION ORCHESTRATOR (STORY AI + HUGGING FACE 3D BUILDER)
- ********************************************************************/
-async function sendPromptToAI() {
-    const input = document.getElementById('promptInput');
-    const text = input ? input.value.trim() : '';
-    if (!text && !attachedImageBase64) return;
-
-    const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
-    if (input) input.value = '';
-    clearAttachedImage();
-    appendChatMessage('user', text || '📷 [Image Build]');
-
-    const sendBtn = document.getElementById('sendBtn'), stopBtn = document.getElementById('stopBtn');
-    if (sendBtn) sendBtn.classList.add('hidden');
-    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
-
-    activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer();
-    const stageEl = document.getElementById('liveStageText');
-
-    try {
-        if (stageEl) stageEl.innerText = `📖 [${PROVIDERS[currentProvider].name}] Writing story & game logic...`;
-        const directorRes = await callStoryDirectorAI(text, imgB64, imgMime, activeAbortController.signal);
-
-        let finalCode = directorRes.code;
-        let builderBadge = PROVIDERS[currentProvider].name;
-
-        if (window.HUGGINGFACE_BUILDER && !imgB64 && window.HUGGINGFACE_BUILDER.getToken().length >= 10) {
-            if (stageEl) stageEl.innerText = `🔨 [Hugging Face] Building 3D models for "${text}"...`;
-            try {
-                const hfRes = await window.HUGGINGFACE_BUILDER.generate3DCode(
-                    text,
-                    directorRes.story,
-                    currentAIPower,
-                    activeAbortController.signal
-                );
-                if (hfRes && hfRes.code && hfRes.code.length > 20) {
-                    finalCode = hfRes.code;
-                    builderBadge = `HuggingFace + ${PROVIDERS[currentProvider].name}`;
-                }
-            } catch (hfErr) {
-                if (hfErr.name === 'AbortError') throw hfErr;
-            }
-        }
-
-        const dt = stopRealLiveTimer(t0);
-
-        if (finalCode && finalCode.trim() !== '') {
-            await execute3DCodeSafely(
-                finalCode,
-                `📖 <strong>Story (${PROVIDERS[currentProvider].name}):</strong> ${directorRes.story}<br>🔨 <strong>Built by ${builderBadge}</strong> in ${dt}s`
-            );
-        } else {
-            appendChatMessage('ai', `📖 ${directorRes.story}`);
-        }
-    } catch (err) {
-        const dt = stopRealLiveTimer(t0);
-        appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Stopped at ${dt}s.` : `⚠️ Error: ${err.message}`);
-    } finally {
-        activeAbortController = null;
-        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
-        if (sendBtn) sendBtn.classList.remove('hidden');
-    }
-}
-
-async function execute3DCodeSafely(codeString, replyMsg) {
-    const prevScene = [...scene.children];
-    const prevFns = [...window.updateFunctions];
-    window.isControlExited = false;
-
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
-    await execFn(THREE, scene, camera, renderer, controls);
-
-    const newObjects = scene.children.filter(c => !prevScene.includes(c));
-    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
-    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
-
-    buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
-    const ab = document.getElementById('actionButtons');
-    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
-    appendChatMessage('ai', replyMsg);
-}
-
-/********************************************************************
- * 4. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, SAVE & INSTALL
+ * 6. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, SAVE & INSTALL
  ********************************************************************/
 function initJoystick() {
     const zone = document.getElementById('joystickZone');
@@ -609,10 +685,23 @@ function stopAICoding() { if (activeAbortController) { activeAbortController.abo
 function appendChatMessage(role, msg) {
     const h = document.getElementById('chatHistory');
     if (!h) return;
+    h.classList.remove('hidden');
     const d = document.createElement('div');
-    d.className = role === 'user' ? 'bg-indigo-950/70 border border-indigo-800/50 rounded-lg px-2.5 py-1 text-indigo-100' : 'bg-slate-900/80 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200';
-    d.innerHTML = `<strong class="${role === 'user' ? 'text-indigo-400' : 'text-sky-400'}">${role === 'user' ? 'You' : 'AI'}:</strong> ${msg}`;
-    h.appendChild(d); h.scrollTop = h.scrollHeight;
+    if (role === 'hf-user') {
+        d.className = 'bg-amber-950/60 border border-amber-700/50 rounded-lg px-2 py-1 text-amber-100 leading-snug';
+        d.innerHTML = `<strong class="text-amber-400">You (HF Build):</strong> ${msg}`;
+    } else if (role === 'hf-ai') {
+        d.className = 'bg-slate-900/90 border border-amber-500/40 rounded-lg px-2 py-1 text-slate-200 leading-snug';
+        d.innerHTML = msg;
+    } else if (role === 'story-user') {
+        d.className = 'bg-indigo-950/60 border border-indigo-700/50 rounded-lg px-2 py-1 text-indigo-100 leading-snug';
+        d.innerHTML = `<strong class="text-sky-400">You (Story):</strong> ${msg}`;
+    } else {
+        d.className = 'bg-slate-900/90 border border-sky-500/40 rounded-lg px-2 py-1 text-slate-200 leading-snug';
+        d.innerHTML = msg;
+    }
+    h.appendChild(d);
+    h.scrollTop = h.scrollHeight;
 }
 
 function openProjectModal(mode) { currentModalMode = mode; document.getElementById('projectModal')?.classList.remove('hidden'); document.getElementById('projectModal')?.classList.add('flex'); }
