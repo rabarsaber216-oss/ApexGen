@@ -1,10 +1,6 @@
 /********************************************************************
- * ai-core.js - Hyper-Intelligent Multi-Model AI Architect Engine
- * Features:
- * 1. Instant Auto-Login if API Key is already saved (Skips setup menu!)
- * 2. Automatic Multi-Model Failover (Zero "High Demand" 503/429 errors!)
- * 3. Live Google Search Grounding (Scans web references in real time)
- * 4. Anti-Primitive Enforcement (Bans crude spheres/cones for characters)
+ * FILE: ai-core.js - Story, Quest & Game Logic Director (Gemini, Claude, OpenAI)
+ * Works in tandem with huggingface.js (which builds the 3D objects!)
  ********************************************************************/
 const PROVIDERS = {
     gemini: {
@@ -28,34 +24,9 @@ const PROVIDERS = {
 };
 
 const AI_POWER_CONFIG = {
-    low: {
-        estSeconds: 4.5,
-        maxTokens: 3072,
-        temperature: 0.3,
-        useWebSearch: false,
-        preferPro: false,
-        directive: `AI POWER MODE: LOW (FAST EXECUTION). Use window.AAA_ENGINE high-speed generators (await window.AAA_ENGINE.spawnAAACharacter(), window.AAA_ENGINE.spawnAAAVehicle(), window.AAA_ENGINE.spawnRealisticHouse(), window.AAA_ENGINE.spawnRealisticTree()) to construct the requested project quickly and cleanly.`
-    },
-    medium: {
-        estSeconds: 9.5,
-        maxTokens: 8192,
-        temperature: 0.5,
-        useWebSearch: true,
-        preferPro: false,
-        directive: `AI POWER MODE: MEDIUM (BALANCED AAA ARCHITECTURE). Combine real rigged GLB characters (await window.AAA_ENGINE.spawnAAACharacter()), custom PBR materials (window.AAA_ENGINE.material()), dynamic lighting, enemy AI logic, and interactive game loops.`
-    },
-    high: {
-        estSeconds: 15.0,
-        maxTokens: 16384,
-        temperature: 0.65,
-        useWebSearch: true,
-        preferPro: true,
-        directive: `AI POWER MODE: HIGH (MAXIMUM AAA GAME STUDIO ARCHITECT).
-- Build a complete, deeply detailed 3D game world or simulation with realistic lighting, atmospheric fog, textured architecture, particle effects, custom HUD counters, AI enemies/NPCs, and interactive physics.
-- STRICT VISUAL RULE: NEVER construct characters, humans, soldiers, monsters, or trees out of raw THREE.SphereGeometry, THREE.ConeGeometry, or THREE.CylinderGeometry!
-- ALWAYS spawn characters using \`const player = await window.AAA_ENGINE.spawnAAACharacter({ name: '...', x: 0, z: 0, scale: 1.85, speed: 9.5, isPlayer: true, followCamera: true });\` which loads a real bone-rigged, fully animated 3D GLB model or 60-bone anatomical mesh!
-- For NPCs/enemies, call \`const enemy = await window.AAA_ENGINE.spawnAAACharacter({ name: 'robot', x: 10, z: -15, isPlayer: false, followCamera: false });\` and animate their patrol/chase behavior inside \`window.updateFunctions.push((delta, time) => { ... })\`!`
-    }
+    low:    { estSeconds: 5.0,  maxTokens: 3072,  temperature: 0.3, useWebSearch: false },
+    medium: { estSeconds: 10.0, maxTokens: 8192,  temperature: 0.5, useWebSearch: true  },
+    high:   { estSeconds: 16.0, maxTokens: 16384, temperature: 0.6, useWebSearch: true  }
 };
 
 let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
@@ -78,13 +49,12 @@ window.joystickVector = { x: 0, y: 0 };
 window.isControlExited = false;
 
 /********************************************************************
- * 1. STARTUP FLOW: SPLASH -> DIRECT 3D MAP IF KEY ALREADY SAVED!
+ * 1. AUTO-LOGIN & STARTUP
  ********************************************************************/
 window.addEventListener('DOMContentLoaded', () => {
     setAIPower(currentAIPower);
     initJoystick();
 
-    // Check if ANY provider already has a saved API Key in localStorage
     let savedProvider = currentProvider;
     let savedKey = localStorage.getItem(PROVIDERS[savedProvider].storageKey) || '';
 
@@ -107,35 +77,28 @@ window.addEventListener('DOMContentLoaded', () => {
         if (prog) prog.style.width = '100%';
     }, 60);
 
-    // After "Welcome to ApexGen" splash finishes:
-    setTimeout(async () => {
+    setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.style.opacity = '0';
 
-        setTimeout(async () => {
+        setTimeout(() => {
             if (splash) splash.classList.add('hidden');
 
-            // If user ALREADY has a saved API key, skip the setup modal and open 3D World directly!
             if (currentApiKey && currentApiKey.length >= 15) {
                 const badge = document.getElementById('activeProviderBadge');
-                if (badge) badge.innerText = PROVIDERS[currentProvider].name;
+                if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
                 const ws = document.getElementById('workspace');
                 if (ws) ws.classList.remove('hidden');
                 init3DWorld();
 
-                // Silently refresh available models in background
                 if (currentProvider === 'gemini') {
                     fetchActiveGeminiModels(currentApiKey)
-                        .then(models => { verifiedGeminiModels = models; })
+                        .then(m => { verifiedGeminiModels = m; })
                         .catch(() => {});
                 }
             } else {
-                // Only show API Key Setup Modal if no key was previously saved
                 const auth = document.getElementById('authScreen');
-                if (auth) {
-                    auth.classList.remove('hidden');
-                    auth.classList.add('flex');
-                }
+                if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
                 selectProvider(currentProvider);
             }
         }, 550);
@@ -213,29 +176,15 @@ async function fetchActiveGeminiModels(apiKey) {
         .filter(m =>
             Array.isArray(m.supportedGenerationMethods) &&
             m.supportedGenerationMethods.includes('generateContent') &&
-            !m.name.includes('1.5') &&
-            !m.name.includes('2.5-flash') &&
-            !m.name.includes('embedding') &&
-            !m.name.includes('imagen') &&
-            !m.name.includes('veo') &&
-            !m.name.includes('tts') &&
-            !m.name.includes('audio')
+            !m.name.includes('1.5') && !m.name.includes('2.5-flash') &&
+            !m.name.includes('embedding') && !m.name.includes('imagen') && !m.name.includes('veo') && !m.name.includes('tts')
         )
         .map(m => m.name);
 
-    // Prioritize reliable high-capacity Flash & Pro models so high-demand spikes are avoided
     validModels.sort((a, b) => {
-        const rank = name => {
-            if (name.includes('3.8-flash')) return 100;
-            if (name.includes('3') && name.includes('flash')) return 95;
-            if (name.includes('2.0-flash')) return 90;
-            if (name.includes('flash')) return 85;
-            if (name.includes('pro')) return 80;
-            return 20;
-        };
+        const rank = n => n.includes('3.8-flash') ? 100 : n.includes('2.0-flash') ? 90 : n.includes('flash') ? 85 : 70;
         return rank(b) - rank(a);
     });
-
     return validModels.length > 0 ? validModels : ['models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
 }
 
@@ -261,13 +210,10 @@ async function verifyAndConnect() {
     try {
         if (currentProvider === 'gemini') {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
-        } else {
-            await callAIProvider("Reply // REPLY: OK", null, null, true, null);
         }
-
         if (status) status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Launching 3D World...</span>`;
         const badge = document.getElementById('activeProviderBadge');
-        if (badge) badge.innerText = PROVIDERS[currentProvider].name;
+        if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
 
         setTimeout(() => {
             const auth = document.getElementById('authScreen');
@@ -293,127 +239,78 @@ function openAuthSettings() {
 }
 
 /********************************************************************
- * 2. MASTER AI ARCHITECT SYSTEM PROMPT & MULTI-MODEL FAILOVER
+ * 2. DUAL-ENGINE PIPELINE:
+ *    - Gemini / Claude / OpenAI -> Writes Story, Quests, Rules & Logic
+ *    - Hugging Face (huggingface.js) -> Builds the 3D Objects & Scene
  ********************************************************************/
-const BASE_ENGINE_PROMPT = `
-You are the Master AAA 3D Game Engine Architect of "ApexGen".
-Your code executes inside an \`async\` JavaScript function with full \`await\` support in a live Three.js (r128) PBR 3D world.
+const STORY_AND_DIRECTOR_PROMPT = `
+You are the Creative Game Director & Story Writer AI (powered by Gemini/Claude/OpenAI) working with the Hugging Face 3D Builder inside "ApexGen".
+Analyze the user's request carefully.
 
-AVAILABLE ENGINE APIS & GLOBALS:
-- \`THREE\` (Three.js r128 + THREE.GLTFLoader + THREE.SkeletonUtils)
-- \`scene\`, \`camera\`, \`renderer\`, \`controls\`
-- \`window.AAA_ENGINE\`:
-  1. \`await window.AAA_ENGINE.spawnAAACharacter({ name: 'soldier' | 'robot' | 'xbot' | 'michelle', x: 0, z: 0, scale: 1.85, speed: 9.0, isPlayer: true, followCamera: true, tintColor: null })\`
-     -> Spawns a REAL bone-rigged, textured, animated 3D GLB character with Walk, Run, Idle, and Attack animations and 0.1cm solid collision!
-     -> Returns \`root\` with safe attachment nodes: \`root.head\`, \`root.chest\`, \`root.leftArm\`, \`root.rightArm\`, \`root.leftLeg\`, \`root.rightLeg\`, \`root.state\`.
-  2. \`window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 32, isPlayer: true, followCamera: true })\`
-     -> Spawns an aerodynamic supercar with suspension roll/pitch, steering, alloy rims, and solid collision.
-  3. \`window.AAA_ENGINE.spawnRealisticHouse(x, z, { width: 8, depth: 7, height: 5, wallType: 'brick' | 'stone' | 'wood' | 'building_facade', rotationY: 0 })\`
-     -> Spawns a textured architectural building with roof tiles, doorway, glowing windows, and solid collision.
-  4. \`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\`
-     -> Spawns a bark-textured organic tree with multi-cluster icosahedron foliage and trunk collision.
-  5. \`window.AAA_ENGINE.spawnStoneWell(x, z)\`
-     -> Spawns a cobblestone well with wooden winch and solid collision.
-  6. \`window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)\`
-     -> Creates high-resolution procedural PBR materials where \`type\` is \`'brick'\`, \`'stone'\`, \`'asphalt'\`, \`'wood'\`, \`'rooftile'\`, \`'bark'\`, \`'foliage'\`, or \`'building_facade'\`.
-- \`window.PHYSICS.addStaticCollider(meshOrGroup, 0.001)\` -> Makes any custom wall, pillar, or structure 100% solid at 0.1cm precision.
-- \`window.updateFunctions.push((delta, time) => { ... })\` -> Per-frame game loop for animations, enemy AI, projectiles, horror events, day/night cycles, or physics.
-- \`window.keysPressed\` -> Object tracking pressed keys ('w','a','s','d',' ','shift','e').
-- \`window.joystickVector\` -> \`{ x, y }\` (-1 to 1).
+STRICT INTENT MATCHING:
+- Identify the EXACT object, vehicle, character, or game the user wants!
+- NEVER confuse a car with a house! If the user asks for a car, the blueprint must ONLY describe building that exact car.
+- If the user asks for a game or story (e.g., horror game, FNAF, RPG, mission, racing), write an exciting short story/mission intro AND provide complete Three.js code for the requested objects, game rules, and story events.
 
-STRICT QUALITY RULES:
-1. NEVER build characters, humans, monsters, or soldiers out of primitive spheres, cones, or cylinders! Always use \`await window.AAA_ENGINE.spawnAAACharacter(...)\`!
-2. Always use \`window.AAA_ENGINE.material(...)\` for walls, roads, floors, and structures so every surface has rich PBR texture and bump mapping.
-3. Output ONLY valid, directly executable async JavaScript code starting with \`// REPLY: <short summary>\` on line 1. Do NOT wrap in JSON!
+AVAILABLE THREE.JS ENGINE TOOLS:
+- \`await window.AAA_ENGINE.spawnAAACharacter({ name: 'soldier'|'robot'|'xbot'|'michelle', x: 0, z: 0, scale: 1.85, speed: 9.0, isPlayer: true, followCamera: true })\` -> Use ONLY if a character/person/robot is requested.
+- \`window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 32, isPlayer: true, followCamera: true })\` -> Use ONLY if a car/vehicle is requested.
+- \`window.AAA_ENGINE.spawnRealisticHouse(x, z, opts)\` -> Use ONLY if a house/building is requested.
+- \`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\` -> Use ONLY if trees are requested.
+- \`window.AAA_ENGINE.material(type, repeatX, repeatY, tintHex)\` -> Textured PBR materials ('brick', 'stone', 'asphalt', 'wood', 'rooftile', 'bark', 'foliage', 'building_facade').
+- \`window.PHYSICS.addStaticCollider(mesh, 0.001)\` & \`window.PHYSICS.registerDynamicBody(group, radius)\`.
+- \`window.updateFunctions.push((delta, time) => { ... })\` -> Game loop.
+
+Output format:
+Line 1: \`// STORY: <Write a vivid 1-2 sentence story, mission objective, or description of what was created>\`
+Line 2+: Valid async Three.js JavaScript code that builds ONLY the requested item(s) and game mechanics. Do NOT wrap in JSON!
 `;
 
-function extractReplyAndCleanJS(rawText) {
-    if (!rawText) return { reply: 'Project built!', code: '' };
-    let text = rawText.trim();
-    let reply = 'Project built in 3D!';
-    const replyMatch = text.match(/\/\/\s*REPLY:\s*([^\n\r]+)/i);
-    if (replyMatch) reply = replyMatch[1].trim();
+function parseDirectorOutput(rawText) {
+    if (!rawText) return { story: '', code: '' };
+    const text = rawText.trim();
+    let story = 'Story & 3D world ready!';
+    const storyMatch = text.match(/\/\/\s*(?:STORY|REPLY|HF_BUILT):\s*([^\n\r]+)/i);
+    if (storyMatch) story = storyMatch[1].trim();
     const fenceMatch = text.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
     const code = fenceMatch ? fenceMatch[1].trim() : text.replace(/```(?:javascript|js)?/gi, '').replace(/```/g, '').trim();
-    return { reply, code };
+    return { story, code };
 }
 
-// Helper delay for instant retry on transient 503/429 spikes
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPing = false, abortSignal = null) {
+async function callStoryDirectorAI(userPrompt, imgBase64 = null, imgMime = null, abortSignal = null) {
     const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
-    const fullPrompt = isPing ? '// REPLY: OK' : `${BASE_ENGINE_PROMPT}\n\n${pwr.directive}\n\nUSER PROJECT REQUEST: ${userPrompt}`;
+    const fullPrompt = `${STORY_AND_DIRECTOR_PROMPT}\n\nUSER COMMAND: "${userPrompt}"`;
 
     if (currentProvider === 'gemini') {
         if (verifiedGeminiModels.length === 0) {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         }
-
-        // Build full fallback chain across all available Gemini models so "high demand" on one model immediately switches to the next!
-        const candidateModels = [...verifiedGeminiModels];
-        ['models/gemini-3.8-flash', 'models/gemini-2.0-flash', 'models/gemini-2.5-pro'].forEach(fallback => {
-            if (!candidateModels.includes(fallback)) candidateModels.push(fallback);
-        });
-
+        const candidates = [...verifiedGeminiModels, 'models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
         const parts = [{ text: fullPrompt }];
-        if (imgBase64 && imgMime) {
-            parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } });
-        }
+        if (imgBase64 && imgMime) parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } });
 
-        let lastError = null;
-        const stageEl = document.getElementById('liveStageText');
-
-        for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
-            const modelName = candidateModels[mIdx];
-            const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
-
-            // Attempt with Google Search Grounding first (if enabled), then fallback to standard generation
-            const trySearch = pwr.useWebSearch && !imgBase64 && !isPing && mIdx === 0;
-            const modes = trySearch ? [true, false] : [false];
-
-            for (const useSearch of modes) {
-                const payload = {
-                    contents: [{ parts }],
-                    generationConfig: {
-                        temperature: pwr.temperature,
-                        maxOutputTokens: pwr.maxTokens
-                    }
-                };
-                if (useSearch) payload.tools = [{ google_search: {} }];
-
+        for (const modelName of candidates) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify({
+                        contents: [{ parts }],
+                        generationConfig: { temperature: pwr.temperature, maxOutputTokens: pwr.maxTokens }
+                    }),
                     signal: abortSignal
                 });
                 const data = await res.json();
-
                 if (res.ok) {
-                    const rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    if (rawText.trim().length > 0) {
-                        return extractReplyAndCleanJS(rawText);
-                    }
+                    const txt = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                    if (txt.trim()) return parseDirectorOutput(txt);
                 }
-
-                const errMsg = data.error?.message || `HTTP ${res.status}`;
-                lastError = new Error(errMsg);
-
-                // If model is experiencing high demand (503 / 429 / overloaded), immediately switch to next model!
-                if (/high demand|overloaded|quota|429|503|unavailable|resource_exhausted/i.test(errMsg)) {
-                    if (stageEl) stageEl.innerText = `⚡ Switching to backup AI node (${mIdx + 2}/${candidateModels.length})...`;
-                    await sleep(250);
-                    break; // Break inner loop to try next modelName in candidateModels!
-                }
+            } catch (e) {
+                if (e.name === 'AbortError') throw e;
             }
         }
-        throw lastError || new Error('All Gemini models are currently busy. Please try again.');
-    }
-
-    if (currentProvider === 'openai') {
-        const userContent = [{ type: 'text', text: fullPrompt }];
-        if (imgBase64 && imgMime) userContent.push({ type: 'image_url', image_url: { url: `data:${imgMime};base64,${imgBase64}` } });
+    } else if (currentProvider === 'openai') {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApiKey}` },
@@ -421,19 +318,13 @@ async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPi
                 model: currentAIPower === 'low' ? 'gpt-4o-mini' : 'gpt-4o',
                 max_tokens: Math.min(4096, pwr.maxTokens),
                 temperature: pwr.temperature,
-                messages: [{ role: 'user', content: userContent }]
+                messages: [{ role: 'user', content: fullPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
-        return extractReplyAndCleanJS(data.choices[0].message.content);
-    }
-
-    if (currentProvider === 'claude') {
-        const contentArr = [];
-        if (imgBase64 && imgMime) contentArr.push({ type: 'image', source: { type: 'base64', media_type: imgMime, data: imgBase64 } });
-        contentArr.push({ type: 'text', text: fullPrompt });
+        if (res.ok) return parseDirectorOutput(data.choices[0].message.content);
+    } else if (currentProvider === 'claude') {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -444,20 +335,109 @@ async function callAIProvider(userPrompt, imgBase64 = null, imgMime = null, isPi
             },
             body: JSON.stringify({
                 model: 'claude-3-5-sonnet-latest',
-                max_tokens: Math.min(8192, pwr.maxTokens),
+                max_tokens: 4096,
                 temperature: pwr.temperature,
-                messages: [{ role: 'user', content: contentArr }]
+                messages: [{ role: 'user', content: fullPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
-        return extractReplyAndCleanJS(data.content[0].text);
+        if (res.ok) return parseDirectorOutput(data.content[0].text);
     }
+
+    return { story: `Building "${userPrompt}"...`, code: '' };
 }
 
 /********************************************************************
- * 3. CONTROLS, UNDO, CLEAN ALL, CODE VIEWER & LIVE EXECUTION
+ * 3. EXECUTION ORCHESTRATOR (STORY AI + HUGGING FACE 3D BUILDER)
+ ********************************************************************/
+async function sendPromptToAI() {
+    const input = document.getElementById('promptInput');
+    const text = input ? input.value.trim() : '';
+    if (!text && !attachedImageBase64) return;
+
+    const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
+    if (input) input.value = '';
+    clearAttachedImage();
+    appendChatMessage('user', text || '📷 [Image Build]');
+
+    const sendBtn = document.getElementById('sendBtn'), stopBtn = document.getElementById('stopBtn');
+    if (sendBtn) sendBtn.classList.add('hidden');
+    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
+
+    activeAbortController = new AbortController();
+    const t0 = startRealLiveTimer();
+    const stageEl = document.getElementById('liveStageText');
+
+    try {
+        // STEP 1: Story & Game Logic AI (Gemini / Claude / OpenAI)
+        if (stageEl) stageEl.innerText = `📖 [${PROVIDERS[currentProvider].name}] Writing story & game logic...`;
+        const directorRes = await callStoryDirectorAI(text, imgB64, imgMime, activeAbortController.signal);
+
+        // STEP 2: Hugging Face 3D Builder (huggingface.js) builds the 3D objects!
+        let finalCode = directorRes.code;
+        let builderBadge = PROVIDERS[currentProvider].name;
+
+        if (window.HUGGINGFACE_BUILDER && !imgB64) {
+            if (stageEl) stageEl.innerText = `🔨 [Hugging Face] Building 3D models for "${text}"...`;
+            try {
+                const hfRes = await window.HUGGINGFACE_BUILDER.generate3DCode(
+                    text,
+                    directorRes.story,
+                    currentAIPower,
+                    activeAbortController.signal
+                );
+                if (hfRes && hfRes.code && hfRes.code.length > 20) {
+                    finalCode = hfRes.code;
+                    builderBadge = `HuggingFace + ${PROVIDERS[currentProvider].name}`;
+                }
+            } catch (hfErr) {
+                if (hfErr.name === 'AbortError') throw hfErr;
+                // If HF router is busy, seamlessly use the Director's 3D code so it never fails!
+            }
+        }
+
+        const dt = stopRealLiveTimer(t0);
+
+        if (finalCode && finalCode.trim() !== '') {
+            await execute3DCodeSafely(
+                finalCode,
+                `📖 <strong>Story (${PROVIDERS[currentProvider].name}):</strong> ${directorRes.story}<br>🔨 <strong>Built by ${builderBadge}</strong> in ${dt}s`
+            );
+        } else {
+            appendChatMessage('ai', `📖 ${directorRes.story}`);
+        }
+    } catch (err) {
+        const dt = stopRealLiveTimer(t0);
+        appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Stopped at ${dt}s.` : `⚠️ Error: ${err.message}`);
+    } finally {
+        activeAbortController = null;
+        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
+        if (sendBtn) sendBtn.classList.remove('hidden');
+    }
+}
+
+async function execute3DCodeSafely(codeString, replyMsg) {
+    const prevScene = [...scene.children];
+    const prevFns = [...window.updateFunctions];
+    window.isControlExited = false;
+
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
+    await execFn(THREE, scene, camera, renderer, controls);
+
+    const newObjects = scene.children.filter(c => !prevScene.includes(c));
+    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
+    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
+
+    buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
+    const ab = document.getElementById('actionButtons');
+    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
+    appendChatMessage('ai', replyMsg);
+}
+
+/********************************************************************
+ * 4. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, SAVE & INSTALL
  ********************************************************************/
 function initJoystick() {
     const zone = document.getElementById('joystickZone');
@@ -580,10 +560,7 @@ function clearAttachedImage() {
 function startRealLiveTimer() {
     const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
     const bar = document.getElementById('liveTimerBar');
-    const stageEl = document.getElementById('liveStageText');
     if (bar) { bar.classList.remove('hidden'); bar.classList.add('flex'); }
-    if (stageEl) stageEl.innerText = `[${currentAIPower.toUpperCase()}] Synthesizing 3D world...`;
-
     const startTime = performance.now();
     clearInterval(buildTimerInterval);
     buildTimerInterval = setInterval(() => {
@@ -610,56 +587,6 @@ function stopRealLiveTimer(startTime) {
 }
 
 function stopAICoding() { if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; } }
-
-async function execute3DCodeSafely(codeString, replyMsg) {
-    const prevScene = [...scene.children];
-    const prevFns = [...window.updateFunctions];
-    window.isControlExited = false;
-
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
-    await execFn(THREE, scene, camera, renderer, controls);
-
-    const newObjects = scene.children.filter(c => !prevScene.includes(c));
-    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
-    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
-
-    buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
-    const ab = document.getElementById('actionButtons');
-    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
-    appendChatMessage('ai', replyMsg);
-}
-
-async function sendPromptToAI() {
-    const input = document.getElementById('promptInput');
-    const text = input ? input.value.trim() : '';
-    if (!text && !attachedImageBase64) return;
-    const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
-    if (input) input.value = '';
-    clearAttachedImage();
-    appendChatMessage('user', text || '📷 [Image Project]');
-
-    const sendBtn = document.getElementById('sendBtn'), stopBtn = document.getElementById('stopBtn');
-    if (sendBtn) sendBtn.classList.add('hidden');
-    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
-
-    activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer();
-    try {
-        const res = await callAIProvider(text, imgB64, imgMime, false, activeAbortController.signal);
-        const dt = stopRealLiveTimer(t0);
-        if (res.code) {
-            await execute3DCodeSafely(res.code, `✅ Built in ${dt}s [${currentAIPower.toUpperCase()}]: ${res.reply}`);
-        }
-    } catch (err) {
-        const dt = stopRealLiveTimer(t0);
-        appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Stopped at ${dt}s.` : `⚠️ Error: ${err.message}`);
-    } finally {
-        activeAbortController = null;
-        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
-        if (sendBtn) sendBtn.classList.remove('hidden');
-    }
-}
 
 function appendChatMessage(role, msg) {
     const h = document.getElementById('chatHistory');
