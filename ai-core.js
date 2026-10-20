@@ -1,7 +1,8 @@
 /********************************************************************
- * FILE: ai-core.js - Dual-Chat Engine Controller
- * - Top Chat (Hugging Face): "say something to make or build" -> Builds 3D
- * - Bottom Chat (Gemini/OpenAI/Claude): "make the story" -> Makes Story
+ * FILE: ai-core.js
+ * 1. Top Chat -> Calls REAL_3D_AI_BUILDER (Fal.ai or Tripo3D) to generate real .GLB models!
+ * 2. Bottom Chat -> Uses Gemini / Claude / OpenAI EXCLUSIVELY to build & run
+ *    the Interactive Game Story, Chapters, Live Quests & Atmosphere!
  ********************************************************************/
 const PROVIDERS = {
     gemini: {
@@ -24,24 +25,22 @@ const PROVIDERS = {
     }
 };
 
-const AI_POWER_CONFIG = {
-    low:    { estSeconds: 4.5,  maxTokens: 3072,  temperature: 0.3, useWebSearch: false },
-    medium: { estSeconds: 9.0,  maxTokens: 8192,  temperature: 0.5, useWebSearch: true  },
-    high:   { estSeconds: 14.0, maxTokens: 16384, temperature: 0.6, useWebSearch: true  }
-};
-
 let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
-let currentAIPower = localStorage.getItem('apexgen_ai_power') || 'high';
+let current3DProvider = localStorage.getItem('apexgen_3d_provider') || 'fal';
 let currentApiKey = '';
-let currentHfKey = '';
 let verifiedGeminiModels = [];
 let buildHistoryStack = [];
 let currentModalMode = 'save';
 let projectIconDataUrl = '';
-let attachedImageBase64 = null;
-let attachedImageMimeType = null;
+let attachedImageDataUrl = null;
 let buildTimerInterval = null;
 let activeAbortController = null;
+
+// Active Story State (Driven exclusively by Gemini / Claude / OpenAI)
+let activeStoryCampaign = null;
+let currentChapterIndex = 0;
+let storyQuestProgress = 0;
+let prevAttackState = false;
 
 window.updateFunctions = [];
 window.createdObjects = [];
@@ -50,35 +49,24 @@ window.joystickVector = { x: 0, y: 0 };
 window.isControlExited = false;
 
 /********************************************************************
- * 1. AUTO-LOGIN & STARTUP
+ * 1. STARTUP & AUTO-LOGIN
  ********************************************************************/
 window.addEventListener('DOMContentLoaded', () => {
-    setAIPower(currentAIPower);
     initJoystick();
 
     let savedProvider = currentProvider;
     let savedKey = localStorage.getItem(PROVIDERS[savedProvider].storageKey) || '';
-
     if (!savedKey || savedKey.length < 15) {
         for (const p of ['gemini', 'openai', 'claude']) {
             const k = localStorage.getItem(PROVIDERS[p].storageKey) || '';
-            if (k && k.length >= 15) {
-                savedProvider = p;
-                savedKey = k;
-                break;
-            }
+            if (k && k.length >= 15) { savedProvider = p; savedKey = k; break; }
         }
     }
-
     currentProvider = savedProvider;
     currentApiKey = savedKey;
-    currentHfKey = window.HUGGINGFACE_BUILDER ? window.HUGGINGFACE_BUILDER.getToken() : (localStorage.getItem('apexgen_key_hf') || '');
 
-    const hfInput = document.getElementById('hfKeyInput');
-    if (hfInput && currentHfKey) hfInput.value = currentHfKey;
-
-    const storyProvName = document.getElementById('storyProviderName');
-    if (storyProvName) storyProvName.innerText = PROVIDERS[currentProvider].name;
+    selectProvider(currentProvider);
+    select3DProvider(current3DProvider);
 
     setTimeout(() => {
         const prog = document.getElementById('splashProgress');
@@ -91,13 +79,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             if (splash) splash.classList.add('hidden');
+            const key3D = window.REAL_3D_AI_BUILDER.getKey(current3DProvider);
 
-            if (currentApiKey && currentApiKey.length >= 15) {
-                const badge = document.getElementById('activeProviderBadge');
-                if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
+            // Auto-login if both Story AI key and 3D Builder key (Fal or Tripo) are saved
+            if (currentApiKey && currentApiKey.length >= 15 && key3D && key3D.length >= 10) {
+                updateTopBadges();
                 const ws = document.getElementById('workspace');
                 if (ws) ws.classList.remove('hidden');
                 init3DWorld();
+                initStoryQuestTrackerLoop();
 
                 if (currentProvider === 'gemini') {
                     fetchActiveGeminiModels(currentApiKey)
@@ -107,7 +97,6 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 const auth = document.getElementById('authScreen');
                 if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
-                selectProvider(currentProvider);
             }
         }, 550);
     }, 1650);
@@ -121,16 +110,18 @@ window.addEventListener('keyup', e => {
     window.keysPressed[e.key.toLowerCase()] = false;
 });
 
-function setAIPower(level) {
-    currentAIPower = level;
-    localStorage.setItem('apexgen_ai_power', level);
-    ['low', 'medium', 'high'].forEach(p => {
-        const btn = document.getElementById(`pwr-${p}`);
-        if (!btn) return;
-        btn.className = p === level
-            ? 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-gradient-to-r from-sky-500 to-purple-600 text-white shadow'
-            : 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white';
-    });
+function updateTopBadges() {
+    const p3dName = window.REAL_3D_AI_BUILDER.PROVIDERS_3D[current3DProvider].name;
+    const storyName = PROVIDERS[currentProvider].name;
+
+    const topBadge = document.getElementById('activeProviderBadge');
+    if (topBadge) topBadge.innerText = `${storyName} + ${p3dName}`;
+
+    const storyProvName = document.getElementById('storyProviderName');
+    if (storyProvName) storyProvName.innerText = storyName;
+
+    const b3dName = document.getElementById('builder3dName');
+    if (b3dName) b3dName.innerText = p3dName;
 }
 
 function selectProvider(provider) {
@@ -151,15 +142,46 @@ function selectProvider(provider) {
         input.value = savedKey;
         currentApiKey = savedKey;
     }
-    const hfInput = document.getElementById('hfKeyInput');
-    if (hfInput) {
-        currentHfKey = window.HUGGINGFACE_BUILDER ? window.HUGGINGFACE_BUILDER.getToken() : (localStorage.getItem('apexgen_key_hf') || '');
-        hfInput.value = currentHfKey;
-    }
     const link = document.getElementById('getKeyLink');
     if (link) link.href = config.keyUrl;
-    const storyProvName = document.getElementById('storyProviderName');
-    if (storyProvName) storyProvName.innerText = config.name;
+    updateTopBadges();
+}
+
+function select3DProvider(provider3d) {
+    current3DProvider = provider3d;
+    localStorage.setItem('apexgen_3d_provider', provider3d);
+    if (window.REAL_3D_AI_BUILDER) {
+        window.REAL_3D_AI_BUILDER.currentProvider = provider3d;
+    }
+
+    // Update Setup Modal Buttons
+    ['fal', 'tripo'].forEach(p => {
+        const btn = document.getElementById(`btn3d-${p}`);
+        if (btn) {
+            btn.className = p === provider3d
+                ? 'flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-amber-500/20 border-amber-400 text-white shadow-lg shadow-amber-500/20'
+                : 'flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
+        }
+        const chatBtn = document.getElementById(`chat3d-${p}`);
+        if (chatBtn) {
+            chatBtn.className = p === provider3d
+                ? 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-amber-500 text-slate-950 shadow'
+                : 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white';
+        }
+    });
+
+    const cfg3d = window.REAL_3D_AI_BUILDER.PROVIDERS_3D[provider3d];
+    const inp3d = document.getElementById('builder3dKeyInput');
+    if (inp3d && cfg3d) {
+        inp3d.placeholder = cfg3d.placeholder;
+        inp3d.value = window.REAL_3D_AI_BUILDER.getKey(provider3d);
+    }
+    const link3d = document.getElementById('get3dKeyLink');
+    if (link3d && cfg3d) link3d.href = cfg3d.keyUrl;
+    const txt3d = document.getElementById('get3dKeyText');
+    if (txt3d && cfg3d) txt3d.innerText = cfg3d.btnText;
+
+    updateTopBadges();
 }
 
 function toggleKeyVisibility(inputId, iconId) {
@@ -171,18 +193,12 @@ function toggleKeyVisibility(inputId, iconId) {
 }
 
 function handleKeyInput(val) {
-    const trimmed = val.trim();
-    currentApiKey = trimmed;
-    localStorage.setItem(PROVIDERS[currentProvider].storageKey, trimmed);
+    currentApiKey = val.trim();
+    localStorage.setItem(PROVIDERS[currentProvider].storageKey, currentApiKey);
 }
 
-function handleHfKeyInput(val) {
-    if (window.HUGGINGFACE_BUILDER) {
-        currentHfKey = window.HUGGINGFACE_BUILDER.setToken(val);
-    } else {
-        currentHfKey = val.trim().replace(/^Hf_/, 'hf_');
-        localStorage.setItem('apexgen_key_hf', currentHfKey);
-    }
+function handle3DKeyInput(val) {
+    window.REAL_3D_AI_BUILDER.setKey(current3DProvider, val);
 }
 
 async function fetchActiveGeminiModels(apiKey) {
@@ -207,42 +223,42 @@ async function fetchActiveGeminiModels(apiKey) {
 }
 
 async function verifyAndConnect() {
-    const input = document.getElementById('apiKeyInput');
-    const hfInput = document.getElementById('hfKeyInput');
-    const key = input ? input.value.trim() : currentApiKey;
-    const hfVal = hfInput ? hfInput.value.trim() : currentHfKey;
+    const storyKey = (document.getElementById('apiKeyInput')?.value || '').trim();
+    const key3d = (document.getElementById('builder3dKeyInput')?.value || '').trim();
     const status = document.getElementById('authStatus');
     const btn = document.getElementById('connectBtn');
+    const p3dName = window.REAL_3D_AI_BUILDER.PROVIDERS_3D[current3DProvider].name;
 
-    if (!key || key.length < 15) {
+    if (!storyKey || storyKey.length < 15) {
         if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter your ${PROVIDERS[currentProvider].name} API Key!</span>`;
         return;
     }
 
-    currentApiKey = key;
-    localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
-    if (hfVal) handleHfKeyInput(hfVal);
+    if (!key3d || key3d.length < 10) {
+        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i> <span class="text-amber-400">Please enter your ${p3dName} API Key!</span>`;
+        return;
+    }
+
+    handleKeyInput(storyKey);
+    handle3DKeyInput(key3d);
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting...</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Verifying Keys...</span>`;
     }
 
     try {
         if (currentProvider === 'gemini') {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         }
-        const badge = document.getElementById('activeProviderBadge');
-        if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
-        const storyProvName = document.getElementById('storyProviderName');
-        if (storyProvName) storyProvName.innerText = PROVIDERS[currentProvider].name;
-
+        updateTopBadges();
         setTimeout(() => {
             const auth = document.getElementById('authScreen');
             if (auth) { auth.classList.add('hidden'); auth.classList.remove('flex'); }
             const ws = document.getElementById('workspace');
             if (ws) ws.classList.remove('hidden');
             init3DWorld();
+            initStoryQuestTrackerLoop();
         }, 200);
     } catch (err) {
         if (status) status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
@@ -256,62 +272,58 @@ async function verifyAndConnect() {
 
 function openAuthSettings() {
     selectProvider(currentProvider);
+    select3DProvider(current3DProvider);
     const auth = document.getElementById('authScreen');
     if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
 }
 
 /********************************************************************
- * 2. TOP CHAT HANDLER: HUGGING FACE 3D BUILDER ("say something to make or build")
+ * 2. TOP CHAT: REAL 3D BUILDER (FAL.AI OR TRIPO3D ONLY!)
  ********************************************************************/
-async function sendHfBuildPrompt() {
+async function send3DBuildPrompt() {
     const input = document.getElementById('hfPromptInput');
     const text = input ? input.value.trim() : '';
-    if (!text && !attachedImageBase64) return;
+    if (!text && !attachedImageDataUrl) return;
 
-    const imgB64 = attachedImageBase64, imgMime = attachedImageMimeType;
+    const imgDataUrl = attachedImageDataUrl;
     if (input) input.value = '';
     clearAttachedImage();
-    appendChatMessage('hf-user', text || '📷 [3D Build from Image]');
+
+    const p3dName = window.REAL_3D_AI_BUILDER.PROVIDERS_3D[current3DProvider].name;
+    appendChatMessage('3d-user', `[${p3dName}] ${text || '📷 Image-to-3D'}`);
 
     const stopBtn = document.getElementById('stopBtn');
     if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
 
     activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer();
+    const t0 = startRealLiveTimer(25.0);
     const stageEl = document.getElementById('liveStageText');
-    if (stageEl) stageEl.innerText = `🔨 [Hugging Face] Building "${text}" in 3D...`;
 
     try {
-        let codeToRun = '';
-        let builderLabel = 'Hugging Face 3D';
-
-        // 1. Try Hugging Face 3D Builder first
-        if (window.HUGGINGFACE_BUILDER && !imgB64) {
-            const hfRes = await window.HUGGINGFACE_BUILDER.generate3DCode(text, currentAIPower, activeAbortController.signal);
-            if (hfRes && hfRes.code && hfRes.code.length > 20) {
-                codeToRun = hfRes.code;
-                builderLabel = hfRes.modelUsed;
-            }
-        }
-
-        // 2. If HF returned empty or image was attached, use the AI 3D Code Generator
-        if (!codeToRun || codeToRun.length < 20) {
-            if (stageEl) stageEl.innerText = `🔨 Synthesizing 3D meshes for "${text}"...`;
-            const backupRes = await callAIFor3DBuild(text, imgB64, imgMime, activeAbortController.signal);
-            codeToRun = backupRes.code;
-        }
+        const result = await window.REAL_3D_AI_BUILDER.buildAndSpawnReal3DModel(
+            text,
+            imgDataUrl,
+            (statusText) => { if (stageEl) stageEl.innerText = statusText; },
+            activeAbortController.signal
+        );
 
         const dt = stopRealLiveTimer(t0);
-        await execute3DCodeWithGuarantee(codeToRun, text, `🔨 <strong>Built (${builderLabel}) in ${dt}s:</strong> "${text}" is now live on the 3D map!`);
+
+        buildHistoryStack.push({
+            code: `// [${p3dName}] Generated Real 3D Model (.glb) for: "${text}"\n// GLB URL: ${result.glbUrl}`,
+            objects: [result.root],
+            updateFns: result.updateFn ? [result.updateFn] : []
+        });
+
+        const ab = document.getElementById('actionButtons');
+        if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
+
+        appendChatMessage('3d-ai', `✅ <strong>${p3dName} Built 3D Model (${dt}s):</strong> "${text || 'Image Model'}" spawned as a real <code>.glb</code> in the 3D world!`);
     } catch (err) {
         const dt = stopRealLiveTimer(t0);
-        if (err.name === 'AbortError') {
-            appendChatMessage('ai', `🛑 Build stopped at ${dt}s.`);
-        } else {
-            // Even on API error, guarantee the user gets their requested 3D object on the map!
-            const fallbackCode = window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(text);
-            await execute3DCodeWithGuarantee(fallbackCode, text, `🔨 <strong>Built in ${dt}s:</strong> Spawned "${text}" on the 3D map!`);
-        }
+        appendChatMessage('3d-ai', err.name === 'AbortError'
+            ? `🛑 3D generation stopped at ${dt}s.`
+            : `⚠️ <strong>${p3dName} Error:</strong> ${err.message}`);
     } finally {
         activeAbortController = null;
         if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
@@ -319,114 +331,107 @@ async function sendHfBuildPrompt() {
 }
 
 /********************************************************************
- * 3. BOTTOM CHAT HANDLER: GEMINI / OPENAI / CLAUDE ("make the story")
+ * 3. BOTTOM CHAT: PRACTICAL INTERACTIVE STORY ENGINE
+ *    (Powered exclusively by Gemini / Claude / OpenAI!)
  ********************************************************************/
+const STORY_ENGINE_SYSTEM_PROMPT = `
+You are the Interactive Game Story & Quest Director inside "ApexGen".
+Your ONLY job is to create a playable, multi-chapter interactive story campaign for the user's 3D game!
+Do NOT write 3D mesh generation code. Instead, output a valid JSON object representing an interactive 3-chapter game story that will run live in the 3D world HUD and control the 3D sky/fog/lighting atmosphere!
+
+Return ONLY raw valid JSON (no markdown fences) matching this exact structure:
+{
+  "gameTitle": "Title of the Story",
+  "skyColor": "#1a0505",
+  "fogDensity": 0.004,
+  "chapters": [
+    {
+      "chapterLabel": "CHAPTER 1",
+      "title": "Chapter Title",
+      "narrative": "2 sentences of dramatic story narration or character dialogue.",
+      "objectiveText": "Explore the area (Walk 15m) or Attack 3 times",
+      "objectiveType": "move",
+      "targetAmount": 15,
+      "choices": [
+        { "label": "Path of Fury", "nextChapter": 1 },
+        { "label": "Shadow Stealth", "nextChapter": 1 }
+      ]
+    },
+    {
+      "chapterLabel": "CHAPTER 2",
+      "title": "The Confrontation",
+      "narrative": "Dramatic continuation of the story.",
+      "objectiveText": "Unleash 3 Attacks (Press ATTACK)",
+      "objectiveType": "attack",
+      "targetAmount": 3,
+      "choices": [
+        { "label": "Strike Final Blow", "nextChapter": 2 },
+        { "label": "Show Mercy", "nextChapter": 2 }
+      ]
+    },
+    {
+      "chapterLabel": "FINALE",
+      "title": "Victory",
+      "narrative": "Epic conclusion of the story.",
+      "objectiveText": "Leap in Victory (Press JUMP 2 times)",
+      "objectiveType": "jump",
+      "targetAmount": 2,
+      "choices": []
+    }
+  ]
+}
+Note: "objectiveType" MUST be one of: "move", "attack", or "jump".
+`;
+
 async function sendStoryPrompt() {
     const input = document.getElementById('storyPromptInput');
     const text = input ? input.value.trim() : '';
     if (!text) return;
 
     input.value = '';
-    appendChatMessage('story-user', text);
+    const storyAI = PROVIDERS[currentProvider].name;
+    appendChatMessage('story-user', `[${storyAI}] ${text}`);
 
     const stopBtn = document.getElementById('stopBtn');
     if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
 
     activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer();
+    const t0 = startRealLiveTimer(8.0);
     const stageEl = document.getElementById('liveStageText');
-    if (stageEl) stageEl.innerText = `📖 [${PROVIDERS[currentProvider].name}] Writing story & world events...`;
+    if (stageEl) stageEl.innerText = `📖 [${storyAI}] Crafting playable story & quests...`;
 
     try {
-        const storyRes = await callStoryAI(text, activeAbortController.signal);
+        const campaignData = await requestStoryCampaignJSON(text, activeAbortController.signal);
         const dt = stopRealLiveTimer(t0);
 
-        if (storyRes.code && storyRes.code.length > 15) {
-            try {
-                await execute3DCodeSafely(storyRes.code);
-            } catch (e) {}
-        }
+        launchPlayableStoryCampaign(campaignData);
 
-        appendChatMessage('story-ai', `📖 <strong>${PROVIDERS[currentProvider].name} Story (${dt}s):</strong>${storyRes.story}`);
+        buildHistoryStack.push({
+            code: `// [${storyAI} Story Campaign]\n` + JSON.stringify(campaignData, null, 2),
+            objects: [],
+            updateFns: []
+        });
+
+        appendChatMessage('story-ai', `📖 <strong>${storyAI} Story Active (${dt}s):</strong> "${campaignData.gameTitle}" launched! Complete the live mission objectives on screen!`);
     } catch (err) {
         const dt = stopRealLiveTimer(t0);
-        appendChatMessage('ai', err.name === 'AbortError' ? `🛑 Story stopped at ${dt}s.` : `⚠️ Story Error: ${err.message}`);
+        appendChatMessage('story-ai', err.name === 'AbortError'
+            ? `🛑 Story stopped at ${dt}s.`
+            : `⚠️ <strong>${storyAI} Error:</strong> ${err.message}`);
     } finally {
         activeAbortController = null;
         if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
     }
 }
 
-/********************************************************************
- * 4. GUARANTEED 3D EXECUTION (NEVER LEAVES THE 3D MAP EMPTY!)
- ********************************************************************/
-async function execute3DCodeWithGuarantee(codeString, userPromptText, successMsg) {
-    const prevScene = [...scene.children];
-    const prevFns = [...window.updateFunctions];
-    window.isControlExited = false;
-
-    try {
-        if (codeString && codeString.trim().length > 0) {
-            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
-            await execFn(THREE, scene, camera, renderer, controls);
-        }
-    } catch (execErr) {
-        console.warn('AI code runtime fallback triggered:', execErr);
-    }
-
-    let newObjects = scene.children.filter(c => !prevScene.includes(c));
-
-    // GUARANTEE: If the AI code failed to add any visible 3D object to the scene, run our instant 3D builder!
-    if (newObjects.length === 0 && window.HUGGINGFACE_BUILDER) {
-        const guaranteedCode = window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(userPromptText);
-        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-        const fallbackFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', guaranteedCode);
-        await fallbackFn(THREE, scene, camera, renderer, controls);
-        codeString = guaranteedCode;
-        newObjects = scene.children.filter(c => !prevScene.includes(c));
-    }
-
-    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
-    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
-
-    buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
-    const ab = document.getElementById('actionButtons');
-    if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
-    appendChatMessage('hf-ai', successMsg);
-}
-
-async function execute3DCodeSafely(codeString, replyMsg = null) {
-    const prevScene = [...scene.children];
-    const prevFns = [...window.updateFunctions];
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', codeString);
-    await execFn(THREE, scene, camera, renderer, controls);
-
-    const newObjects = scene.children.filter(c => !prevScene.includes(c));
-    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
-    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
-
-    if (newObjects.length > 0 || newFns.length > 0) {
-        buildHistoryStack.push({ code: codeString, objects: newObjects, updateFns: newFns });
-        const ab = document.getElementById('actionButtons');
-        if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
-    }
-    if (replyMsg) appendChatMessage('ai', replyMsg);
-}
-
-/********************************************************************
- * 5. AI API CALLERS (3D BUILDER & STORY WRITER)
- ********************************************************************/
-async function callAIFor3DBuild(userPrompt, imgBase64, imgMime, abortSignal) {
-    const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
-    const prompt = `${window.HUGGINGFACE_BUILDER.BUILDER_SYSTEM_PROMPT}\n\nUSER BUILD REQUEST: "${userPrompt}"`;
+async function requestStoryCampaignJSON(userStoryPrompt, abortSignal) {
+    const fullPrompt = `${STORY_ENGINE_SYSTEM_PROMPT}\n\nUSER STORY REQUEST: "${userStoryPrompt}"`;
+    let rawResponse = '';
 
     if (currentProvider === 'gemini') {
         if (verifiedGeminiModels.length === 0) verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         const candidates = [...verifiedGeminiModels, 'models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
-        const parts = [{ text: prompt }];
-        if (imgBase64 && imgMime) parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } });
+        let lastErr = null;
 
         for (const modelName of candidates) {
             try {
@@ -435,75 +440,37 @@ async function callAIFor3DBuild(userPrompt, imgBase64, imgMime, abortSignal) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts }],
-                        generationConfig: { temperature: pwr.temperature, maxOutputTokens: pwr.maxTokens }
+                        contents: [{ parts: [{ text: fullPrompt }] }],
+                        generationConfig: { temperature: 0.65, maxOutputTokens: 2048 }
                     }),
                     signal: abortSignal
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    const txt = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    if (txt.trim()) return { code: window.HUGGINGFACE_BUILDER.cleanCode(txt) };
+                    rawResponse = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                    if (rawResponse.trim()) break;
+                } else {
+                    lastErr = new Error(data.error?.message || 'Gemini Error');
                 }
             } catch (e) {
                 if (e.name === 'AbortError') throw e;
+                lastErr = e;
             }
         }
-    }
-    return { code: window.HUGGINGFACE_BUILDER.buildInstantFallbackCode(userPrompt) };
-}
-
-async function callStoryAI(storyPrompt, abortSignal) {
-    const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
-    const sysPrompt = `You are the Story & Game Lore Director (${PROVIDERS[currentProvider].name}) inside "ApexGen".
-Write an engaging, dramatic story, quest objective, or dialogue based on the user's request: "${storyPrompt}".
-Optionally, after the story, you may include Three.js atmosphere code (lighting/fog) inside a \`\`\`javascript block.
-Start line 1 with: // STORY: <your dramatic story text>`;
-
-    if (currentProvider === 'gemini') {
-        if (verifiedGeminiModels.length === 0) verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
-        const candidates = [...verifiedGeminiModels, 'models/gemini-3.8-flash', 'models/gemini-2.0-flash'];
-        for (const modelName of candidates) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: sysPrompt }] }],
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-                    }),
-                    signal: abortSignal
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    const raw = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    const m = raw.match(/\/\/\s*STORY:\s*([^\n\r]+)/i);
-                    const fence = raw.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
-                    return {
-                        story: m ? m[1].trim() : raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(),
-                        code: fence ? fence[1].trim() : ''
-                    };
-                }
-            } catch (e) {
-                if (e.name === 'AbortError') throw e;
-            }
-        }
+        if (!rawResponse) throw lastErr || new Error('Gemini Story request failed.');
     } else if (currentProvider === 'openai') {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApiKey}` },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: sysPrompt }]
+                messages: [{ role: 'user', content: fullPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (res.ok) {
-            const raw = data.choices[0].message.content;
-            return { story: raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(), code: '' };
-        }
+        if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
+        rawResponse = data.choices[0].message.content;
     } else if (currentProvider === 'claude') {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -515,23 +482,136 @@ Start line 1 with: // STORY: <your dramatic story text>`;
             },
             body: JSON.stringify({
                 model: 'claude-3-5-sonnet-latest',
-                max_tokens: 1024,
-                messages: [{ role: 'user', content: sysPrompt }]
+                max_tokens: 2048,
+                messages: [{ role: 'user', content: fullPrompt }]
             }),
             signal: abortSignal
         });
         const data = await res.json();
-        if (res.ok) {
-            const raw = data.content[0].text;
-            return { story: raw.replace(/```[\s\S]*?```/g, '').replace(/\/\/\s*STORY:/i, '').trim(), code: '' };
-        }
+        if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
+        rawResponse = data.content[0].text;
     }
 
-    return { story: storyPrompt, code: '' };
+    const cleaned = rawResponse.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('Story AI did not return a valid campaign structure.');
+    }
+    return JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1));
+}
+
+// Applies the Story Campaign to the 3D World Atmosphere & Interactive On-Screen Quest HUD
+function launchPlayableStoryCampaign(campaign) {
+    activeStoryCampaign = campaign;
+    currentChapterIndex = 0;
+    storyQuestProgress = 0;
+
+    // 1. Dynamically change 3D World Sky & Fog Atmosphere to match the Story!
+    if (scene && campaign.skyColor) {
+        try {
+            const col = new THREE.Color(campaign.skyColor);
+            scene.background = col;
+            if (scene.fog) {
+                scene.fog.color = col;
+                if (campaign.fogDensity) scene.fog.density = campaign.fogDensity;
+            }
+        } catch (e) {}
+    }
+
+    renderCurrentStoryChapter();
+}
+
+function renderCurrentStoryChapter() {
+    const hud = document.getElementById('storyGameHud');
+    if (!activeStoryCampaign || !activeStoryCampaign.chapters || !hud) return;
+
+    const chap = activeStoryCampaign.chapters[currentChapterIndex];
+    if (!chap) return;
+
+    storyQuestProgress = 0;
+    hud.classList.remove('hidden');
+    hud.classList.add('flex');
+
+    document.getElementById('hudStoryChapter').innerText = chap.chapterLabel || `CHAPTER ${currentChapterIndex + 1}`;
+    document.getElementById('hudStoryTitle').innerText = `${activeStoryCampaign.gameTitle}: ${chap.title}`;
+    document.getElementById('hudStoryNarrative').innerText = `"${chap.narrative}"`;
+    document.getElementById('hudQuestObjective').innerText = chap.objectiveText || 'Complete objective in 3D world';
+    document.getElementById('hudQuestProgressText').innerText = '0%';
+    document.getElementById('hudQuestBar').style.width = '0%';
+
+    const choicesBox = document.getElementById('hudStoryChoices');
+    choicesBox.innerHTML = '';
+
+    (chap.choices || []).forEach(ch => {
+        const btn = document.createElement('button');
+        btn.className = 'px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/40 border border-sky-400/40 text-sky-200 font-bold text-[10px] transition-all truncate';
+        btn.innerHTML = `<i class="fa-solid fa-Compass mr-1"></i> ${ch.label}`;
+        btn.onclick = () => {
+            const nextIdx = ch.nextChapter !== undefined ? ch.nextChapter : currentChapterIndex + 1;
+            if (nextIdx < activeStoryCampaign.chapters.length) {
+                currentChapterIndex = nextIdx;
+                renderCurrentStoryChapter();
+            } else {
+                appendChatMessage('story-ai', `🏆 <strong>Story Completed:</strong> You finished "${activeStoryCampaign.gameTitle}"!`);
+            }
+        };
+        choicesBox.appendChild(btn);
+    });
+}
+
+function closeStoryHud() {
+    const hud = document.getElementById('storyGameHud');
+    if (hud) { hud.classList.add('hidden'); hud.classList.remove('flex'); }
+    activeStoryCampaign = null;
+}
+
+// Tracks player movement, attacks & jumps in real time to advance the Story Quests practically!
+function initStoryQuestTrackerLoop() {
+    setInterval(() => {
+        if (!activeStoryCampaign || !activeStoryCampaign.chapters) return;
+        const chap = activeStoryCampaign.chapters[currentChapterIndex];
+        if (!chap) return;
+
+        const target = Math.max(1, chap.targetAmount || 10);
+        const type = (chap.objectiveType || 'move').toLowerCase();
+
+        const isMoving = Boolean(
+            window.keysPressed['w'] || window.keysPressed['a'] ||
+            window.keysPressed['s'] || window.keysPressed['d'] ||
+            Math.hypot(window.joystickVector.x, window.joystickVector.y) > 0.25
+        );
+
+        if (type === 'move' && isMoving) {
+            storyQuestProgress += 0.35;
+        } else if (type === 'attack' && window.keysPressed['e'] && !prevAttackState) {
+            storyQuestProgress += 1;
+        } else if (type === 'jump' && window.keysPressed[' '] && !prevAttackState) {
+            storyQuestProgress += 1;
+        }
+        prevAttackState = Boolean(window.keysPressed['e'] || window.keysPressed[' ']);
+
+        const pct = Math.min(100, Math.round((storyQuestProgress / target) * 100));
+        const bar = document.getElementById('hudQuestBar');
+        const txt = document.getElementById('hudQuestProgressText');
+        if (bar) bar.style.width = `${pct}%`;
+        if (txt) txt.innerText = `${pct}%`;
+
+        if (pct >= 100) {
+            if (currentChapterIndex + 1 < activeStoryCampaign.chapters.length) {
+                currentChapterIndex++;
+                renderCurrentStoryChapter();
+                appendChatMessage('story-ai', `✨ <strong>Objective Complete!</strong> Advancing to ${activeStoryCampaign.chapters[currentChapterIndex].chapterLabel}...`);
+            } else {
+                appendChatMessage('story-ai', `🏆 <strong>Campaign Victory!</strong> You completed all chapters of "${activeStoryCampaign.gameTitle}"!`);
+                activeStoryCampaign = null;
+            }
+        }
+    }, 100);
 }
 
 /********************************************************************
- * 6. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, SAVE & INSTALL
+ * 4. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, SAVE & INSTALL
  ********************************************************************/
 function initJoystick() {
     const zone = document.getElementById('joystickZone');
@@ -575,7 +655,7 @@ function initJoystick() {
 }
 
 function undoLastStep() {
-    if (buildHistoryStack.length === 0) return appendChatMessage('ai', 'Nothing left to undo!');
+    if (buildHistoryStack.length === 0) return appendChatMessage('story-ai', 'Nothing left to undo!');
     const last = buildHistoryStack.pop();
     last.objects.forEach(obj => scene.remove(obj));
     last.updateFns.forEach(fn => { const i = window.updateFunctions.indexOf(fn); if (i > -1) window.updateFunctions.splice(i, 1); });
@@ -584,7 +664,7 @@ function undoLastStep() {
         const ab = document.getElementById('actionButtons');
         if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
     }
-    appendChatMessage('ai', '↩️ Undid last build step.');
+    appendChatMessage('story-ai', '↩️ Undid last step.');
 }
 
 function cleanAllWorld() {
@@ -596,9 +676,14 @@ function cleanAllWorld() {
     window.createdObjects = [];
     window.updateFunctions = [];
     window.PHYSICS.clearAll();
+    closeStoryHud();
+    if (scene) {
+        scene.background = new THREE.Color(0x060b19);
+        if (scene.fog) { scene.fog.color = new THREE.Color(0x060b19); scene.fog.density = 0.0022; }
+    }
     const ab = document.getElementById('actionButtons');
     if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
-    appendChatMessage('ai', '🧹 Cleaned all objects!');
+    appendChatMessage('story-ai', '🧹 Cleaned all 3D models & reset story!');
 }
 
 function toggleExitControl() {
@@ -614,16 +699,12 @@ function openCodeModal() {
     if (ta) {
         ta.value = buildHistoryStack.length
             ? buildHistoryStack.map((s, i) => `// === STEP ${i + 1} ===\n${s.code}`).join('\n\n')
-            : '// No 3D code generated yet.';
+            : '// No 3D models or stories generated yet.';
     }
     if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 }
 function closeCodeModal() { const m = document.getElementById('codeModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
 function copyGeneratedCode() { navigator.clipboard.writeText(document.getElementById('codeViewerTextarea').value); }
-async function runEditedCode() {
-    const c = document.getElementById('codeViewerTextarea').value;
-    if (c.trim()) { cleanAllWorld(); closeCodeModal(); await execute3DCodeSafely(c, 'Custom code executed!'); }
-}
 
 function toggleChatBox(show) {
     document.getElementById('chatWrapper')?.classList.toggle('hidden', !show);
@@ -637,35 +718,32 @@ function handleChatImageSelect(e) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-        attachedImageMimeType = file.type || 'image/jpeg';
-        attachedImageBase64 = ev.target.result.split(',')[1];
-        document.getElementById('attachedImagePreview').src = ev.target.result;
+        attachedImageDataUrl = ev.target.result;
+        document.getElementById('attachedImagePreview').src = attachedImageDataUrl;
         document.getElementById('imageAttachmentBar')?.classList.remove('hidden');
         document.getElementById('imageAttachmentBar')?.classList.add('flex');
     };
     reader.readAsDataURL(file);
 }
 function clearAttachedImage() {
-    attachedImageBase64 = null; attachedImageMimeType = null;
+    attachedImageDataUrl = null;
     document.getElementById('imageAttachmentBar')?.classList.add('hidden');
     document.getElementById('imageAttachmentBar')?.classList.remove('flex');
 }
 
-function startRealLiveTimer() {
-    const pwr = AI_POWER_CONFIG[currentAIPower] || AI_POWER_CONFIG.high;
+function startRealLiveTimer(estSeconds = 20.0) {
     const bar = document.getElementById('liveTimerBar');
     if (bar) { bar.classList.remove('hidden'); bar.classList.add('flex'); }
     const startTime = performance.now();
     clearInterval(buildTimerInterval);
     buildTimerInterval = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        const rem = Math.max(0.4, pwr.estSeconds - elapsed);
-        const pct = Math.min(95, Math.round((elapsed / Math.max(pwr.estSeconds, elapsed + 1)) * 100));
+        const pct = Math.min(95, Math.round((elapsed / Math.max(estSeconds, elapsed + 2)) * 100));
         const pb = document.getElementById('liveProgressBar');
         const tt = document.getElementById('liveTimerText');
         if (pb) pb.style.width = `${pct}%`;
-        if (tt) tt.innerText = `${elapsed.toFixed(2)}s | ~${rem.toFixed(1)}s`;
-    }, 50);
+        if (tt) tt.innerText = `${elapsed.toFixed(1)}s`;
+    }, 80);
     return startTime;
 }
 
@@ -677,7 +755,7 @@ function stopRealLiveTimer(startTime) {
         const bar = document.getElementById('liveTimerBar');
         if (bar) { bar.classList.add('hidden'); bar.classList.remove('flex'); }
     }, 250);
-    return ((performance.now() - startTime) / 1000).toFixed(2);
+    return ((performance.now() - startTime) / 1000).toFixed(1);
 }
 
 function stopAICoding() { if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; } }
@@ -687,10 +765,10 @@ function appendChatMessage(role, msg) {
     if (!h) return;
     h.classList.remove('hidden');
     const d = document.createElement('div');
-    if (role === 'hf-user') {
+    if (role === '3d-user') {
         d.className = 'bg-amber-950/60 border border-amber-700/50 rounded-lg px-2 py-1 text-amber-100 leading-snug';
-        d.innerHTML = `<strong class="text-amber-400">You (HF Build):</strong> ${msg}`;
-    } else if (role === 'hf-ai') {
+        d.innerHTML = `<strong class="text-amber-400">You (3D):</strong> ${msg}`;
+    } else if (role === '3d-ai') {
         d.className = 'bg-slate-900/90 border border-amber-500/40 rounded-lg px-2 py-1 text-slate-200 leading-snug';
         d.innerHTML = msg;
     } else if (role === 'story-user') {
