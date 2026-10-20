@@ -1,6 +1,6 @@
 /********************************************************************
- * FILE: ai-core.js - Story, Quest & Game Logic Director (Gemini, Claude, OpenAI)
- * Works in tandem with huggingface.js (which builds the 3D objects!)
+ * FILE: ai-core.js - Story & Game Logic Director (Gemini, Claude, OpenAI)
+ * + User-Entered Hugging Face 3D Builder Token Manager
  ********************************************************************/
 const PROVIDERS = {
     gemini: {
@@ -32,13 +32,13 @@ const AI_POWER_CONFIG = {
 let currentProvider = localStorage.getItem('apexgen_provider') || 'gemini';
 let currentAIPower = localStorage.getItem('apexgen_ai_power') || 'high';
 let currentApiKey = '';
+let currentHfKey = '';
 let verifiedGeminiModels = [];
 let buildHistoryStack = [];
 let currentModalMode = 'save';
 let projectIconDataUrl = '';
 let attachedImageBase64 = null;
 let attachedImageMimeType = null;
-let autoConnectTimer = null;
 let buildTimerInterval = null;
 let activeAbortController = null;
 
@@ -71,6 +71,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     currentProvider = savedProvider;
     currentApiKey = savedKey;
+    currentHfKey = window.HUGGINGFACE_BUILDER ? window.HUGGINGFACE_BUILDER.getToken() : (localStorage.getItem('apexgen_key_hf') || '');
+
+    const hfInput = document.getElementById('hfKeyInput');
+    if (hfInput && currentHfKey) hfInput.value = currentHfKey;
 
     setTimeout(() => {
         const prog = document.getElementById('splashProgress');
@@ -84,7 +88,8 @@ window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (splash) splash.classList.add('hidden');
 
-            if (currentApiKey && currentApiKey.length >= 15) {
+            // Auto-login directly into 3D map if both Story AI key and HF key are already saved!
+            if (currentApiKey && currentApiKey.length >= 15 && currentHfKey && currentHfKey.length >= 10) {
                 const badge = document.getElementById('activeProviderBadge');
                 if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
                 const ws = document.getElementById('workspace');
@@ -132,8 +137,8 @@ function selectProvider(provider) {
         const btn = document.getElementById(`btn-${p}`);
         if (!btn) return;
         btn.className = p === provider
-            ? 'provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20'
-            : 'provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
+            ? 'provider-btn flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20'
+            : 'provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all';
     });
     const config = PROVIDERS[provider];
     const input = document.getElementById('apiKeyInput');
@@ -143,13 +148,18 @@ function selectProvider(provider) {
         input.value = savedKey;
         currentApiKey = savedKey;
     }
+    const hfInput = document.getElementById('hfKeyInput');
+    if (hfInput) {
+        currentHfKey = window.HUGGINGFACE_BUILDER ? window.HUGGINGFACE_BUILDER.getToken() : (localStorage.getItem('apexgen_key_hf') || '');
+        hfInput.value = currentHfKey;
+    }
     const link = document.getElementById('getKeyLink');
     if (link) link.href = config.keyUrl;
 }
 
-function toggleKeyVisibility() {
-    const input = document.getElementById('apiKeyInput');
-    const icon = document.getElementById('eyeIcon');
+function toggleKeyVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
     if (!input) return;
     input.type = input.type === 'password' ? 'text' : 'password';
     if (icon) icon.className = input.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
@@ -159,11 +169,14 @@ function handleKeyInput(val) {
     const trimmed = val.trim();
     currentApiKey = trimmed;
     localStorage.setItem(PROVIDERS[currentProvider].storageKey, trimmed);
-    if (trimmed.length > 20) {
-        const st = document.getElementById('authStatus');
-        if (st) st.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">API Key saved! Connecting...</span>`;
-        clearTimeout(autoConnectTimer);
-        autoConnectTimer = setTimeout(() => verifyAndConnect(), 500);
+}
+
+function handleHfKeyInput(val) {
+    if (window.HUGGINGFACE_BUILDER) {
+        currentHfKey = window.HUGGINGFACE_BUILDER.setToken(val);
+    } else {
+        currentHfKey = val.trim().replace(/^Hf_/, 'hf_');
+        localStorage.setItem('apexgen_key_hf', currentHfKey);
     }
 }
 
@@ -189,29 +202,37 @@ async function fetchActiveGeminiModels(apiKey) {
 }
 
 async function verifyAndConnect() {
-    clearTimeout(autoConnectTimer);
     const input = document.getElementById('apiKeyInput');
+    const hfInput = document.getElementById('hfKeyInput');
     const key = input ? input.value.trim() : currentApiKey;
+    const hfVal = hfInput ? hfInput.value.trim() : currentHfKey;
     const status = document.getElementById('authStatus');
     const btn = document.getElementById('connectBtn');
 
     if (!key || key.length < 15) {
-        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter a valid API Key!</span>`;
+        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter your ${PROVIDERS[currentProvider].name} API Key!</span>`;
+        return;
+    }
+
+    if (!hfVal || hfVal.length < 10) {
+        if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i> <span class="text-amber-400">Please enter your Hugging Face API Token (hf_...)!</span>`;
         return;
     }
 
     currentApiKey = key;
     localStorage.setItem(PROVIDERS[currentProvider].storageKey, key);
+    handleHfKeyInput(hfVal);
+
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting ${PROVIDERS[currentProvider].name} & Hugging Face...</span>`;
     }
 
     try {
         if (currentProvider === 'gemini') {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         }
-        if (status) status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Connected! Launching 3D World...</span>`;
+        if (status) status.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i> <span class="text-emerald-400">Both Keys Saved! Launching 3D World...</span>`;
         const badge = document.getElementById('activeProviderBadge');
         if (badge) badge.innerText = `${PROVIDERS[currentProvider].name} + HF`;
 
@@ -227,7 +248,7 @@ async function verifyAndConnect() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Connect & Launch 3D World</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Save Keys & Launch 3D World</span>`;
         }
     }
 }
@@ -370,15 +391,13 @@ async function sendPromptToAI() {
     const stageEl = document.getElementById('liveStageText');
 
     try {
-        // STEP 1: Story & Game Logic AI (Gemini / Claude / OpenAI)
         if (stageEl) stageEl.innerText = `📖 [${PROVIDERS[currentProvider].name}] Writing story & game logic...`;
         const directorRes = await callStoryDirectorAI(text, imgB64, imgMime, activeAbortController.signal);
 
-        // STEP 2: Hugging Face 3D Builder (huggingface.js) builds the 3D objects!
         let finalCode = directorRes.code;
         let builderBadge = PROVIDERS[currentProvider].name;
 
-        if (window.HUGGINGFACE_BUILDER && !imgB64) {
+        if (window.HUGGINGFACE_BUILDER && !imgB64 && window.HUGGINGFACE_BUILDER.getToken().length >= 10) {
             if (stageEl) stageEl.innerText = `🔨 [Hugging Face] Building 3D models for "${text}"...`;
             try {
                 const hfRes = await window.HUGGINGFACE_BUILDER.generate3DCode(
@@ -393,7 +412,6 @@ async function sendPromptToAI() {
                 }
             } catch (hfErr) {
                 if (hfErr.name === 'AbortError') throw hfErr;
-                // If HF router is busy, seamlessly use the Director's 3D code so it never fails!
             }
         }
 
