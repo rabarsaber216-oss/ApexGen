@@ -6,10 +6,9 @@
     <title>ApexGen - AI 3D Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js Core, OrbitControls, GLTFLoader, DRACOLoader & SkeletonUtils -->
+    <!-- Three.js Core, OrbitControls, GLTFLoader & SkeletonUtils -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
     <!-- FontAwesome Icons -->
@@ -21,79 +20,99 @@
 </head>
 <body class="w-screen h-screen relative">
 
-    <!-- 1. SPLASH SCREEN (welcome to ApexGen) -->
+    <!-- 1. SPLASH SCREEN (Welcome to ApexGen) -->
     <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030712] transition-opacity duration-700">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.18)_0,transparent_70%)]"></div>
         <div class="relative z-10 text-center px-4">
             <div class="inline-block p-4 rounded-full bg-sky-500/10 border border-sky-400/30 mb-6 animate-bounce">
                 <i class="fa-solid fa-cubes-stacked text-5xl text-sky-400"></i>
             </div>
-            <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500">
-                welcome to ApexGen
+            <h1 class="font-cyber text-4xl md:text-7xl font-black tracking-wider uppercase welcome-text bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500">
+                Welcome to ApexGen
             </h1>
             <div class="mt-8 w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mx-auto">
-                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[1500ms] ease-out"></div>
+                <div id="splashProgress" class="h-full bg-gradient-to-r from-sky-400 to-purple-500 w-0 transition-all duration-[1600ms] ease-out"></div>
             </div>
         </div>
     </div>
 
-    <!-- 2. API KEY SETUP MODAL (Only opens if no API key is saved or user clicks settings gear) -->
-    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500">
-        <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-6 md:p-8 relative z-10 border border-sky-500/30">
-            <div class="flex items-center justify-between mb-5">
+    <!-- 2. API KEY SETUP MODAL (Asks user for Story AI Key + Hugging Face 3D Builder Key) -->
+    <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500 overflow-y-auto">
+        <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-5 md:p-7 relative z-10 border border-sky-500/30 my-auto">
+            <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h2 class="font-cyber text-2xl font-extrabold text-sky-400">ApexGen AI Setup</h2>
-                    <p class="text-slate-400 text-xs mt-1">Select Gemini, OpenAI, or Claude and enter your API Key</p>
+                    <h2 class="font-cyber text-xl md:text-2xl font-extrabold text-sky-400">ApexGen AI Setup</h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Connect your Story AI & Hugging Face 3D Builder</p>
                 </div>
-                <div class="w-11 h-11 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
-                    <i class="fa-solid fa-microchip text-xl text-sky-400"></i>
+                <div class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
+                    <i class="fa-solid fa-microchip text-lg text-sky-400"></i>
                 </div>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-2.5">1. Choose AI Engine:</label>
-            <div class="grid grid-cols-3 gap-2.5 mb-5">
-                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
-                    <i class="fa-solid fa-wand-magic-sparkles text-xl text-sky-400 mb-1"></i>
+            <!-- Step 1: Story & Logic AI Provider -->
+            <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select Story & Logic AI (Gemini / OpenAI / Claude):</label>
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-lg text-sky-400 mb-1"></i>
                     <span class="font-bold text-xs">Gemini</span>
-                    <span class="text-[10px] text-sky-300">Google AI</span>
+                    <span class="text-[9px] text-sky-300">Story & Logic</span>
                 </button>
-                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-bolt text-xl text-emerald-400 mb-1"></i>
+                <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-bolt text-lg text-emerald-400 mb-1"></i>
                     <span class="font-bold text-xs">OpenAI</span>
-                    <span class="text-[10px] text-slate-400">GPT-4o</span>
+                    <span class="text-[9px] text-slate-400">Story & Logic</span>
                 </button>
-                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-3 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
-                    <i class="fa-solid fa-brain text-xl text-amber-400 mb-1"></i>
+                <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-brain text-lg text-amber-400 mb-1"></i>
                     <span class="font-bold text-xs">Claude</span>
-                    <span class="text-[10px] text-slate-400">Anthropic</span>
+                    <span class="text-[9px] text-slate-400">Story & Logic</span>
                 </button>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-2">2. API Key:</label>
-            <div class="flex items-center gap-2 mb-3">
+            <!-- Step 2: Story AI Key Input -->
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">2. Story AI API Key:</label>
+            <div class="flex items-center gap-2 mb-4">
                 <div class="relative flex-1">
-                    <input id="apiKeyInput" type="password" placeholder="Paste your API Key here..." 
-                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-3 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    <input id="apiKeyInput" type="password" placeholder="Paste your Gemini API Key here..." 
+                        class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                         oninput="handleKeyInput(this.value)">
-                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
-                        <i id="eyeIcon" class="fa-solid fa-eye"></i>
+                    <button type="button" onclick="toggleKeyVisibility('apiKeyInput', 'eyeIcon1')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        <i id="eyeIcon1" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
                 <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank"
-                    class="px-3.5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg shadow-indigo-600/30 transition-all">
+                    class="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-all">
                     <i class="fa-solid fa-key"></i>
                     <span>Get Key</span>
                 </a>
             </div>
 
-            <div id="authStatus" class="text-xs text-slate-400 mb-5 flex items-start gap-2 min-h-[20px]">
+            <!-- Step 3: Hugging Face 3D Builder API Key Input -->
+            <label class="block text-xs font-semibold text-amber-300 mb-1.5">3. Hugging Face API Token (3D World & Object Builder):</label>
+            <div class="flex items-center gap-2 mb-3">
+                <div class="relative flex-1">
+                    <input id="hfKeyInput" type="password" placeholder="Paste your Hugging Face Token (hf_...)" 
+                        class="w-full bg-slate-950/90 border border-amber-500/40 focus:border-amber-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                        oninput="handleHfKeyInput(this.value)">
+                    <button type="button" onclick="toggleKeyVisibility('hfKeyInput', 'eyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        <i id="eyeIcon2" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <a href="https://huggingface.co/settings/tokens" target="_blank"
+                    class="px-3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-all">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>Get HF Key</span>
+                </a>
+            </div>
+
+            <div id="authStatus" class="text-xs text-slate-400 mb-4 flex items-start gap-2 min-h-[20px]">
                 <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
-                <span>Your API Key is saved automatically and launches the 3D world immediately.</span>
+                <span>Keys are saved locally on your device so you never have to enter them again.</span>
             </div>
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
                 <i class="fa-solid fa-plug-circle-bolt"></i>
-                <span>Connect & Open 3D Map</span>
+                <span>Save Keys & Launch 3D World</span>
             </button>
         </div>
     </div>
@@ -103,12 +122,12 @@
         <!-- Three.js Infinite 3D Map Container -->
         <div id="canvasContainer" class="w-full h-full"></div>
 
-        <!-- CLEAN TOP NAVIGATION BAR (Undo, Clean All, Show Code, Exit, Save, Install) -->
+        <!-- TOP NAVIGATION BAR -->
         <div class="fixed top-2.5 left-2.5 right-2.5 z-30 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
             <div class="glass px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-auto shadow-md">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
                 <span class="font-cyber font-bold text-xs text-sky-400">ApexGen</span>
-                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini</span>
+                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini + HF</span>
                 <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white px-1" title="API Key Settings">
                     <i class="fa-solid fa-gear"></i>
                 </button>
@@ -148,7 +167,7 @@
             </div>
         </div>
 
-        <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a controllable character or vehicle is built) -->
+        <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a character or vehicle is created) -->
         <div id="mobileControls" class="controller-hidden fixed bottom-24 left-3.5 z-20 items-center select-none">
             <div id="joystickZone" class="joystick-base">
                 <div id="joystickKnob" class="joystick-knob"></div>
@@ -202,12 +221,12 @@
                 </div>
             </div>
 
-            <!-- REAL LIVE TIMER BAR -->
+            <!-- REAL LIVE TIMER & STATUS BAR -->
             <div id="liveTimerBar" class="hidden glass px-3 py-1.5 border-t-0 border-b-0 bg-slate-950/95 flex-col gap-1">
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
-                        <i class="fa-solid fa-bolt fa-spin text-sky-400"></i>
-                        <strong id="liveStageText">Scanning web & building 3D world...</strong>
+                        <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
+                        <strong id="liveStageText">Synthesizing 3D world...</strong>
                     </span>
                     <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s</span>
                 </div>
@@ -216,9 +235,9 @@
                 </div>
             </div>
 
-            <!-- AI Chat Message Box (Exact requested text: "say something to build or make") -->
+            <!-- AI Chat Message Box -->
             <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
-                <div class="text-slate-200 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
+                <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
                     say something to build or make
                 </div>
             </div>
@@ -227,14 +246,14 @@
             <div id="imageAttachmentBar" class="hidden glass px-3 py-1.5 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
                 <div class="flex items-center gap-2">
                     <img id="attachedImagePreview" src="" class="w-7 h-7 rounded-lg object-cover border border-sky-400">
-                    <span class="text-[10px] text-sky-300 font-medium">Image attached</span>
+                    <span class="text-[10px] text-sky-300 font-medium">Reference image attached</span>
                 </div>
                 <button onclick="clearAttachedImage()" class="text-rose-400 hover:text-rose-300 text-xs">
                     <i class="fa-solid fa-circle-xmark"></i>
                 </button>
             </div>
 
-            <!-- Chat Input Box (Exact requested text: "make or build your own project") -->
+            <!-- Chat Input -->
             <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5">
                 <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image">
                     <i class="fa-solid fa-image text-xs"></i>
@@ -264,7 +283,7 @@
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-code text-emerald-400 text-lg"></i>
-                    <h3 class="text-base md:text-lg font-extrabold text-emerald-400 font-cyber">Project Source Code</h3>
+                    <h3 class="text-base md:text-lg font-extrabold text-emerald-400 font-cyber">Generated 3D Engine Code</h3>
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="copyGeneratedCode()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-sky-300 font-semibold flex items-center gap-1.5">
@@ -282,7 +301,7 @@
             </div>
             <textarea id="codeViewerTextarea" spellcheck="false"
                 class="w-full flex-1 min-h-[320px] bg-slate-950/95 border border-slate-800 rounded-2xl p-4 text-xs text-emerald-300 font-mono-code outline-none resize-none leading-relaxed"
-                placeholder="// No code generated yet."></textarea>
+                placeholder="// Generated 3D source code will appear here"></textarea>
         </div>
     </div>
 
@@ -329,6 +348,7 @@
     <script src="skeleton.js"></script>
     <script src="physics.js"></script>
     <script src="graphics.js"></script>
+    <script src="huggingface.js"></script>
     <script src="ai-core.js"></script>
 </body>
 </html>
