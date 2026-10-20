@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - AI 3D Engine</title>
+    <title>ApexGen - Real 3D AI & Story Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js Core, OrbitControls, GLTFLoader & SkeletonUtils -->
+    <!-- Three.js Core, OrbitControls, GLTFLoader, DRACOLoader & SkeletonUtils -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
     <!-- FontAwesome Icons -->
@@ -36,42 +37,42 @@
         </div>
     </div>
 
-    <!-- 2. API KEY SETUP MODAL -->
+    <!-- 2. API KEY SETUP MODAL (Choose Story AI + Choose Tripo3D or Fal.ai) -->
     <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500 overflow-y-auto">
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-5 md:p-7 relative z-10 border border-sky-500/30 my-auto">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h2 class="font-cyber text-xl md:text-2xl font-extrabold text-sky-400">ApexGen AI Setup</h2>
-                    <p class="text-slate-400 text-xs mt-0.5">Connect your Story AI & Hugging Face 3D Builder</p>
+                    <h2 class="font-cyber text-xl md:text-2xl font-extrabold text-sky-400">ApexGen Engine Setup</h2>
+                    <p class="text-slate-400 text-xs mt-0.5">1. Select Story AI &nbsp;|&nbsp; 2. Select Real 3D Builder (Fal.ai or Tripo3D)</p>
                 </div>
                 <div class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
                     <i class="fa-solid fa-microchip text-lg text-sky-400"></i>
                 </div>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select Story AI (Gemini / OpenAI / Claude):</label>
-            <div class="grid grid-cols-3 gap-2 mb-4">
+            <!-- SECTION A: STORY AI (Gemini / OpenAI / Claude) -->
+            <label class="block text-xs font-semibold text-sky-300 mb-2">1. Select Story Engine (Only for Game Story & Quests):</label>
+            <div class="grid grid-cols-3 gap-2 mb-3">
                 <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
                     <i class="fa-solid fa-wand-magic-sparkles text-lg text-sky-400 mb-1"></i>
                     <span class="font-bold text-xs">Gemini</span>
-                    <span class="text-[9px] text-sky-300">Story AI</span>
+                    <span class="text-[9px] text-sky-300">Story Engine</span>
                 </button>
                 <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
                     <i class="fa-solid fa-bolt text-lg text-emerald-400 mb-1"></i>
                     <span class="font-bold text-xs">OpenAI</span>
-                    <span class="text-[9px] text-slate-400">Story AI</span>
+                    <span class="text-[9px] text-slate-400">Story Engine</span>
                 </button>
                 <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
                     <i class="fa-solid fa-brain text-lg text-amber-400 mb-1"></i>
                     <span class="font-bold text-xs">Claude</span>
-                    <span class="text-[9px] text-slate-400">Story AI</span>
+                    <span class="text-[9px] text-slate-400">Story Engine</span>
                 </button>
             </div>
 
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">2. Story AI API Key:</label>
-            <div class="flex items-center gap-2 mb-4">
+            <div class="flex items-center gap-2 mb-5">
                 <div class="relative flex-1">
-                    <input id="apiKeyInput" type="password" placeholder="Paste your Gemini API Key here..." 
+                    <input id="apiKeyInput" type="password" placeholder="Paste your Gemini API Key..." 
                         class="w-full bg-slate-950/90 border border-slate-700 focus:border-sky-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                         oninput="handleKeyInput(this.value)">
                     <button type="button" onclick="toggleKeyVisibility('apiKeyInput', 'eyeIcon1')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
@@ -81,30 +82,44 @@
                 <a id="getKeyLink" href="https://aistudio.google.com/app/apikey" target="_blank"
                     class="px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-all">
                     <i class="fa-solid fa-key"></i>
-                    <span>Get Key</span>
+                    <span>Get Story Key</span>
                 </a>
             </div>
 
-            <label class="block text-xs font-semibold text-amber-300 mb-1.5">3. Hugging Face API Token (3D Builder):</label>
-            <div class="flex items-center gap-2 mb-3">
+            <!-- SECTION B: REAL 3D BUILDER AI (Fal.ai OR Tripo3D) -->
+            <label class="block text-xs font-semibold text-amber-300 mb-2">2. Select Real 3D Model Builder (Choose Fal.ai or Tripo3D):</label>
+            <div class="grid grid-cols-2 gap-2.5 mb-3">
+                <button type="button" onclick="select3DProvider('fal')" id="btn3d-fal" class="flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-amber-500/20 border-amber-400 text-white shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-cubes text-lg text-amber-400 mb-1"></i>
+                    <span class="font-bold text-xs">Fal.ai 3D</span>
+                    <span class="text-[9px] text-amber-300">Hunyuan3D / Tripo v2.5</span>
+                </button>
+                <button type="button" onclick="select3DProvider('tripo')" id="btn3d-tripo" class="flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
+                    <i class="fa-solid fa-cube text-lg text-cyan-400 mb-1"></i>
+                    <span class="font-bold text-xs">Tripo3D AI</span>
+                    <span class="text-[9px] text-slate-400">Official Tripo3D API</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4">
                 <div class="relative flex-1">
-                    <input id="hfKeyInput" type="password" placeholder="Paste your Hugging Face Token (hf_...)" 
+                    <input id="builder3dKeyInput" type="password" placeholder="Paste your Fal.ai API Key (key_id:key_secret)..." 
                         class="w-full bg-slate-950/90 border border-amber-500/40 focus:border-amber-400 rounded-xl pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                        oninput="handleHfKeyInput(this.value)">
-                    <button type="button" onclick="toggleKeyVisibility('hfKeyInput', 'eyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        oninput="handle3DKeyInput(this.value)">
+                    <button type="button" onclick="toggleKeyVisibility('builder3dKeyInput', 'eyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
                         <i id="eyeIcon2" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
-                <a href="https://huggingface.co/settings/tokens" target="_blank"
+                <a id="get3dKeyLink" href="https://fal.ai/dashboard/keys" target="_blank"
                     class="px-3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 shadow-lg transition-all">
-                    <i class="fa-solid fa-cubes"></i>
-                    <span>Get HF Key</span>
+                    <i class="fa-solid fa-key"></i>
+                    <span id="get3dKeyText">Get Fal Key</span>
                 </a>
             </div>
 
             <div id="authStatus" class="text-xs text-slate-400 mb-4 flex items-start gap-2 min-h-[20px]">
                 <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
-                <span>Keys are saved automatically on your device.</span>
+                <span>Your keys are stored locally on your phone so you never have to re-enter them.</span>
             </div>
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
@@ -124,7 +139,7 @@
             <div class="glass px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-auto shadow-md">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
                 <span class="font-cyber font-bold text-xs text-sky-400">ApexGen</span>
-                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini + HF</span>
+                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">Gemini + Fal.ai</span>
                 <button onclick="openAuthSettings()" class="text-xs text-slate-400 hover:text-white px-1" title="API Key Settings">
                     <i class="fa-solid fa-gear"></i>
                 </button>
@@ -164,6 +179,44 @@
             </div>
         </div>
 
+        <!-- ==============================================================
+             INTERACTIVE PLAYABLE STORY & QUEST HUD OVERLAY
+             Controlled exclusively by Gemini / Claude / OpenAI Story Engine!
+             ============================================================== -->
+        <div id="storyGameHud" class="fixed top-14 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-md hidden flex-col gap-2 pointer-events-auto">
+            <div class="glass rounded-2xl p-3 border border-sky-400/40 shadow-2xl bg-slate-950/85">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-cyber text-[10px] font-bold" id="hudStoryChapter">CHAPTER 1</span>
+                        <h4 id="hudStoryTitle" class="font-bold text-xs text-white truncate">Active Story Mission</h4>
+                    </div>
+                    <button onclick="closeStoryHud()" class="text-slate-400 hover:text-white text-xs px-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Cinematic Dialogue / Narration Text -->
+                <p id="hudStoryNarrative" class="text-[11px] text-slate-200 leading-relaxed mb-2 italic"></p>
+
+                <!-- Active Gameplay Objective & Progress Bar -->
+                <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2 mb-2">
+                    <div class="flex items-center justify-between text-[10px] mb-1">
+                        <span class="text-amber-300 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-bullseye"></i>
+                            <span id="hudQuestObjective">Complete objective</span>
+                        </span>
+                        <span id="hudQuestProgressText" class="text-emerald-400 font-mono-code font-bold">0%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="hudQuestBar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 w-0 transition-all duration-200"></div>
+                    </div>
+                </div>
+
+                <!-- Interactive Player Story Choices -->
+                <div id="hudStoryChoices" class="grid grid-cols-2 gap-1.5"></div>
+            </div>
+        </div>
+
         <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a character or vehicle is created) -->
         <div id="mobileControls" class="controller-hidden fixed bottom-36 left-3.5 z-20 items-center select-none">
             <div id="joystickZone" class="joystick-base">
@@ -196,19 +249,17 @@
         </button>
 
         <!-- DUAL STACKED AI CHAT SYSTEM:
-             1. TOP CHAT = HUGGING FACE ("say something to make or build")
+             1. TOP CHAT = FAL.AI / TRIPO3D ("say something to make or build")
              2. BOTTOM CHAT = GEMINI / OPENAI / CLAUDE ("make the story") -->
         <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-md pointer-events-auto transition-all duration-300">
             
-            <!-- Header Bar: AI Power Selector + Minimize / Close -->
+            <!-- Header Bar: Switch 3D Engine (Fal.ai / Tripo3D) + AI Power -->
             <div class="glass rounded-t-xl px-2.5 py-1.5 flex items-center justify-between border-b border-slate-800/80">
                 <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-fire-flame-curved text-sky-400 text-xs"></i>
-                    <span class="text-[11px] font-bold text-slate-200">AI Power:</span>
+                    <span class="text-[10px] font-bold text-slate-300">3D Engine:</span>
                     <div class="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-700/80">
-                        <button type="button" onclick="setAIPower('low')" id="pwr-low" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">Low</button>
-                        <button type="button" onclick="setAIPower('medium')" id="pwr-medium" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">Medium</button>
-                        <button type="button" onclick="setAIPower('high')" id="pwr-high" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-gradient-to-r from-sky-500 to-purple-600 text-white shadow">High</button>
+                        <button type="button" onclick="select3DProvider('fal')" id="chat3d-fal" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-amber-500 text-slate-950 shadow">Fal.ai</button>
+                        <button type="button" onclick="select3DProvider('tripo')" id="chat3d-tripo" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">Tripo3D</button>
                     </div>
                 </div>
 
@@ -231,7 +282,7 @@
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
-                        <strong id="liveStageText">Building 3D world...</strong>
+                        <strong id="liveStageText">Generating real 3D mesh...</strong>
                     </span>
                     <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s</span>
                 </div>
@@ -243,7 +294,7 @@
             <!-- Shared Collapsible Chat History Log -->
             <div id="chatHistory" class="glass px-3 py-1.5 max-h-20 overflow-y-auto space-y-1 text-[11px] border-t-0 border-b-0">
                 <div class="text-amber-300 leading-snug bg-amber-950/40 rounded-lg px-2 py-1 border border-amber-500/30">
-                    <strong>HF 3D:</strong> say something to make or build
+                    <strong>3D Builder (Fal.ai / Tripo3D):</strong> say something to make or build
                 </div>
                 <div class="text-sky-300 leading-snug bg-sky-950/40 rounded-lg px-2 py-1 border border-sky-500/30">
                     <strong>Story AI:</strong> make the story
@@ -254,7 +305,7 @@
             <div id="imageAttachmentBar" class="hidden glass px-3 py-1 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
                 <div class="flex items-center gap-2">
                     <img id="attachedImagePreview" src="" class="w-6 h-6 rounded-md object-cover border border-amber-400">
-                    <span class="text-[10px] text-amber-300 font-medium">Image ready for 3D build</span>
+                    <span class="text-[10px] text-amber-300 font-medium">Image ready for Image-to-3D (.glb)</span>
                 </div>
                 <button onclick="clearAttachedImage()" class="text-rose-400 hover:text-rose-300 text-xs">
                     <i class="fa-solid fa-circle-xmark"></i>
@@ -262,33 +313,33 @@
             </div>
 
             <!-- =========================================================
-                 CHAT 1 (TOP): HUGGING FACE 3D BUILDER CHAT
-                 Text: "say something to make or build"
+                 CHAT 1 (TOP): FAL.AI / TRIPO3D REAL 3D BUILDER
+                 Placeholder: "say something to make or build"
                  ========================================================= -->
             <div class="glass p-1.5 flex items-center gap-1.5 border-t border-amber-500/30 bg-slate-950/85">
-                <span class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
+                <span id="builder3dBadge" class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
                     <i class="fa-solid fa-cubes"></i>
-                    <span>HF</span>
+                    <span id="builder3dName">Fal.ai</span>
                 </span>
 
-                <label class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-amber-400 transition-all" title="Upload Image to Build">
+                <label class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-amber-400 transition-all" title="Upload Reference Image for Image-to-3D">
                     <i class="fa-solid fa-image text-[11px]"></i>
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
                 <input id="hfPromptInput" type="text" placeholder="say something to make or build" 
                     class="flex-1 bg-transparent px-1.5 py-1 text-white placeholder-slate-400 text-xs outline-none"
-                    onkeydown="if(event.key === 'Enter') sendHfBuildPrompt()">
+                    onkeydown="if(event.key === 'Enter') send3DBuildPrompt()">
 
-                <button id="hfBuildBtn" onclick="sendHfBuildPrompt()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 shadow-md transition-all">
+                <button id="hfBuildBtn" onclick="send3DBuildPrompt()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 shadow-md transition-all">
                     <i class="fa-solid fa-hammer text-[10px]"></i>
-                    <span>Build</span>
+                    <span>Build 3D</span>
                 </button>
             </div>
 
             <!-- =========================================================
-                 CHAT 2 (BOTTOM): GEMINI / OPENAI / CLAUDE STORY CHAT
-                 Text: "make the story"
+                 CHAT 2 (BOTTOM): GEMINI / OPENAI / CLAUDE STORY ENGINE
+                 Placeholder: "make the story"
                  ========================================================= -->
             <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5 border-t border-sky-500/30 bg-slate-950/90">
                 <span id="storyChatBadge" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
@@ -314,16 +365,12 @@
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-code text-emerald-400 text-lg"></i>
-                    <h3 class="text-base md:text-lg font-extrabold text-emerald-400 font-cyber">Generated 3D Engine Code</h3>
+                    <h3 class="text-base md:text-lg font-extrabold text-emerald-400 font-cyber">Generated 3D & Story Log</h3>
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="copyGeneratedCode()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-sky-300 font-semibold flex items-center gap-1.5">
                         <i class="fa-solid fa-copy"></i>
-                        <span id="copyCodeBtnText">Copy Code</span>
-                    </button>
-                    <button onclick="runEditedCode()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-play"></i>
-                        <span>Run Code</span>
+                        <span id="copyCodeBtnText">Copy</span>
                     </button>
                     <button onclick="closeCodeModal()" class="text-slate-400 hover:text-white text-base px-2">
                         <i class="fa-solid fa-xmark"></i>
@@ -332,7 +379,7 @@
             </div>
             <textarea id="codeViewerTextarea" spellcheck="false"
                 class="w-full flex-1 min-h-[320px] bg-slate-950/95 border border-slate-800 rounded-2xl p-4 text-xs text-emerald-300 font-mono-code outline-none resize-none leading-relaxed"
-                placeholder="// Generated 3D source code will appear here"></textarea>
+                placeholder="// Real .glb model URLs & Story scripts will appear here"></textarea>
         </div>
     </div>
 
