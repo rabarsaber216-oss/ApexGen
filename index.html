@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <!-- 2. API KEY SETUP MODAL (Asks user for Story AI Key + Hugging Face 3D Builder Key) -->
+    <!-- 2. API KEY SETUP MODAL -->
     <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500 overflow-y-auto">
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-5 md:p-7 relative z-10 border border-sky-500/30 my-auto">
             <div class="flex items-center justify-between mb-4">
@@ -49,27 +49,25 @@
                 </div>
             </div>
 
-            <!-- Step 1: Story & Logic AI Provider -->
-            <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select Story & Logic AI (Gemini / OpenAI / Claude):</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select Story AI (Gemini / OpenAI / Claude):</label>
             <div class="grid grid-cols-3 gap-2 mb-4">
                 <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
                     <i class="fa-solid fa-wand-magic-sparkles text-lg text-sky-400 mb-1"></i>
                     <span class="font-bold text-xs">Gemini</span>
-                    <span class="text-[9px] text-sky-300">Story & Logic</span>
+                    <span class="text-[9px] text-sky-300">Story AI</span>
                 </button>
                 <button type="button" onclick="selectProvider('openai')" id="btn-openai" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
                     <i class="fa-solid fa-bolt text-lg text-emerald-400 mb-1"></i>
                     <span class="font-bold text-xs">OpenAI</span>
-                    <span class="text-[9px] text-slate-400">Story & Logic</span>
+                    <span class="text-[9px] text-slate-400">Story AI</span>
                 </button>
                 <button type="button" onclick="selectProvider('claude')" id="btn-claude" class="provider-btn flex flex-col items-center p-2.5 rounded-2xl border border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-500 transition-all">
                     <i class="fa-solid fa-brain text-lg text-amber-400 mb-1"></i>
                     <span class="font-bold text-xs">Claude</span>
-                    <span class="text-[9px] text-slate-400">Story & Logic</span>
+                    <span class="text-[9px] text-slate-400">Story AI</span>
                 </button>
             </div>
 
-            <!-- Step 2: Story AI Key Input -->
             <label class="block text-xs font-semibold text-slate-300 mb-1.5">2. Story AI API Key:</label>
             <div class="flex items-center gap-2 mb-4">
                 <div class="relative flex-1">
@@ -87,8 +85,7 @@
                 </a>
             </div>
 
-            <!-- Step 3: Hugging Face 3D Builder API Key Input -->
-            <label class="block text-xs font-semibold text-amber-300 mb-1.5">3. Hugging Face API Token (3D World & Object Builder):</label>
+            <label class="block text-xs font-semibold text-amber-300 mb-1.5">3. Hugging Face API Token (3D Builder):</label>
             <div class="flex items-center gap-2 mb-3">
                 <div class="relative flex-1">
                     <input id="hfKeyInput" type="password" placeholder="Paste your Hugging Face Token (hf_...)" 
@@ -107,7 +104,7 @@
 
             <div id="authStatus" class="text-xs text-slate-400 mb-4 flex items-start gap-2 min-h-[20px]">
                 <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
-                <span>Keys are saved locally on your device so you never have to enter them again.</span>
+                <span>Keys are saved automatically on your device.</span>
             </div>
 
             <button id="connectBtn" onclick="verifyAndConnect()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 transition-all">
@@ -168,13 +165,13 @@
         </div>
 
         <!-- MOBILE JOYSTICK & ACTION BUTTONS (Hidden until a character or vehicle is created) -->
-        <div id="mobileControls" class="controller-hidden fixed bottom-24 left-3.5 z-20 items-center select-none">
+        <div id="mobileControls" class="controller-hidden fixed bottom-36 left-3.5 z-20 items-center select-none">
             <div id="joystickZone" class="joystick-base">
                 <div id="joystickKnob" class="joystick-knob"></div>
             </div>
         </div>
 
-        <div id="mobileActionBtns" class="controller-hidden fixed bottom-28 right-3.5 z-20 flex-col gap-2 select-none">
+        <div id="mobileActionBtns" class="controller-hidden fixed bottom-36 right-3.5 z-20 flex-col gap-2 select-none">
             <button ontouchstart="window.keysPressed['e']=true" ontouchend="window.keysPressed['e']=false"
                 onmousedown="window.keysPressed['e']=true" onmouseup="window.keysPressed['e']=false"
                 class="action-pad-btn w-11 h-11 rounded-full glass border border-rose-400/50 text-rose-300 font-bold text-[9px] shadow-lg flex items-center justify-center">
@@ -192,14 +189,18 @@
             </button>
         </div>
 
-        <!-- FLOATING BUTTON TO RESTORE CHAT -->
+        <!-- FLOATING BUTTON TO RESTORE CHATS -->
         <button id="showChatBtn" onclick="toggleChatBox(true)" class="fixed bottom-3 right-3 z-30 hidden px-3.5 py-2 rounded-2xl glass neon-shadow text-sky-400 font-bold text-xs items-center gap-2 shadow-xl">
             <i class="fa-solid fa-comments"></i>
-            <span>Open AI Chat</span>
+            <span>Open AI Chats</span>
         </button>
 
-        <!-- COMPACT BOTTOM AI CHAT BOX -->
-        <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-md pointer-events-auto transition-all duration-300">
+        <!-- DUAL STACKED AI CHAT SYSTEM:
+             1. TOP CHAT = HUGGING FACE ("say something to make or build")
+             2. BOTTOM CHAT = GEMINI / OPENAI / CLAUDE ("make the story") -->
+        <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-md pointer-events-auto transition-all duration-300">
+            
+            <!-- Header Bar: AI Power Selector + Minimize / Close -->
             <div class="glass rounded-t-xl px-2.5 py-1.5 flex items-center justify-between border-b border-slate-800/80">
                 <div class="flex items-center gap-1.5">
                     <i class="fa-solid fa-fire-flame-curved text-sky-400 text-xs"></i>
@@ -212,6 +213,10 @@
                 </div>
 
                 <div class="flex items-center gap-1.5">
+                    <button id="stopBtn" onclick="stopAICoding()" class="hidden px-2.5 py-0.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] items-center gap-1 shadow animate-pulse">
+                        <i class="fa-solid fa-stop text-[9px]"></i>
+                        <span>Stop</span>
+                    </button>
                     <button onclick="toggleHistoryView()" class="text-slate-400 hover:text-white text-xs px-1" title="Minimize Messages">
                         <i id="collapseHistoryIcon" class="fa-solid fa-chevron-down"></i>
                     </button>
@@ -226,52 +231,78 @@
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
                         <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
-                        <strong id="liveStageText">Synthesizing 3D world...</strong>
+                        <strong id="liveStageText">Building 3D world...</strong>
                     </span>
                     <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.00s</span>
                 </div>
                 <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="liveProgressBar" class="h-full bg-gradient-to-r from-sky-400 via-indigo-500 to-emerald-400 w-0 transition-all duration-100"></div>
+                    <div id="liveProgressBar" class="h-full bg-gradient-to-r from-amber-400 via-sky-500 to-emerald-400 w-0 transition-all duration-100"></div>
                 </div>
             </div>
 
-            <!-- AI Chat Message Box -->
-            <div id="chatHistory" class="glass px-3 py-2 max-h-24 overflow-y-auto space-y-1.5 text-xs border-t-0 border-b-0">
-                <div class="text-slate-300 leading-snug bg-slate-900/70 rounded-lg px-2.5 py-1.5 border border-slate-800">
-                    say something to build or make
+            <!-- Shared Collapsible Chat History Log -->
+            <div id="chatHistory" class="glass px-3 py-1.5 max-h-20 overflow-y-auto space-y-1 text-[11px] border-t-0 border-b-0">
+                <div class="text-amber-300 leading-snug bg-amber-950/40 rounded-lg px-2 py-1 border border-amber-500/30">
+                    <strong>HF 3D:</strong> say something to make or build
+                </div>
+                <div class="text-sky-300 leading-snug bg-sky-950/40 rounded-lg px-2 py-1 border border-sky-500/30">
+                    <strong>Story AI:</strong> make the story
                 </div>
             </div>
 
             <!-- Attached Image Preview -->
-            <div id="imageAttachmentBar" class="hidden glass px-3 py-1.5 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
+            <div id="imageAttachmentBar" class="hidden glass px-3 py-1 items-center justify-between border-t-0 border-b-0 bg-slate-900/90">
                 <div class="flex items-center gap-2">
-                    <img id="attachedImagePreview" src="" class="w-7 h-7 rounded-lg object-cover border border-sky-400">
-                    <span class="text-[10px] text-sky-300 font-medium">Reference image attached</span>
+                    <img id="attachedImagePreview" src="" class="w-6 h-6 rounded-md object-cover border border-amber-400">
+                    <span class="text-[10px] text-amber-300 font-medium">Image ready for 3D build</span>
                 </div>
                 <button onclick="clearAttachedImage()" class="text-rose-400 hover:text-rose-300 text-xs">
                     <i class="fa-solid fa-circle-xmark"></i>
                 </button>
             </div>
 
-            <!-- Chat Input -->
-            <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5">
-                <label class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-sky-400 transition-all" title="Upload Reference Image">
-                    <i class="fa-solid fa-image text-xs"></i>
+            <!-- =========================================================
+                 CHAT 1 (TOP): HUGGING FACE 3D BUILDER CHAT
+                 Text: "say something to make or build"
+                 ========================================================= -->
+            <div class="glass p-1.5 flex items-center gap-1.5 border-t border-amber-500/30 bg-slate-950/85">
+                <span class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>HF</span>
+                </span>
+
+                <label class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-amber-400 transition-all" title="Upload Image to Build">
+                    <i class="fa-solid fa-image text-[11px]"></i>
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
-                <input id="promptInput" type="text" placeholder="make or build your own project" 
-                    class="flex-1 bg-transparent px-2 py-1.5 text-white placeholder-slate-400 text-xs outline-none"
-                    onkeydown="if(event.key === 'Enter') sendPromptToAI()">
+                <input id="hfPromptInput" type="text" placeholder="say something to make or build" 
+                    class="flex-1 bg-transparent px-1.5 py-1 text-white placeholder-slate-400 text-xs outline-none"
+                    onkeydown="if(event.key === 'Enter') sendHfBuildPrompt()">
 
-                <button id="sendBtn" onclick="sendPromptToAI()" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all">
-                    <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                <button id="hfBuildBtn" onclick="sendHfBuildPrompt()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 shadow-md transition-all">
+                    <i class="fa-solid fa-hammer text-[10px]"></i>
                     <span>Build</span>
                 </button>
+            </div>
 
-                <button id="stopBtn" onclick="stopAICoding()" class="hidden px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs items-center gap-1.5 shrink-0 shadow-lg shadow-rose-600/40 animate-pulse transition-all">
-                    <i class="fa-solid fa-stop text-[10px]"></i>
-                    <span>Stop</span>
+            <!-- =========================================================
+                 CHAT 2 (BOTTOM): GEMINI / OPENAI / CLAUDE STORY CHAT
+                 Text: "make the story"
+                 ========================================================= -->
+            <div class="glass neon-shadow rounded-b-xl p-1.5 flex items-center gap-1.5 border-t border-sky-500/30 bg-slate-950/90">
+                <span id="storyChatBadge" class="px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span id="storyProviderName">Gemini</span>
+                </span>
+
+                <input id="storyPromptInput" type="text" placeholder="make the story" 
+                    class="flex-1 bg-transparent px-1.5 py-1 text-white placeholder-slate-400 text-xs outline-none"
+                    onkeydown="if(event.key === 'Enter') sendStoryPrompt()">
+
+                <button id="storySendBtn" onclick="sendStoryPrompt()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 shadow-md transition-all">
+                    <i class="fa-solid fa-feather-pointed text-[10px]"></i>
+                    <span>Story</span>
                 </button>
             </div>
         </div>
