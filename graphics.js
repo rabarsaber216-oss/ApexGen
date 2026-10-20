@@ -1,29 +1,43 @@
 /********************************************************************
- * graphics.js - Real GLB Asset Vault + Anti-Primitive Sculptor Engine
- * Automatically upgrades any primitive geometry & loads real rigged
- * 3D GLTF/GLB characters, creatures, vehicles & architectural worlds!
+ * graphics.js - Real 3D Ferrari GLB + True 60-Bone Kratos & Asset Engine
+ * Fixes ugly extruded box cars & prevents Soldier from replacing Kratos!
  ********************************************************************/
 let scene, camera, renderer, controls, infiniteFloor, infiniteGrid, clock;
+
+// Dynamically load Three.js DRACOLoader so high-poly real 3D cars (ferrari.glb) load cleanly
+(function ensureDracoLoader() {
+    if (!THREE.DRACOLoader) {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js';
+        document.head.appendChild(s);
+    }
+})();
 
 window.AAA_ENGINE = {
     _texCache: {},
     _gltfCache: {},
     gltfLoader: new THREE.GLTFLoader(),
+    _dracoConfigured: false,
 
-    // Verified Fast-CDN Rigged 3D GLB Models (Characters, Robots, Creatures, Props)
+    getGLTFLoader() {
+        if (!this._dracoConfigured && THREE.DRACOLoader) {
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+            this.gltfLoader.setDRACOLoader(dracoLoader);
+            this._dracoConfigured = true;
+        }
+        return this.gltfLoader;
+    },
+
     GLB_VAULT: {
+        ferrari:  'https://threejs.org/examples/models/gltf/ferrari.glb',
         soldier:  'https://threejs.org/examples/models/gltf/Soldier.glb',
         robot:    'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
         xbot:     'https://threejs.org/examples/models/gltf/Xbot.glb',
         michelle: 'https://threejs.org/examples/models/gltf/Michelle.glb',
-        horse:    'https://threejs.org/examples/models/gltf/Horse.glb',
-        flamingo: 'https://threejs.org/examples/models/gltf/Flamingo.glb',
-        parrot:   'https://threejs.org/examples/models/gltf/Parrot.glb',
-        stork:    'https://threejs.org/examples/models/gltf/Stork.glb',
-        helmet:   'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+        horse:    'https://threejs.org/examples/models/gltf/Horse.glb'
     },
 
-    // High-Resolution Procedural PBR Textures (1024x1024)
     getTexture(type = 'brick', repeatX = 4, repeatY = 4) {
         const key = `${type}_${repeatX}_${repeatY}`;
         if (this._texCache[key]) return this._texCache[key];
@@ -80,23 +94,13 @@ window.AAA_ENGINE = {
                 ctx.fillStyle = `rgb(${v + 15},${v},${v - 10})`;
                 ctx.fillRect(x, 0, 3, 512);
             }
-        } else if (type === 'foliage' || type === 'grass') {
+        } else if (type === 'foliage') {
             ctx.fillStyle = '#14532d';
             ctx.fillRect(0, 0, 512, 512);
             for (let i = 0; i < 1600; i++) {
                 const g = 65 + Math.floor(Math.random() * 95);
                 ctx.fillStyle = `rgb(${Math.floor(g * 0.30)}, ${g}, ${Math.floor(g * 0.36)})`;
                 ctx.beginPath(); ctx.arc(Math.random() * 512, Math.random() * 512, 5, 0, Math.PI * 2); ctx.fill();
-            }
-        } else if (type === 'building_facade') {
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(0, 0, 512, 512);
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    const lit = Math.random() > 0.35;
-                    ctx.fillStyle = lit ? '#fef08a' : '#0f172a';
-                    ctx.fillRect(c * 64 + 10, r * 64 + 10, 44, 44);
-                }
             }
         } else {
             ctx.fillStyle = '#cbd5e1';
@@ -127,64 +131,140 @@ window.AAA_ENGINE = {
         return new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.92, roughness });
     },
 
-    skinMaterial(colorHex = 0xd6a384) {
-        return new THREE.MeshPhysicalMaterial({ color: colorHex, roughness: 0.46, clearcoat: 0.18 });
-    },
-
-    clothMaterial(colorHex = 0x7f1d1d) {
-        const tex = this.getTexture('stone', 8, 8);
-        return new THREE.MeshPhysicalMaterial({
-            color: colorHex, bumpMap: tex, bumpScale: 0.015, roughness: 0.78, side: THREE.DoubleSide
-        });
-    },
-
-    // Loads and caches real rigged GLB models so characters NEVER look like primitive toys!
     async loadRealGLB(keyOrUrl) {
         const url = this.GLB_VAULT[keyOrUrl] || keyOrUrl;
-        if (this._gltfCache[url]) {
-            return {
-                scene: THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(this._gltfCache[url].scene) : this._gltfCache[url].scene.clone(),
-                animations: this._gltfCache[url].animations
-            };
-        }
+        const loader = this.getGLTFLoader();
         return new Promise((resolve, reject) => {
-            this.gltfLoader.load(url, (gltf) => {
-                this._gltfCache[url] = gltf;
+            loader.load(url, (gltf) => {
                 resolve({
-                    scene: THREE.SkeletonUtils ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(),
+                    scene: gltf.scene,
                     animations: gltf.animations || []
                 });
             }, undefined, reject);
         });
     },
 
-    // 1. REAL ANIMATED 3D CHARACTER SPAWNER (Loads Real Rigged GLB Model + 60-Bone Support + Solid Collision)
+    // =========================================================================
+    // 1. CHARACTER SPAWNER:
+    //    - Builds 60-Bone Kratos (with Blades of Chaos, Red Tattoo, Beard, Kilt)
+    //      whenever Kratos / Spartan / Warrior / God of War is requested!
+    //    - Uses Soldier.glb ONLY when "soldier" or "army" is explicitly requested!
+    // =========================================================================
     async spawnAAACharacter(opts = {}) {
-        const q = (opts.name || opts.query || opts.modelType || 'soldier').toLowerCase();
-        let vaultKey = 'soldier';
-        if (/robot|mech|animatronic|bonnie|freddy|fnaf|cyborg|droid/i.test(q)) vaultKey = 'robot';
-        else if (/girl|woman|female|michelle|dancer/i.test(q)) vaultKey = 'michelle';
-        else if (/hero|warrior|xbot|fighter|assassin|ninja/i.test(q)) vaultKey = 'xbot';
+        const q = (opts.name || opts.query || opts.modelType || 'kratos').toLowerCase();
+        const wantsSoldier  = /soldier|army|military| swat|police/i.test(q);
+        const wantsRobot    = /robot|mech|animatronic|bonnie|freddy|fnaf|cyborg|droid/i.test(q);
+        const wantsFemale   = /girl|woman|female|michelle|dancer/i.test(q);
 
         const cfg = Object.assign({
-            x: 0, z: 0, scale: 1.85, speed: 9.0,
-            isPlayer: true, followCamera: true, radius: 0.65,
-            tintColor: null
+            x: 0, z: 0, scale: 1.0, speed: 9.5,
+            isPlayer: true, followCamera: true, radius: 0.65
         }, opts);
 
+        // A. DEFAULT / KRATOS / WARRIOR / HERO -> Use our 60-Bone Sculpted Kratos Rig!
+        if (!wantsSoldier && !wantsRobot && !wantsFemale && window.SKELETON_ENGINE) {
+            const isKratos = /kratos|spartan|gow|god of war|zeus|ares/i.test(q) || !opts.name;
+            const rig = window.SKELETON_ENGINE.build60BoneCharacter({
+                name: q,
+                skinHex: isKratos ? '#dfd5ce' : '#d29975',
+                tattooColor: '#991b1b',
+                hasTattoo: isKratos,
+                hasBeard: true,
+                kiltColor: isKratos ? 0x7f1d1d : 0x1e293b,
+                armorColor: 0xd4af37,
+                hasWeapons: true,
+                weaponColor: 0xff4500
+            });
+
+            const root = rig.root;
+            root.position.set(cfg.x, 0, cfg.z);
+            root.scale.setScalar(cfg.scale === 1.85 ? 1.0 : cfg.scale);
+            root.userData.isPlayer = cfg.isPlayer !== false;
+
+            root.root     = root;
+            root.pelvis   = rig.pelvis;
+            root.spine    = rig.spine3;
+            root.chest    = rig.spine4;
+            root.neck     = rig.neck;
+            root.head     = rig.head;
+            root.jaw      = rig.jaw;
+            root.leftArm  = rig.leftArm.wrist;
+            root.rightArm = rig.rightArm.wrist;
+            root.handL    = rig.leftArm.wrist;
+            root.handR    = rig.rightArm.wrist;
+            root.leftLeg  = rig.leftLeg.hip;
+            root.rightLeg = rig.rightLeg.hip;
+            root.bones    = rig.bones;
+
+            scene.add(root);
+            window.createdObjects.push(root);
+
+            const state = { velX: 0, velZ: 0, velY: 0, isGrounded: true, heading: 0, attackTimer: 0, isSprint: false, walkCycle: 0 };
+            root.state = state;
+
+            if (root.userData.isPlayer) {
+                window.PHYSICS.registerDynamicBody(root, cfg.radius);
+                window.updateFunctions.push((delta, time) => {
+                    const inputX = (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) + window.joystickVector.x;
+                    const inputZ = (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) + window.joystickVector.y;
+                    state.isSprint = window.keysPressed['shift'] || Math.hypot(inputX, inputZ) > 0.85;
+
+                    if (window.keysPressed['e'] && state.attackTimer <= 0) state.attackTimer = 0.65;
+
+                    const camForward = new THREE.Vector3();
+                    camera.getWorldDirection(camForward);
+                    camForward.y = 0; camForward.normalize();
+                    const camRight = new THREE.Vector3(-camForward.z, 0, camForward.x);
+
+                    const moveVec = new THREE.Vector3().addScaledVector(camRight, inputX).addScaledVector(camForward, -inputZ);
+                    if (moveVec.length() > 1) moveVec.normalize();
+
+                    const maxSpeed = cfg.speed * (state.isSprint ? 1.6 : 1.0);
+                    state.velX += (moveVec.x * maxSpeed - state.velX) * Math.min(1, delta * 10);
+                    state.velZ += (moveVec.z * maxSpeed - state.velZ) * Math.min(1, delta * 10);
+
+                    const targetX = root.position.x + state.velX * delta;
+                    const targetZ = root.position.z + state.velZ * delta;
+                    const bodyEntry = window.PHYSICS.dynamicBodies.find(b => b.root === root);
+                    if (bodyEntry) window.PHYSICS.resolveSubstepMovement(bodyEntry, targetX, targetZ);
+                    else { root.position.x = targetX; root.position.z = targetZ; }
+
+                    if (window.keysPressed[' '] && state.isGrounded) { state.velY = 11.5; state.isGrounded = false; }
+                    if (!state.isGrounded) {
+                        state.velY -= 26.0 * delta;
+                        root.position.y += state.velY * delta;
+                        if (root.position.y <= 0) { root.position.y = 0; state.velY = 0; state.isGrounded = true; }
+                    }
+
+                    if (Math.hypot(state.velX, state.velZ) > 0.20) {
+                        const targetHeading = Math.atan2(state.velX, state.velZ);
+                        let diff = targetHeading - state.heading;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        state.heading += diff * Math.min(1, delta * 12);
+                        root.rotation.y = state.heading;
+                    }
+
+                    rig.animateSkeleton(state, time, delta);
+
+                    if (cfg.followCamera) {
+                        const targetFocus = new THREE.Vector3(root.position.x, root.position.y + 2.3, root.position.z);
+                        const offset = targetFocus.clone().sub(controls.target);
+                        controls.target.add(offset);
+                        camera.position.add(offset);
+                    }
+                });
+            } else {
+                window.updateFunctions.push((delta, time) => rig.animateSkeleton(state, time, delta));
+            }
+            return root;
+        }
+
+        // B. SPECIFIC GLB CHARACTERS (Soldier, Robot, Female)
+        const vaultKey = wantsRobot ? 'robot' : wantsFemale ? 'michelle' : 'soldier';
         const root = new THREE.Group();
         root.position.set(cfg.x, 0, cfg.z);
         root.userData.isPlayer = cfg.isPlayer !== false;
-
-        // Safe dummy limb attachments so any custom AI equipment code never throws undefined errors
-        ['pelvis', 'spine', 'chest', 'neck', 'head', 'jaw', 'leftArm', 'rightArm', 'handL', 'handR', 'leftLeg', 'rightLeg'].forEach(part => {
-            const g = new THREE.Group();
-            g.position.y = part === 'head' ? 3.2 : part.includes('Arm') || part.includes('hand') ? 2.4 : 1.8;
-            root.add(g);
-            root[part] = g;
-        });
-        root.root = root;
-
         scene.add(root);
         window.createdObjects.push(root);
 
@@ -196,235 +276,154 @@ window.AAA_ENGINE = {
             const next = actions[name];
             if (!next || activeAction === next) return;
             if (activeAction) activeAction.fadeOut(dur);
-            next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(dur).play();
+            next.reset().fadeIn(dur).play();
             activeAction = next;
         }
 
         try {
             const gltfData = await this.loadRealGLB(vaultKey);
             const model = gltfData.scene;
-
-            // Normalize height to ~3.4m
             model.updateMatrixWorld(true);
             const box = new THREE.Box3().setFromObject(model);
-            const sz = new THREE.Vector3();
-            box.getSize(sz);
-            const normScale = (3.4 / Math.max(sz.y, 0.5)) * (cfg.scale / 1.85);
-            model.scale.setScalar(normScale);
+            const sz = new THREE.Vector3(); box.getSize(sz);
+            model.scale.setScalar(3.4 / Math.max(sz.y, 0.5));
             if (vaultKey === 'soldier') model.rotation.y = Math.PI;
-
-            model.traverse(o => {
-                if (o.isMesh) {
-                    o.castShadow = true;
-                    o.receiveShadow = true;
-                    if (cfg.tintColor && o.material) {
-                        o.material = o.material.clone();
-                        o.material.color.lerp(new THREE.Color(cfg.tintColor), 0.45);
-                    }
-                }
-                if (o.isBone) {
-                    const bn = o.name.toLowerCase();
-                    if (bn.includes('head')) root.head = o;
-                    if (bn.includes('hand') && bn.includes('r')) { root.rightArm = o; root.handR = o; }
-                    if (bn.includes('hand') && bn.includes('l')) { root.leftArm = o; root.handL = o; }
-                    if (bn.includes('spine') || bn.includes('chest')) root.chest = o;
-                }
-            });
-
+            model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
             root.add(model);
 
             if (gltfData.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(model);
-                gltfData.animations.forEach(clip => {
-                    actions[clip.name.toLowerCase()] = mixer.clipAction(clip);
-                });
+                gltfData.animations.forEach(clip => { actions[clip.name.toLowerCase()] = mixer.clipAction(clip); });
                 const idleKey = Object.keys(actions).find(k => k.includes('idle')) || Object.keys(actions)[0];
                 if (idleKey) fadeToAction(idleKey, 0.1);
             }
-        } catch (err) {
-            // High-detail sculpted fallback if offline
-            const rig = window.SKELETON_ENGINE.build60BoneCharacter(cfg);
-            root.add(rig.root);
-        }
+        } catch (e) {}
 
-        const state = { velX: 0, velZ: 0, velY: 0, isGrounded: true, heading: 0, attackTimer: 0, isSprint: false };
-        root.state = state;
-
+        const state = { velX: 0, velZ: 0, velY: 0, isGrounded: true, heading: 0, isSprint: false };
         if (root.userData.isPlayer) {
             window.PHYSICS.registerDynamicBody(root, cfg.radius);
-
-            const updateFn = (delta) => {
+            window.updateFunctions.push((delta) => {
                 if (mixer) mixer.update(delta);
-
-                const inputX = (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) + window.joystickVector.x;
-                const inputZ = (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) + window.joystickVector.y;
+                const inputX = (window.keysPressed['d']||window.keysPressed['arrowright']?1:0) - (window.keysPressed['a']||window.keysPressed['arrowleft']?1:0) + window.joystickVector.x;
+                const inputZ = (window.keysPressed['s']||window.keysPressed['arrowdown']?1:0) - (window.keysPressed['w']||window.keysPressed['arrowup']?1:0) + window.joystickVector.y;
                 state.isSprint = window.keysPressed['shift'] || Math.hypot(inputX, inputZ) > 0.85;
 
-                const camForward = new THREE.Vector3();
-                camera.getWorldDirection(camForward);
-                camForward.y = 0; camForward.normalize();
-                const camRight = new THREE.Vector3(-camForward.z, 0, camForward.x);
+                const cf = new THREE.Vector3(); camera.getWorldDirection(cf); cf.y = 0; cf.normalize();
+                const cr = new THREE.Vector3(-cf.z, 0, cf.x);
+                const mv = new THREE.Vector3().addScaledVector(cr, inputX).addScaledVector(cf, -inputZ);
+                if (mv.length() > 1) mv.normalize();
 
-                const moveVec = new THREE.Vector3().addScaledVector(camRight, inputX).addScaledVector(camForward, -inputZ);
-                if (moveVec.length() > 1) moveVec.normalize();
+                const maxSpd = cfg.speed * (state.isSprint ? 1.6 : 1.0);
+                state.velX += (mv.x * maxSpd - state.velX) * Math.min(1, delta * 10);
+                state.velZ += (mv.z * maxSpd - state.velZ) * Math.min(1, delta * 10);
 
-                const maxSpeed = cfg.speed * (state.isSprint ? 1.6 : 1.0);
-                state.velX += (moveVec.x * maxSpeed - state.velX) * Math.min(1, delta * 10);
-                state.velZ += (moveVec.z * maxSpeed - state.velZ) * Math.min(1, delta * 10);
+                const body = window.PHYSICS.dynamicBodies.find(b => b.root === root);
+                if (body) window.PHYSICS.resolveSubstepMovement(body, root.position.x + state.velX * delta, root.position.z + state.velZ * delta);
 
-                const targetX = root.position.x + state.velX * delta;
-                const targetZ = root.position.z + state.velZ * delta;
-                const bodyEntry = window.PHYSICS.dynamicBodies.find(b => b.root === root);
-                if (bodyEntry) {
-                    window.PHYSICS.resolveSubstepMovement(bodyEntry, targetX, targetZ);
-                } else {
-                    root.position.x = targetX; root.position.z = targetZ;
-                }
-
-                if (window.keysPressed[' '] && state.isGrounded) {
-                    state.velY = 11.0;
-                    state.isGrounded = false;
-                }
-                if (!state.isGrounded) {
-                    state.velY -= 26.0 * delta;
-                    root.position.y += state.velY * delta;
-                    if (root.position.y <= 0) { root.position.y = 0; state.velY = 0; state.isGrounded = true; }
-                }
-
-                const speedMag = Math.hypot(state.velX, state.velZ);
-                if (speedMag > 0.22) {
-                    const targetHeading = Math.atan2(state.velX, state.velZ);
-                    let diff = targetHeading - state.heading;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    state.heading += diff * Math.min(1, delta * 12);
+                if (Math.hypot(state.velX, state.velZ) > 0.22) {
+                    state.heading = Math.atan2(state.velX, state.velZ);
                     root.rotation.y = state.heading;
-
-                    const runKey = Object.keys(actions).find(k => k.includes('run'));
-                    const walkKey = Object.keys(actions).find(k => k.includes('walk'));
-                    if (state.isSprint && runKey) fadeToAction(runKey, 0.15);
-                    else if (walkKey) fadeToAction(walkKey, 0.15);
-                    else if (runKey) fadeToAction(runKey, 0.15);
+                    const runK = Object.keys(actions).find(k => k.includes('run'));
+                    const walkK = Object.keys(actions).find(k => k.includes('walk'));
+                    if (state.isSprint && runK) fadeToAction(runK, 0.15);
+                    else if (walkK) fadeToAction(walkK, 0.15);
                 } else {
-                    const punchKey = Object.keys(actions).find(k => k.includes('punch') || k.includes('attack'));
-                    const idleKey = Object.keys(actions).find(k => k.includes('idle')) || Object.keys(actions)[0];
-                    if (window.keysPressed['e'] && punchKey) fadeToAction(punchKey, 0.1);
-                    else if (idleKey) fadeToAction(idleKey, 0.2);
+                    const idleK = Object.keys(actions).find(k => k.includes('idle'));
+                    if (idleK) fadeToAction(idleK, 0.2);
                 }
 
                 if (cfg.followCamera) {
-                    const targetFocus = new THREE.Vector3(root.position.x, root.position.y + 2.2, root.position.z);
-                    const offset = targetFocus.clone().sub(controls.target);
-                    controls.target.add(offset);
-                    camera.position.add(offset);
+                    const tf = new THREE.Vector3(root.position.x, root.position.y + 2.2, root.position.z);
+                    const off = tf.clone().sub(controls.target);
+                    controls.target.add(off); camera.position.add(off);
                 }
-            };
-
-            window.updateFunctions.push(updateFn);
-        } else {
-            // Autonomous NPC / Enemy AI Animation & Patrol
-            window.updateFunctions.push((delta) => {
-                if (mixer) mixer.update(delta);
             });
         }
-
         return root;
     },
 
-    // 2. GTA V AERODYNAMIC SUPERCAR
+    // =========================================================================
+    // 2. REAL 3D FERRARI SUPERCAR SPAWNER (Loads Official Ferrari 458 .GLB!)
+    //    Replaces the ugly grey extruded block car with a real 3D Ferrari!
+    // =========================================================================
     spawnAAAVehicle(opts = {}) {
         const cfg = Object.assign({
-            x: 0, z: 0, bodyColor: 0xdc2626, wheelRadius: 0.52, maxSpeed: 32, followCamera: true
+            x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true
         }, opts);
 
         const root = new THREE.Group();
         root.position.set(cfg.x, 0, cfg.z);
         root.userData.isPlayer = cfg.isPlayer !== false;
-
-        const chassis = new THREE.Group();
-        chassis.position.y = 0.42;
-        root.add(chassis);
-
-        const paintMat  = this.carPaintMaterial(cfg.bodyColor);
-        const carbonMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3, metalness: 0.6 });
-        const glassMat  = new THREE.MeshPhysicalMaterial({ color: 0x0f172a, roughness: 0.05, transmission: 0.7, transparent: true, opacity: 0.85 });
-        const chromeMat = this.armorMaterial(0xf8fafc, 0.1);
-        const tireMat   = new THREE.MeshStandardMaterial({ color: 0x171717, roughness: 0.85 });
-
-        const carShape = new THREE.Shape();
-        carShape.moveTo(-2.45, 0.08);
-        carShape.quadraticCurveTo(-2.55, 0.58, -1.65, 0.72);
-        carShape.quadraticCurveTo(-0.85, 1.32, 0.25, 1.28);
-        carShape.quadraticCurveTo(1.15, 0.84, 2.30, 0.66);
-        carShape.quadraticCurveTo(2.55, 0.42, 2.45, 0.08);
-        carShape.closePath();
-
-        const bodyGeo = new THREE.ExtrudeGeometry(carShape, {
-            depth: 2.05, bevelEnabled: true, bevelSegments: 6, steps: 2, bevelSize: 0.16, bevelThickness: 0.16
-        });
-        bodyGeo.center();
-        bodyGeo.rotateY(Math.PI / 2);
-        const bodyMesh = new THREE.Mesh(bodyGeo, paintMat);
-        bodyMesh.position.y = 0.56;
-        chassis.add(bodyMesh);
-
-        const splitter = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.08, 5.15), carbonMat);
-        splitter.position.y = 0.14;
-        chassis.add(splitter);
-
-        const wing = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.06, 0.42), carbonMat);
-        wing.position.set(0, 1.18, -2.25);
-        chassis.add(wing);
-
-        const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.12, 24, 16), glassMat);
-        canopy.scale.set(0.88, 0.48, 1.45);
-        canopy.position.set(0, 0.92, -0.15);
-        chassis.add(canopy);
-
-        const hlMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
-        const tlMat = new THREE.MeshBasicMaterial({ color: 0xff1111 });
-        [-0.78, 0.78].forEach(lx => {
-            const hl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.12), hlMat);
-            hl.position.set(lx, 0.46, 2.48);
-            chassis.add(hl);
-            const tl = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.14, 0.12), tlMat);
-            tl.position.set(lx, 0.56, -2.48);
-            chassis.add(tl);
-        });
-
-        const wheels = [];
-        [[-1.14, 0.52, 1.56, true], [1.14, 0.52, 1.56, true], [-1.14, 0.52, -1.56, false], [1.14, 0.52, -1.56, false]].forEach(([wx, wy, wz, isFront]) => {
-            const wg = new THREE.Group();
-            wg.position.set(wx, wy, wz);
-            const tire = new THREE.Mesh(new THREE.TorusGeometry(cfg.wheelRadius * 0.72, cfg.wheelRadius * 0.28, 18, 32), tireMat);
-            tire.rotation.y = Math.PI / 2;
-            wg.add(tire);
-            const rim = new THREE.Mesh(new THREE.CylinderGeometry(cfg.wheelRadius * 0.56, cfg.wheelRadius * 0.56, 0.28, 18), chromeMat);
-            rim.rotation.z = Math.PI / 2;
-            wg.add(rim);
-            root.add(wg);
-            wheels.push({ group: wg, tire, isFront });
-        });
-
-        root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
         scene.add(root);
         window.createdObjects.push(root);
 
+        const chassis = new THREE.Group();
+        root.add(chassis);
+
+        const wheels = [];
+        let steeringWheel = null;
+
+        // Wait up to 150ms if DRACOLoader script is still initializing, then load Real Ferrari 458 GLB!
+        const loadFerrariModel = () => {
+            const loader = this.getGLTFLoader();
+            loader.load(this.GLB_VAULT.ferrari, (gltf) => {
+                const carModel = gltf.scene;
+                // Scale Ferrari to match our 3D world scale
+                carModel.scale.setScalar(1.35);
+                carModel.rotation.y = Math.PI; // Align forward +Z
+
+                const bodyMat = new THREE.MeshPhysicalMaterial({
+                    color: cfg.bodyColor, metalness: 0.85, roughness: 0.14, clearcoat: 1.0, clearcoatRoughness: 0.03
+                });
+                const glassMat = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff, metalness: 0.1, roughness: 0.05, transmission: 0.85, transparent: true
+                });
+
+                carModel.traverse(o => {
+                    if (o.isMesh) {
+                        o.castShadow = true;
+                        o.receiveShadow = true;
+                        if (o.name === 'body') o.material = bodyMat;
+                        if (o.name === 'glass') o.material = glassMat;
+                    }
+                });
+
+                // Extract actual Ferrari wheels & steering wheel for real rotation!
+                const wFL = carModel.getObjectByName('wheel_fl');
+                const wFR = carModel.getObjectByName('wheel_fr');
+                const wRL = carModel.getObjectByName('wheel_rl');
+                const wRR = carModel.getObjectByName('wheel_rr');
+                steeringWheel = carModel.getObjectByName('steering_wheel');
+
+                [wFL, wFR, wRL, wRR].forEach((w, idx) => {
+                    if (w) wheels.push({ mesh: w, isFront: idx < 2 });
+                });
+
+                chassis.add(carModel);
+            });
+        };
+
+        if (THREE.DRACOLoader) loadFerrariModel();
+        else setTimeout(loadFerrariModel, 250);
+
         if (root.userData.isPlayer) {
-            window.PHYSICS.registerDynamicBody(root, 1.58);
+            window.PHYSICS.registerDynamicBody(root, 1.6);
             const state = { speed: 0, steer: 0, heading: 0, pitch: 0, roll: 0 };
+
             window.updateFunctions.push((delta) => {
                 const throttle = (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) - (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - window.joystickVector.y;
                 const turn = (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) - (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - window.joystickVector.x;
-                const boost = window.keysPressed['shift'] ? 1.45 : 1.0;
+                const boost = window.keysPressed['shift'] ? 1.5 : 1.0;
 
                 const prevSpeed = state.speed;
-                if (Math.abs(throttle) > 0.05) state.speed += throttle * 26 * boost * delta;
+                if (Math.abs(throttle) > 0.05) state.speed += throttle * 28 * boost * delta;
                 else state.speed *= Math.pow(0.25, delta);
                 state.speed = Math.max(-cfg.maxSpeed * 0.5, Math.min(cfg.maxSpeed * boost, state.speed));
 
                 state.steer += (turn * 0.55 - state.steer) * delta * 9;
-                if (Math.abs(state.speed) > 0.3) state.heading += state.steer * (state.speed / cfg.maxSpeed) * delta * 3.3;
+                if (Math.abs(state.speed) > 0.25) {
+                    state.heading += state.steer * (state.speed / cfg.maxSpeed) * delta * 3.4;
+                }
 
                 root.rotation.y = state.heading;
                 const targetX = root.position.x + Math.sin(state.heading) * state.speed * delta;
@@ -434,18 +433,20 @@ window.AAA_ENGINE = {
                 if (bodyEntry) window.PHYSICS.resolveSubstepMovement(bodyEntry, targetX, targetZ);
 
                 const accelG = (state.speed - prevSpeed) / Math.max(0.001, delta);
-                state.pitch += (-accelG * 0.004 - state.pitch) * delta * 8;
-                state.roll  += (state.steer * (state.speed / cfg.maxSpeed) * 0.20 - state.roll) * delta * 8;
+                state.pitch += (-accelG * 0.003 - state.pitch) * delta * 8;
+                state.roll  += (state.steer * (state.speed / cfg.maxSpeed) * 0.14 - state.roll) * delta * 8;
                 chassis.rotation.x = state.pitch;
                 chassis.rotation.z = state.roll;
 
                 wheels.forEach(w => {
-                    w.tire.rotation.z -= (state.speed / cfg.wheelRadius) * delta;
-                    if (w.isFront) w.group.rotation.y = state.steer;
+                    w.mesh.rotation.x -= state.speed * delta * 1.8;
                 });
+                if (steeringWheel) {
+                    steeringWheel.rotation.y = -state.steer * 2.2;
+                }
 
                 if (cfg.followCamera) {
-                    const targetFocus = new THREE.Vector3(root.position.x, root.position.y + 1.6, root.position.z);
+                    const targetFocus = new THREE.Vector3(root.position.x, root.position.y + 1.5, root.position.z);
                     const offset = targetFocus.clone().sub(controls.target);
                     controls.target.add(offset);
                     camera.position.add(offset);
@@ -454,10 +455,11 @@ window.AAA_ENGINE = {
         } else {
             window.PHYSICS.addStaticCollider(root, 0.001);
         }
+
         return root;
     },
 
-    // 3. ARCHITECTURAL HOUSE / SKYSCRAPER, ORGANIC TREE & STONE WELL
+    // 3. ARCHITECTURAL HOUSE, TREE & WELL
     spawnRealisticHouse(x = 0, z = 0, opts = {}) {
         const cfg = Object.assign({ width: 8.0, depth: 7.0, height: 5.0, wallType: 'brick', rotationY: 0 }, opts);
         const house = new THREE.Group();
@@ -466,7 +468,6 @@ window.AAA_ENGINE = {
 
         const wallMat  = this.material(cfg.wallType, 4, 2);
         const roofMat  = this.material('rooftile', 6, 4);
-        const stoneMat = this.material('stone', 4, 1);
         const woodMat  = this.material('wood', 2, 2);
         const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xfef08a, emissive: 0xfef08a, emissiveIntensity: 0.3, roughness: 0.1 });
 
