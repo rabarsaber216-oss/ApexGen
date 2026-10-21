@@ -1,195 +1,173 @@
 /********************************************************************
- * FILE: huggingface.js -> C++ / C# / Three.js Cross-Compiler & 3D Builder
- * Features:
- * 1. Writes authentic Unreal C++ or Unity C# code AND compiles it directly
- *    into executable WebGL / Three.js instructions on the 3D map!
- * 2. In-Browser C++ / C# Transpiler (so editing C++/C# code in Show Code works!)
- * 3. STRICT INTENT LOCK: Prevents the AI from EVER spawning a house when
- *    asked for a car, or spawning unrelated objects!
+ * FILE: huggingface.js -> C++ / C# / Three.js Live Compiler & Builder
+ * 1. Transpiles & compiles C++ (`Engine::`) and C# (`GameObject.`)
+ *    syntax directly into live Three.js WebGL 3D objects!
+ * 2. Understands both Kurdish & English commands with a Strict Intent
+ *    Lock so asking for a car NEVER builds a house!
  ********************************************************************/
 window.REAL_3D_AI_BUILDER = {
-    currentLanguage: localStorage.getItem('apexgen_engine_lang') || 'cpp', // 'cpp' | 'csharp' | 'js'
+    codeLanguage: localStorage.getItem('apexgen_code_lang') || 'cpp',
 
-    // Detects exact user intent so the engine NEVER builds the wrong category!
-    analyzeUserIntent(promptText) {
-        const q = (promptText || '').toLowerCase();
-        const asksForCar = /car|vehicle|ferrari|lamborghini|bugatti|bmw|mercedes|audi|toyota|ford|truck|bus|police car|taxi|drift|racing|سەیارە|ئۆتۆمبێل|تڕومبێل/i.test(q);
-        const asksForHouse = /house|building|villa|home|apartment|castle|tower|city|village|room|office|خانوو|باڵەخانە|ماڵ|قەڵا|شار/i.test(q);
-        const asksForCharacter = /kratos|spartan|god of war|warrior|soldier|robot|human|person|boy|girl|man|woman|player|hero|zombie|monster|fnaf|freddy|bonnie|کارەکتەر|کرەیتۆس|سەرباز|پیاو|کەس/i.test(q);
-        const asksForAircraft = /plane|airplane|jet|helicopter|chopper|drone|ufo|فڕۆکە|هێلیکۆپتەر/i.test(q);
-        const asksForWeapon = /sword|blade|gun|rifle|pistol|axe|hammer|weapon|shield|شمشێر|چەک|دەمانچە|تفەنگ/i.test(q);
+    // Analyzes Kurdish & English user prompts to lock the exact target intent!
+    analyzeUserIntent(promptText = '') {
+        const q = promptText.toLowerCase();
 
-        return { asksForCar, asksForHouse, asksForCharacter, asksForAircraft, asksForWeapon, raw: q };
+        const isVehicle  = /car|vehicle|ferrari|lamborghini|bugatti|bmw|mercedes|audi|toyota|jeep|suv|truck|bus|police|cop|taxi|drift|race|سەیارە|سەیارەیەک|ئۆتۆمبێل|وتومبیل|شاحینە|پۆلیس|تاکسی/i.test(q);
+        const isCharacter= /kratos|god of war|spartan|gow|warrior|hero|soldier|robot|zombie|monster|person|man|woman|girl|boy|player|freddy|bonnie|fnaf|کراتۆس|كرەیتۆس|سەرباز|پیاو|کچ|کارەکتەر|ڕۆبۆت|زۆمبی|پاڵەوان/i.test(q);
+        const isBuilding = /house|building|villa|castle|tower|city|town|village|room|office|school|hospital|shop|خانوو|خانو|ماڵ|بینا|باڵەخانە|قەڵا|شار|گوند|ژوور/i.test(q);
+        const isNature   = /tree|forest|woods|park|garden|درەخت|دار|دارستان|باخچە/i.test(q);
+
+        let category = 'CUSTOM';
+        if (isVehicle && !isBuilding) category = 'VEHICLE';
+        else if (isCharacter && !isBuilding && !isVehicle) category = 'CHARACTER';
+        else if (isBuilding) category = 'BUILDING';
+        else if (isNature) category = 'NATURE';
+
+        const intent = {
+            category,
+            allowHouse: isBuilding || category === 'CUSTOM',
+            allowCar: isVehicle || category === 'CUSTOM',
+            allowCharacter: isCharacter || category === 'CUSTOM'
+        };
+
+        window.ACTIVE_BUILD_INTENT = intent;
+        return intent;
     },
 
-    // Enforces Strict Intent Firewall on generated WebGL code:
-    // If user asked for a CAR and NOT a house, any accidental house call is stripped & replaced!
-    enforceIntentFirewall(webglCode, promptText) {
-        const intent = this.analyzeUserIntent(promptText);
-        let safeCode = webglCode || '';
+    // Transpiles C++ (`#include`, `Engine::`, `->`, `float x = 1.0f`) and C# (`using UnityEngine;`, `Vector3`) to executable WebGL JS!
+    transpileCppCSharpToWebGL(rawSource) {
+        if (!rawSource) return '';
+        let code = rawSource;
 
-        if (intent.asksForCar && !intent.asksForHouse) {
-            // Block any accidental house spawning when user asked for a car!
-            safeCode = safeCode.replace(/window\.AAA_ENGINE\.spawnRealisticHouse\s*\([^)]*\)\s*;?/g, '');
-            if (!/spawnAAAVehicle|BoxGeometry|CylinderGeometry|ExtrudeGeometry/i.test(safeCode)) {
-                safeCode += `\nconst car = window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true });`;
-            }
+        // 1. Strip C++ / C# headers & namespaces
+        code = code.replace(/^\s*#include\s+[<"][^>"]+[>"]\s*$/gm, '// [C++ Header Linked]');
+        code = code.replace(/^\s*using\s+[\w.]+\s*;\s*$/gm, '// [C# Namespace Linked]');
+        code = code.replace(/^\s*namespace\s+\w+\s*\{([\s\S]*)\}\s*$/m, '$1');
+
+        // 2. Unwrap C# / C++ class wrappers if present
+        code = code.replace(/public\s+class\s+\w+\s*(?::\s*\w+)?\s*\{([\s\S]*)\}\s*$/m, '$1');
+        code = code.replace(/class\s+\w+\s*(?::\s*public\s+\w+)?\s*\{([\s\S]*)\}\s*;?\s*$/m, '$1');
+        code = code.replace(/^\s*(?:public|private|protected)\s*:\s*$/gm, '');
+
+        // 3. Convert C++ scope resolution `::` and pointer `->` operators
+        code = code.replace(/Engine::/g, 'window.Engine.');
+        code = code.replace(/THREE::/g, 'THREE.');
+        code = code.replace(/GameObject::/g, 'window.GameObject.');
+        code = code.replace(/(\w+)->/g, '$1.');
+
+        // 4. Convert C++ / C# numeric float suffixes (e.g. `12.5f` -> `12.5`)
+        code = code.replace(/\b(\d+(?:\.\d+)?)f\b/g, '$1');
+
+        // 5. Convert C++ / C# typed variable declarations (`float speed =`, `int i =`, `FVector pos =`, `auto car =`)
+        code = code.replace(/\b(?:float|double|int|bool|string|auto|FVector|Vector3|GameObject|AActor\*?)\s+(\w+)\s*=/g, 'let $1 =');
+        code = code.replace(/\bfor\s*\(\s*(?:int|size_t)\s+/g, 'for (let ');
+
+        // 6. Convert C++ / C# function signatures (`void Start()`, `void Update(float delta, float time)`)
+        code = code.replace(/\b(?:public\s+|private\s+)?(?:async\s+)?void\s+(\w+)\s*\(([^)]*)\)/g, (_, fnName, params) => {
+            const cleanParams = params
+                .split(',')
+                .map(p => p.trim().replace(/^(?:float|double|int|bool|string)\s+/, ''))
+                .join(', ');
+            return `async function ${fnName}(${cleanParams})`;
+        });
+
+        // 7. If `Start()` or `Update()` functions were defined in C++/C#, auto-invoke them!
+        if (/\bfunction\s+Start\s*\(/.test(code) && !/\bStart\s*\(\s*\)\s*;/.test(code)) {
+            code += '\nawait Start();\n';
+        }
+        if (/\bfunction\s+Update\s*\(/.test(code) && !/updateFunctions\.push/.test(code)) {
+            code += '\nwindow.updateFunctions.push((delta, time) => Update(delta, time));\n';
         }
 
-        if (intent.asksForCharacter && !intent.asksForHouse) {
-            safeCode = safeCode.replace(/window\.AAA_ENGINE\.spawnRealisticHouse\s*\([^)]*\)\s*;?/g, '');
-        }
-
-        return safeCode;
+        return code;
     },
 
-    // In-Browser C++ / C# to Three.js Transpiler (Allows direct execution of C++/C# calls)
-    transpileCppOrCSharpToJS(sourceCode, fallbackPrompt = '') {
-        if (!sourceCode) return '';
-        // If it already contains pure Three.js commands, return it directly
-        if (/scene\.add|window\.AAA_ENGINE|new\s+THREE\./.test(sourceCode)) {
-            return sourceCode;
+    getSystemPromptForLanguage(lang, userPrompt, intent) {
+        const langHeader = lang === 'cpp'
+            ? `LANGUAGE MODE: C++ Style 3D Engine Code (using \`#include <ApexEngine.h>\`, \`Engine::SpawnVehicle\`, \`Engine::SpawnCharacter\`, \`THREE.*\`, and \`Engine::RegisterUpdate\`).`
+            : lang === 'csharp'
+            ? `LANGUAGE MODE: C# Unity-Style 3D Engine Code (using \`using UnityEngine;\`, \`GameObject.SpawnVehicle\`, \`GameObject.SpawnCharacter\`, \`THREE.*\`, and \`Engine.RegisterUpdate\`).`
+            : `LANGUAGE MODE: Native Three.js (r128) JavaScript.`;
+
+        let targetRule = '';
+        if (intent.category === 'VEHICLE') {
+            targetRule = `STRICT TARGET LOCK: The user asked for a CAR / VEHICLE ("${userPrompt}").
+- You MUST build ONLY the requested vehicle!
+- NEVER call \`spawnRealisticHouse\` or \`SpawnHouse\`!
+- Call \`const car = window.Engine.SpawnVehicle({ name: ${JSON.stringify(userPrompt)}, x: 0, z: 0, maxSpeed: 38, isPlayer: true, followCamera: true });\` (or build a custom multi-mesh vehicle if it's a helicopter/tank/plane).`;
+        } else if (intent.category === 'CHARACTER') {
+            targetRule = `STRICT TARGET LOCK: The user asked for a CHARACTER ("${userPrompt}").
+- You MUST build ONLY the requested character!
+- NEVER call \`spawnRealisticHouse\` or \`SpawnHouse\`!
+- Call \`const hero = await window.Engine.SpawnCharacter({ name: ${JSON.stringify(userPrompt)}, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });\`.`;
+        } else if (intent.category === 'BUILDING') {
+            targetRule = `STRICT TARGET LOCK: The user asked for a BUILDING / HOUSE ("${userPrompt}").
+- Call \`window.Engine.SpawnHouse(0, -10, { width: 8.5, depth: 7.5, height: 5.5, wallType: 'brick' });\` or construct the custom building requested.`;
+        } else {
+            targetRule = `STRICT TARGET LOCK: Build the EXACT custom 3D object, vehicle, aircraft, weapon, or game requested ("${userPrompt}") at (0, 0, 0) using detailed multi-part Three.js meshes (\`THREE.Group\`, \`THREE.CapsuleGeometry\`, \`THREE.CylinderGeometry\`, \`THREE.BoxGeometry\`, \`THREE.SphereGeometry\`, \`THREE.TorusGeometry\`, \`THREE.MeshPhysicalMaterial\`, \`window.AAA_ENGINE.glowMaterial\`), add it to \`scene\`, push to \`window.createdObjects\`, and animate it in \`window.Engine.RegisterUpdate((delta, time) => { ... })\`!`;
         }
 
-        const lines = [];
-        // Parse Unity C# / Unreal C++ vehicle, character, house, or custom mesh calls
-        if (/SpawnVehicle|ACarActor|WheeledVehicle|CarController/i.test(sourceCode)) {
-            const colMatch = sourceCode.match(/0x[0-9a-fA-F]{6}/);
-            const col = colMatch ? colMatch[0] : '0xdc2626';
-            lines.push(`const car = window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: ${col}, maxSpeed: 36, isPlayer: true, followCamera: true });`);
-        }
-        if (/SpawnCharacter|AKratosCharacter|ACharacter|CharacterController/i.test(sourceCode)) {
-            lines.push(`const hero = await window.AAA_ENGINE.spawnAAACharacter({ name: ${JSON.stringify(fallbackPrompt || 'Kratos')}, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });`);
-        }
-        if (/SpawnHouse|ABuildingActor/i.test(sourceCode)) {
-            lines.push(`const house = window.AAA_ENGINE.spawnRealisticHouse(0, -10, { width: 8, depth: 7, height: 5, wallType: 'brick' });`);
-        }
+        return `You are the Core 3D Game Engine Compiler of "ApexGen".
+${langHeader}
 
-        return lines.join('\n');
+${targetRule}
+
+AVAILABLE ENGINE APIS (Work in C++, C#, and JS modes):
+- \`window.Engine.SpawnVehicle({ name, x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 38, isPlayer: true, followCamera: true })\`
+- \`await window.Engine.SpawnCharacter({ name, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true })\`
+- \`window.Engine.SpawnHouse(x, z, { width, depth, height, wallType: 'brick'|'stone'|'wood' })\`
+- \`window.Engine.SpawnTree(x, z, scale)\`
+- \`window.Engine.CreateMaterial('brick'|'stone'|'asphalt'|'wood'|'rooftile'|'bark'|'foliage', repeatX, repeatY, tintHex)\`
+- \`window.Engine.CreateGlowMaterial(colorHex, intensity)\`
+- \`window.Engine.AddStaticCollider(mesh)\`
+- \`window.Engine.RegisterDynamicBody(group, radius)\`
+- \`window.Engine.RegisterUpdate((delta, time) => { ... })\`
+- Full \`THREE\` (r128), \`scene\`, \`camera\`, \`controls\`, \`window.keysPressed\`, \`window.joystickVector\`.
+
+OUTPUT FORMAT RULE:
+Output ONLY code (no markdown explanations, no JSON). Start line 1 with \`// BUILT: <short description>\`.`;
     },
 
-    getSystemPrompt(lang, promptText) {
-        const intent = this.analyzeUserIntent(promptText);
-        const langName = lang === 'cpp' ? 'Unreal Engine 5 C++' : lang === 'csharp' ? 'Unity Engine C#' : 'Three.js JavaScript';
-
-        let intentRule = `CRITICAL RULE: Build ONLY "${promptText}"! NEVER build a house if the user asked for a car, character, weapon, aircraft, or animal!`;
-        if (intent.asksForCar && !intent.asksForHouse) {
-            intentRule = `CRITICAL INTENT LOCK: The user is asking for a CAR / VEHICLE ("${promptText}"). You MUST build ONLY the car/vehicle! It is STRICTLY FORBIDDEN to call spawnRealisticHouse or build any house!`;
-        } else if (intent.asksForCharacter && !intent.asksForHouse) {
-            intentRule = `CRITICAL INTENT LOCK: The user is asking for a CHARACTER ("${promptText}"). Build ONLY the character! Do NOT build any house!`;
-        }
-
-        return `
-You are the Master ${langName} & WebGL 3D Compiler inside "ApexGen".
-${intentRule}
-
-You must output TWO blocks in your response:
-1. First, a \`\`\`${lang === 'cpp' ? 'cpp' : lang === 'csharp' ? 'csharp' : 'javascript'} code block containing clean, authentic${langName} code for "${promptText}".
-2. Second, a \`\`\`webgl_exec code block containing the compiled, directly executable async Three.js (r128) WebGL code that builds and animates "${promptText}" on the live 3D map!
-
-AVAILABLE FUNCTIONS INSIDE THE \`\`\`webgl_exec BLOCK:
-- Globals: \`THREE\`, \`scene\`, \`camera\`, \`renderer\`, \`controls\`, \`window.AAA_ENGINE\`, \`window.SKELETON_ENGINE\`, \`window.PHYSICS\`, \`window.updateFunctions\`, \`window.createdObjects\`, \`window.keysPressed\`, \`window.joystickVector\`.
-- For ANY Car / Supercar / Sports Car / Vehicle:
-  Call \`const car = window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true });\` (This spawns both a high-detail 3D supercar immediately AND upgrades to the Ferrari 458 GLB!). Or build a custom multi-part vehicle (truck, police car, tank, bus, motorcycle) using \`THREE.Group()\`, \`MeshPhysicalMaterial\`, rotating wheels, headlights with \`window.AAA_ENGINE.glowMaterial()\`, and register it with \`window.PHYSICS.registerDynamicBody(group, 1.5)\`!
-- For ANY Character / Kratos / Warrior / Soldier / Robot:
-  Call \`const hero = await window.AAA_ENGINE.spawnAAACharacter({ name: ${JSON.stringify(promptText)}, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });\`
-- For ANY Custom Object (e.g. Helicopter, Airplane, Sword, Gun, Dragon, Monster, Bridge, FNAF Office, Furniture, etc.):
-  Construct a highly detailed multi-part 3D \`THREE.Group()\` at \`(0, 0, 0)\` using \`CapsuleGeometry\`, \`ExtrudeGeometry\`, \`LatheGeometry\`, \`CylinderGeometry\`, \`TorusGeometry\`, \`SphereGeometry\`, \`BoxGeometry\` and PBR materials (\`MeshPhysicalMaterial\`, \`window.AAA_ENGINE.material()\`, \`window.AAA_ENGINE.glowMaterial()\`). Add it to \`scene\`, push to \`window.createdObjects\`, aim \`controls.target.set(0, 2, 0)\`, and animate it inside \`window.updateFunctions.push((delta, time) => { ... })\`!
-- For a House / Building (ONLY if the user explicitly asked for a house/building!):
-  Call \`window.AAA_ENGINE.spawnRealisticHouse(0, -10, { width: 8, depth: 7, height: 5, wallType: 'brick' });\`
-
-Start line 1 of the \`\`\`webgl_exec block with: \`// BUILT: <short description>\`.
-`;
+    cleanRawFence(rawText) {
+        if (!rawText) return '';
+        const fence = rawText.match(/```(?:cpp|c\+\+|csharp|c#|cs|javascript|js)?\s*([\s\S]*?)```/i);
+        let code = fence ? fence[1].trim() : rawText.replace(/```(?:cpp|c\+\+|csharp|c#|cs|javascript|js)?/gi, '').replace(/```/g, '').trim();
+        return code;
     },
 
-    extractBlocks(rawText, lang) {
-        if (!rawText) return { sourceCode: '', webglCode: '' };
+    // Deterministic Instant Builder if API fails or if the user asks for a direct Car / Kratos / House
+    buildGuaranteedTargetCode(promptText, intent, lang) {
+        const header = lang === 'cpp'
+            ? `// BUILT: Compiled C++ 3D Scene for "${promptText}"\n#include <ApexEngine.h>\n`
+            : lang === 'csharp'
+            ? `// BUILT: Compiled C# Unity Scene for "${promptText}"\nusing UnityEngine;\n`
+            : `// BUILT: Compiled Three.js Scene for "${promptText}"\n`;
 
-        const webglMatch = rawText.match(/```webgl_exec\s*([\s\S]*?)```/i);
-        const allFences = [...rawText.matchAll(/```([a-zA-Z0-9_+#-]*)\s*([\s\S]*?)```/g)];
-
-        let sourceCode = '';
-        let webglCode = '';
-
-        if (webglMatch) {
-            webglCode = webglMatch[1].trim();
+        if (intent.category === 'VEHICLE') {
+            return `${header}const car = Engine::SpawnVehicle({ name: ${JSON.stringify(promptText)}, x: 0, z: 0, maxSpeed: 38, isPlayer: true, followCamera: true });`;
         }
-
-        for (const f of allFences) {
-            const tag = (f[1] || '').toLowerCase();
-            const content = f[2].trim();
-            if (tag === 'webgl_exec') {
-                webglCode = content;
-            } else if (!sourceCode && (tag.includes('cpp') || tag.includes('c++') || tag.includes('csharp') || tag.includes('cs') || tag === 'c')) {
-                sourceCode = content;
-            } else if (!webglCode && (tag === 'javascript' || tag === 'js' || tag === '')) {
-                webglCode = content;
-            }
+        if (intent.category === 'CHARACTER') {
+            return `${header}const hero = await Engine::SpawnCharacter({ name: ${JSON.stringify(promptText)}, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });`;
         }
-
-        if (!webglCode && allFences.length > 0) {
-            webglCode = allFences[allFences.length - 1][2].trim();
+        if (intent.category === 'BUILDING') {
+            return `${header}const house = Engine::SpawnHouse(0, -9, { width: 8.5, depth: 7.5, height: 5.5, wallType: 'brick' });`;
         }
-        if (!webglCode) {
-            webglCode = rawText.replace(/```[a-zA-Z0-9_+#-]*/g, '').replace(/```/g, '').trim();
+        if (intent.category === 'NATURE') {
+            return `${header}for (int i = -2; i <= 2; i++) { Engine::SpawnTree(i * 6, -8, 1.1f); }`;
         }
-        if (!sourceCode) {
-            sourceCode = this.generateDisplaySourceHeader(lang, webglCode);
-        }
-
-        webglCode = webglCode.replace(/^javascript\s+/i, '').trim();
-        return { sourceCode, webglCode };
-    },
-
-    generateDisplaySourceHeader(lang, webglCode) {
-        if (lang === 'cpp') {
-            return `// ============================================================================
-// Unreal Engine 5 C++ Source (Compiled to ApexGen WebGL 3D Runtime)
-// ============================================================================
-#include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "ApexGen3DCompiler.h"
-
-class AApexGeneratedActor : public AActor {
-public:
-    virtual void BeginPlay() override {
-        Super::BeginPlay();
-        ExecuteWebGLHardwarePipeline();
-    }
-    void ExecuteWebGLHardwarePipeline() {
-        /* Compiled WebGL / Three.js Hardware Instructions: */
-${webglCode.split('\n').map(l => '        ' + l).join('\n')}
-    }
-};`;
-        }
-        if (lang === 'csharp') {
-            return `// ============================================================================
-// Unity Engine C# Script (Compiled to ApexGen WebGL 3D Runtime)
-// ============================================================================
-using UnityEngine;
-using ApexGen.WebGLCompiler;
-
-public class ApexGeneratedBehaviour : MonoBehaviour {
-    async void Start() {
-        await CompileAndSpawnTo3DMap();
-    }
-    async System.Threading.Tasks.Task CompileAndSpawnTo3DMap() {
-        /* Compiled WebGL / Three.js Hardware Instructions: */
-${webglCode.split('\n').map(l => '        ' + l).join('\n')}
-    }
-}`;
-        }
-        return webglCode;
+        return `${header}const obj = await Engine::SpawnCharacter({ name: ${JSON.stringify(promptText)}, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });`;
     },
 
     async generateAndExecute3D(promptText, imageDataUrl, provider, apiKey, geminiModels, powerLevel, updateStatusFn, abortSignal) {
-        const lang = this.currentLanguage || 'cpp';
+        const lang = this.codeLanguage || 'cpp';
         const langLabel = lang === 'cpp' ? 'C++' : lang === 'csharp' ? 'C#' : 'Three.js';
+        const intent = this.analyzeUserIntent(promptText);
 
-        updateStatusFn(`⚡ [${langLabel} Compiler] Writing & compiling "${promptText}"...`);
+        updateStatusFn(`⚙️ [${langLabel} Compiler] Writing ${langLabel} 3D code for "${promptText}"...`);
 
-        const fullPrompt = this.getSystemPrompt(lang, promptText) + `\n\nUSER COMMAND TO BUILD: "${promptText}"`;
-        let rawResponse = '';
+        const sysPrompt = this.getSystemPromptForLanguage(lang, promptText, intent);
+        const fullPrompt = `${sysPrompt}\n\nUSER COMMAND: "${promptText}"`;
+        let rawDisplayCode = '';
 
         if (provider === 'gemini') {
             const models = (geminiModels && geminiModels.length > 0)
@@ -203,7 +181,6 @@ ${webglCode.split('\n').map(l => '        ' + l).join('\n')}
                 parts.push({ inlineData: { mimeType: mime, data: b64 } });
             }
 
-            let lastErr = null;
             for (const modelName of models) {
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
@@ -223,18 +200,14 @@ ${webglCode.split('\n').map(l => '        ' + l).join('\n')}
                     if (res.ok) {
                         const txt = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
                         if (txt.trim()) {
-                            rawResponse = txt;
+                            rawDisplayCode = this.cleanRawFence(txt);
                             break;
                         }
-                    } else {
-                        lastErr = new Error(data.error?.message || `HTTP ${res.status}`);
                     }
                 } catch (e) {
                     if (e.name === 'AbortError') throw e;
-                    lastErr = e;
                 }
             }
-            if (!rawResponse && lastErr) throw lastErr;
         } else if (provider === 'openai') {
             const res = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -248,8 +221,7 @@ ${webglCode.split('\n').map(l => '        ' + l).join('\n')}
                 signal: abortSignal
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
-            rawResponse = data.choices[0].message.content;
+            if (res.ok) rawDisplayCode = this.cleanRawFence(data.choices[0].message.content);
         } else if (provider === 'claude') {
             const res = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
@@ -268,55 +240,53 @@ ${webglCode.split('\n').map(l => '        ' + l).join('\n')}
                 signal: abortSignal
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
-            rawResponse = data.content[0].text;
+            if (res.ok) rawDisplayCode = this.cleanRawFence(data.content[0].text);
         }
 
-        let { sourceCode, webglCode } = this.extractBlocks(rawResponse, lang);
+        if (!rawDisplayCode) {
+            rawDisplayCode = this.buildGuaranteedTargetCode(promptText, intent, lang);
+        }
 
-        // Pass through Intent Firewall so a Car request NEVER spawns a house!
-        webglCode = this.enforceIntentFirewall(webglCode, promptText);
-
-        updateStatusFn(`🚀 [${langLabel} -> WebGL] Spawning "${promptText}" onto 3D map...`);
+        updateStatusFn(`🚀 [${langLabel} Compiler] Linking & spawning 3D objects on map...`);
 
         const prevScene = [...scene.children];
         const prevFns = [...window.updateFunctions];
         window.isControlExited = false;
 
+        const executableJS = this.transpileCppCSharpToWebGL(rawDisplayCode);
+
         try {
             const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', webglCode);
-            await execFn(THREE, scene, camera, renderer, controls);
-        } catch (execErr) {
-            console.warn('WebGL execution error, running intent-matched recovery:', execErr);
+            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', 'Engine', 'GameObject', executableJS);
+            await execFn(THREE, scene, camera, renderer, controls, window.Engine, window.GameObject);
+        } catch (compileErr) {
+            console.warn('C++/C# runtime auto-recovery triggered:', compileErr);
         }
 
         let newObjects = scene.children.filter(c => !prevScene.includes(c));
 
-        // Guaranteed Intent-Matched Recovery if AI syntax had a typo:
+        // GUARANTEE: If nothing spawned or if AI code threw an error, run the exact intent builder!
         if (newObjects.length === 0) {
-            const intent = this.analyzeUserIntent(promptText);
-            if (intent.asksForCar) {
-                window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true });
-            } else if (intent.asksForHouse) {
-                window.AAA_ENGINE.spawnRealisticHouse(0, -10, { width: 8, depth: 7, height: 5, wallType: 'brick' });
-            } else {
-                await window.AAA_ENGINE.spawnAAACharacter({ name: promptText, x: 0, z: 0, speed: 9.5, isPlayer: true, followCamera: true });
-            }
+            const fallbackSource = this.buildGuaranteedTargetCode(promptText, intent, lang);
+            const fallbackJS = this.transpileCppCSharpToWebGL(fallbackSource);
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const fallbackFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', 'Engine', 'GameObject', fallbackJS);
+            await fallbackFn(THREE, scene, camera, renderer, controls, window.Engine, window.GameObject);
+            rawDisplayCode = fallbackSource;
             newObjects = scene.children.filter(c => !prevScene.includes(c));
         }
 
         const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
         window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
-        const summaryMatch = webglCode.match(/\/\/\s*BUILT:\s*([^\n\r]+)/i);
-        const summary = summaryMatch
-            ? summaryMatch[1].trim()
-            : `Compiled ${langLabel} & built "${promptText}" on the 3D map!`;
+        // Reset intent lock after build completes
+        window.ACTIVE_BUILD_INTENT = { category: 'ANY', allowHouse: true, allowCar: true, allowCharacter: true };
+
+        const summaryMatch = rawDisplayCode.match(/\/\/\s*BUILT:\s*([^\n\r]+)/i);
+        const summary = summaryMatch ? summaryMatch[1].trim() : `Compiled ${langLabel} 3D model for "${promptText}"!`;
 
         return {
-            sourceCode,
-            code: webglCode,
+            code: rawDisplayCode,
             objects: newObjects,
             updateFns: newFns,
             summary,
