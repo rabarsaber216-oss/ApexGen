@@ -1,6 +1,6 @@
 /********************************************************************
  * FILE: ai-core.js - Unified Three.js HDR AI Controller
- * - Auto-logins immediately with your saved Gemini / OpenAI / Claude key!
+ * - Auto-logins immediately with your saved Gemini / OpenAI / Claude key
  * - Top Chat ("say something to make or build"): Live Three.js 3D Coding
  * - Bottom Chat ("make the story"): Interactive Playable Story & Quest HUD
  ********************************************************************/
@@ -60,7 +60,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!savedKey || savedKey.length < 15) {
         for (const p of ['gemini', 'openai', 'claude']) {
             const k = localStorage.getItem(PROVIDERS[p].storageKey) || '';
-            if (k && k.length >= 15) { savedProvider = p; savedKey = k; break; }
+            if (k && k.length >= 15) {
+                savedProvider = p;
+                savedKey = k;
+                break;
+            }
         }
     }
     currentProvider = savedProvider;
@@ -79,7 +83,6 @@ window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (splash) splash.classList.add('hidden');
 
-            // If user already has their Gemini / OpenAI / Claude key saved, launch 3D World immediately!
             if (currentApiKey && currentApiKey.length >= 15) {
                 updateTopBadges();
                 const ws = document.getElementById('workspace');
@@ -94,7 +97,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 const auth = document.getElementById('authScreen');
-                if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
+                if (auth) {
+                    auth.classList.remove('hidden');
+                    auth.classList.add('flex');
+                }
             }
         }, 500);
     }, 1500);
