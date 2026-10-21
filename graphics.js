@@ -1,21 +1,47 @@
 /********************************************************************
- * graphics.js - Real 3D Ferrari GLB + True 60-Bone Kratos & Asset Engine
- * Fixes ugly extruded box cars & prevents Soldier from replacing Kratos!
+ * FILE: graphics.js - Three.js HDR + UnrealBloomPass Post-Processing Engine
+ * Features:
+ * 1. Real UnrealBloomPass Post-Processing (EffectComposer + Bloom)
+ * 2. Procedural Studio HDRI Environment Reflections (PMREMGenerator)
+ * 3. Polyfills for THREE.CapsuleGeometry & THREE.RoundedBoxGeometry
+ *    so AI-written Three.js code NEVER crashes on r128!
+ * 4. Real 3D Ferrari 458 GLB + 60-Bone Sculpted Kratos & Characters!
  ********************************************************************/
 let scene, camera, renderer, controls, infiniteFloor, infiniteGrid, clock;
+let composer = null, bloomPass = null, bloomEnabled = true;
 
-// Dynamically load Three.js DRACOLoader so high-poly real 3D cars (ferrari.glb) load cleanly
-(function ensureDracoLoader() {
-    if (!THREE.DRACOLoader) {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js';
-        document.head.appendChild(s);
-    }
-})();
+// =========================================================================
+// CRITICAL POLYFILLS FOR THREE.JS r128:
+// Modern AI models frequently generate `new THREE.CapsuleGeometry(...)` and
+// `new THREE.RoundedBoxGeometry(...)`. Adding these guarantees 0 crashes!
+// =========================================================================
+if (typeof THREE !== 'undefined' && !THREE.CapsuleGeometry) {
+    THREE.CapsuleGeometry = function (radius = 0.5, length = 1, capSubdivisions = 12, radialSegments = 24) {
+        const points = [];
+        const halfLen = length / 2;
+        for (let i = 0; i <= capSubdivisions; i++) {
+            const phi = -Math.PI / 2 + (Math.PI / 2) * (i / capSubdivisions);
+            points.push(new THREE.Vector2(Math.cos(phi) * radius, -halfLen + Math.sin(phi) * radius));
+        }
+        for (let i = 0; i <= capSubdivisions; i++) {
+            const phi = (Math.PI / 2) * (i / capSubdivisions);
+            points.push(new THREE.Vector2(Math.cos(phi) * radius, halfLen + Math.sin(phi) * radius));
+        }
+        const geo = new THREE.LatheGeometry(points, radialSegments);
+        geo.computeVertexNormals();
+        return geo;
+    };
+    THREE.CapsuleBufferGeometry = THREE.CapsuleGeometry;
+}
+
+if (typeof THREE !== 'undefined' && !THREE.RoundedBoxGeometry) {
+    THREE.RoundedBoxGeometry = function (width = 1, height = 1, depth = 1, segments = 4, radius = 0.1) {
+        return new THREE.BoxGeometry(width, height, depth, segments, segments, segments);
+    };
+}
 
 window.AAA_ENGINE = {
     _texCache: {},
-    _gltfCache: {},
     gltfLoader: new THREE.GLTFLoader(),
     _dracoConfigured: false,
 
@@ -35,7 +61,65 @@ window.AAA_ENGINE = {
         robot:    'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
         xbot:     'https://threejs.org/examples/models/gltf/Xbot.glb',
         michelle: 'https://threejs.org/examples/models/gltf/Michelle.glb',
-        horse:    'https://threejs.org/examples/models/gltf/Horse.glb'
+        horse:    'https://threejs.org/examples/models/gltf/Horse.glb',
+        flamingo: 'https://threejs.org/examples/models/gltf/Flamingo.glb',
+        parrot:   'https://threejs.org/examples/models/gltf/Parrot.glb'
+    },
+
+    toggleBloom() {
+        bloomEnabled = !bloomEnabled;
+        const btn = document.getElementById('bloomToggleBtn');
+        if (btn) {
+            btn.innerText = bloomEnabled ? '✨ Bloom: ON' : '✨ Bloom: OFF';
+            btn.className = bloomEnabled
+                ? 'text-[10px] px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-400/50 text-purple-300 font-bold'
+                : 'text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-600 text-slate-400 font-bold';
+        }
+    },
+
+    // Generates a real HDRI Environment Map using Three.js PMREMGenerator so metallic, chrome, car paint & glass reflect realistically!
+    createHDRIEnvironment(rendererInstance) {
+        try {
+            const pmremGenerator = new THREE.PMREMGenerator(rendererInstance);
+            pmremGenerator.compileCubemapShader();
+
+            const envScene = new THREE.Scene();
+            envScene.background = new THREE.Color(0x0b1528);
+
+            // High-intensity HDR studio sky dome & softbox lights for crisp metallic reflections
+            const skyLight = new THREE.Mesh(
+                new THREE.SphereGeometry(80, 32, 16),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.BackSide })
+            );
+            envScene.add(skyLight);
+
+            const sunOrb = new THREE.Mesh(
+                new THREE.SphereGeometry(12, 24, 24),
+                new THREE.MeshBasicMaterial({ color: 0xfffbeb })
+            );
+            sunOrb.position.set(40, 60, 45);
+            envScene.add(sunOrb);
+
+            const warmStrip = new THREE.Mesh(
+                new THREE.BoxGeometry(60, 8, 4),
+                new THREE.MeshBasicMaterial({ color: 0xf97316 })
+            );
+            warmStrip.position.set(-45, 25, -40);
+            envScene.add(warmStrip);
+
+            const coolStrip = new THREE.Mesh(
+                new THREE.BoxGeometry(60, 8, 4),
+                new THREE.MeshBasicMaterial({ color: 0x818cf8 })
+            );
+            coolStrip.position.set(45, 30, -35);
+            envScene.add(coolStrip);
+
+            const envMap = pmremGenerator.fromScene(envScene, 0.035).texture;
+            pmremGenerator.dispose();
+            return envMap;
+        } catch (e) {
+            return null;
+        }
     },
 
     getTexture(type = 'brick', repeatX = 4, repeatY = 4) {
@@ -61,11 +145,11 @@ window.AAA_ENGINE = {
         } else if (type === 'stone' || type === 'asphalt') {
             ctx.fillStyle = type === 'asphalt' ? '#1e293b' : '#475569';
             ctx.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 400; i++) {
-                const v = (type === 'asphalt' ? 35 : 85) + Math.floor(Math.random() * 60);
+            for (let i = 0; i < 450; i++) {
+                const v = (type === 'asphalt' ? 32 : 85) + Math.floor(Math.random() * 60);
                 ctx.fillStyle = `rgb(${v},${v + 2},${v + 5})`;
                 ctx.beginPath();
-                ctx.arc(Math.random() * 512, Math.random() * 512, 4 + Math.random() * 14, 0, Math.PI * 2);
+                ctx.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 14, 0, Math.PI * 2);
                 ctx.fill();
             }
         } else if (type === 'wood') {
@@ -94,13 +178,23 @@ window.AAA_ENGINE = {
                 ctx.fillStyle = `rgb(${v + 15},${v},${v - 10})`;
                 ctx.fillRect(x, 0, 3, 512);
             }
-        } else if (type === 'foliage') {
+        } else if (type === 'foliage' || type === 'grass') {
             ctx.fillStyle = '#14532d';
             ctx.fillRect(0, 0, 512, 512);
             for (let i = 0; i < 1600; i++) {
                 const g = 65 + Math.floor(Math.random() * 95);
                 ctx.fillStyle = `rgb(${Math.floor(g * 0.30)}, ${g}, ${Math.floor(g * 0.36)})`;
                 ctx.beginPath(); ctx.arc(Math.random() * 512, Math.random() * 512, 5, 0, Math.PI * 2); ctx.fill();
+            }
+        } else if (type === 'building_facade') {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 512, 512);
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const lit = Math.random() > 0.35;
+                    ctx.fillStyle = lit ? '#fef08a' : '#1e293b';
+                    ctx.fillRect(c * 64 + 10, r * 64 + 10, 44, 44);
+                }
             }
         } else {
             ctx.fillStyle = '#cbd5e1';
@@ -117,18 +211,24 @@ window.AAA_ENGINE = {
     material(type = 'brick', repeatX = 4, repeatY = 4, tintHex = 0xffffff) {
         const tex = this.getTexture(type, repeatX, repeatY);
         return new THREE.MeshStandardMaterial({
-            color: tintHex, map: tex, bumpMap: tex, bumpScale: 0.045, roughness: 0.75, metalness: 0.1
+            color: tintHex, map: tex, bumpMap: tex, bumpScale: 0.045, roughness: 0.72, metalness: 0.12
         });
     },
 
     carPaintMaterial(colorHex = 0xdc2626) {
         return new THREE.MeshPhysicalMaterial({
-            color: colorHex, metalness: 0.85, roughness: 0.12, clearcoat: 1.0, clearcoatRoughness: 0.03
+            color: colorHex, metalness: 0.88, roughness: 0.10, clearcoat: 1.0, clearcoatRoughness: 0.02
         });
     },
 
-    armorMaterial(colorHex = 0xc59b27, roughness = 0.22) {
-        return new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.92, roughness });
+    armorMaterial(colorHex = 0xc59b27, roughness = 0.20) {
+        return new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.94, roughness });
+    },
+
+    glowMaterial(colorHex = 0x38bdf8, intensity = 2.5) {
+        return new THREE.MeshStandardMaterial({
+            color: colorHex, emissive: colorHex, emissiveIntensity: intensity, roughness: 0.1
+        });
     },
 
     async loadRealGLB(keyOrUrl) {
@@ -144,36 +244,30 @@ window.AAA_ENGINE = {
         });
     },
 
-    // =========================================================================
-    // 1. CHARACTER SPAWNER:
-    //    - Builds 60-Bone Kratos (with Blades of Chaos, Red Tattoo, Beard, Kilt)
-    //      whenever Kratos / Spartan / Warrior / God of War is requested!
-    //    - Uses Soldier.glb ONLY when "soldier" or "army" is explicitly requested!
-    // =========================================================================
+    // 1. CHARACTER SPAWNER (60-Bone Kratos/Warrior OR Real Rigged GLB Soldier/Robot/Hero)
     async spawnAAACharacter(opts = {}) {
         const q = (opts.name || opts.query || opts.modelType || 'kratos').toLowerCase();
-        const wantsSoldier  = /soldier|army|military| swat|police/i.test(q);
-        const wantsRobot    = /robot|mech|animatronic|bonnie|freddy|fnaf|cyborg|droid/i.test(q);
-        const wantsFemale   = /girl|woman|female|michelle|dancer/i.test(q);
+        const wantsSoldier = /soldier|army|military|swat|police|guard/i.test(q);
+        const wantsRobot   = /robot|mech|animatronic|bonnie|freddy|fnaf|cyborg|droid/i.test(q);
+        const wantsFemale  = /girl|woman|female|michelle|dancer/i.test(q);
 
         const cfg = Object.assign({
             x: 0, z: 0, scale: 1.0, speed: 9.5,
             isPlayer: true, followCamera: true, radius: 0.65
         }, opts);
 
-        // A. DEFAULT / KRATOS / WARRIOR / HERO -> Use our 60-Bone Sculpted Kratos Rig!
         if (!wantsSoldier && !wantsRobot && !wantsFemale && window.SKELETON_ENGINE) {
             const isKratos = /kratos|spartan|gow|god of war|zeus|ares/i.test(q) || !opts.name;
             const rig = window.SKELETON_ENGINE.build60BoneCharacter({
                 name: q,
-                skinHex: isKratos ? '#dfd5ce' : '#d29975',
-                tattooColor: '#991b1b',
-                hasTattoo: isKratos,
-                hasBeard: true,
-                kiltColor: isKratos ? 0x7f1d1d : 0x1e293b,
-                armorColor: 0xd4af37,
-                hasWeapons: true,
-                weaponColor: 0xff4500
+                skinHex: opts.skinHex || (isKratos ? '#dfd5ce' : '#d29975'),
+                tattooColor: opts.tattooColor || '#991b1b',
+                hasTattoo: opts.hasTattoo !== undefined ? opts.hasTattoo : isKratos,
+                hasBeard: opts.hasBeard !== undefined ? opts.hasBeard : true,
+                kiltColor: opts.kiltColor || (isKratos ? 0x7f1d1d : 0x1e293b),
+                armorColor: opts.armorColor || 0xd4af37,
+                hasWeapons: opts.hasWeapons !== false,
+                weaponColor: opts.weaponColor || 0xff4500
             });
 
             const root = rig.root;
@@ -260,7 +354,6 @@ window.AAA_ENGINE = {
             return root;
         }
 
-        // B. SPECIFIC GLB CHARACTERS (Soldier, Robot, Female)
         const vaultKey = wantsRobot ? 'robot' : wantsFemale ? 'michelle' : 'soldier';
         const root = new THREE.Group();
         root.position.set(cfg.x, 0, cfg.z);
@@ -342,10 +435,7 @@ window.AAA_ENGINE = {
         return root;
     },
 
-    // =========================================================================
-    // 2. REAL 3D FERRARI SUPERCAR SPAWNER (Loads Official Ferrari 458 .GLB!)
-    //    Replaces the ugly grey extruded block car with a real 3D Ferrari!
-    // =========================================================================
+    // 2. REAL 3D FERRARI 458 ITALIA GLB SPAWNER (With HDR Clearcoat & Glowing Taillights)
     spawnAAAVehicle(opts = {}) {
         const cfg = Object.assign({
             x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true
@@ -363,48 +453,40 @@ window.AAA_ENGINE = {
         const wheels = [];
         let steeringWheel = null;
 
-        // Wait up to 150ms if DRACOLoader script is still initializing, then load Real Ferrari 458 GLB!
-        const loadFerrariModel = () => {
-            const loader = this.getGLTFLoader();
-            loader.load(this.GLB_VAULT.ferrari, (gltf) => {
-                const carModel = gltf.scene;
-                // Scale Ferrari to match our 3D world scale
-                carModel.scale.setScalar(1.35);
-                carModel.rotation.y = Math.PI; // Align forward +Z
+        const loader = this.getGLTFLoader();
+        loader.load(this.GLB_VAULT.ferrari, (gltf) => {
+            const carModel = gltf.scene;
+            carModel.scale.setScalar(1.35);
+            carModel.rotation.y = Math.PI;
 
-                const bodyMat = new THREE.MeshPhysicalMaterial({
-                    color: cfg.bodyColor, metalness: 0.85, roughness: 0.14, clearcoat: 1.0, clearcoatRoughness: 0.03
-                });
-                const glassMat = new THREE.MeshPhysicalMaterial({
-                    color: 0xffffff, metalness: 0.1, roughness: 0.05, transmission: 0.85, transparent: true
-                });
-
-                carModel.traverse(o => {
-                    if (o.isMesh) {
-                        o.castShadow = true;
-                        o.receiveShadow = true;
-                        if (o.name === 'body') o.material = bodyMat;
-                        if (o.name === 'glass') o.material = glassMat;
-                    }
-                });
-
-                // Extract actual Ferrari wheels & steering wheel for real rotation!
-                const wFL = carModel.getObjectByName('wheel_fl');
-                const wFR = carModel.getObjectByName('wheel_fr');
-                const wRL = carModel.getObjectByName('wheel_rl');
-                const wRR = carModel.getObjectByName('wheel_rr');
-                steeringWheel = carModel.getObjectByName('steering_wheel');
-
-                [wFL, wFR, wRL, wRR].forEach((w, idx) => {
-                    if (w) wheels.push({ mesh: w, isFront: idx < 2 });
-                });
-
-                chassis.add(carModel);
+            const bodyMat = new THREE.MeshPhysicalMaterial({
+                color: cfg.bodyColor, metalness: 0.9, roughness: 0.12, clearcoat: 1.0, clearcoatRoughness: 0.02
             });
-        };
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff, metalness: 0.1, roughness: 0.05, transmission: 0.85, transparent: true
+            });
 
-        if (THREE.DRACOLoader) loadFerrariModel();
-        else setTimeout(loadFerrariModel, 250);
+            carModel.traverse(o => {
+                if (o.isMesh) {
+                    o.castShadow = true;
+                    o.receiveShadow = true;
+                    if (o.name === 'body') o.material = bodyMat;
+                    if (o.name === 'glass') o.material = glassMat;
+                }
+            });
+
+            const wFL = carModel.getObjectByName('wheel_fl');
+            const wFR = carModel.getObjectByName('wheel_fr');
+            const wRL = carModel.getObjectByName('wheel_rl');
+            const wRR = carModel.getObjectByName('wheel_rr');
+            steeringWheel = carModel.getObjectByName('steering_wheel');
+
+            [wFL, wFR, wRL, wRR].forEach((w, idx) => {
+                if (w) wheels.push({ mesh: w, isFront: idx < 2 });
+            });
+
+            chassis.add(carModel);
+        });
 
         if (root.userData.isPlayer) {
             window.PHYSICS.registerDynamicBody(root, 1.6);
@@ -459,7 +541,6 @@ window.AAA_ENGINE = {
         return root;
     },
 
-    // 3. ARCHITECTURAL HOUSE, TREE & WELL
     spawnRealisticHouse(x = 0, z = 0, opts = {}) {
         const cfg = Object.assign({ width: 8.0, depth: 7.0, height: 5.0, wallType: 'brick', rotationY: 0 }, opts);
         const house = new THREE.Group();
@@ -469,7 +550,7 @@ window.AAA_ENGINE = {
         const wallMat  = this.material(cfg.wallType, 4, 2);
         const roofMat  = this.material('rooftile', 6, 4);
         const woodMat  = this.material('wood', 2, 2);
-        const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xfef08a, emissive: 0xfef08a, emissiveIntensity: 0.3, roughness: 0.1 });
+        const glassMat = this.glowMaterial(0xfef08a, 1.4);
 
         const wallShape = new THREE.Shape();
         wallShape.moveTo(-cfg.width / 2, 0);
@@ -544,42 +625,22 @@ window.AAA_ENGINE = {
         window.createdObjects.push(tree);
         window.PHYSICS.addStaticCollider(trunk, 0.001);
         return tree;
-    },
-
-    spawnStoneWell(x = 0, z = 0) {
-        const well = new THREE.Group();
-        well.position.set(x, 0, z);
-        const stoneMat = this.material('stone', 4, 2);
-        const woodMat = this.material('wood', 2, 2);
-
-        const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.55, 1.15, 32), stoneMat);
-        ring.position.y = 0.575;
-        well.add(ring);
-
-        [-1.25, 1.25].forEach(px => {
-            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 2.4, 16), woodMat);
-            post.position.set(px, 2.1, 0);
-            well.add(post);
-        });
-
-        well.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-        scene.add(well);
-        window.createdObjects.push(well);
-        window.PHYSICS.addStaticCollider(ring, 0.001);
-        return well;
     }
 };
 
+// =========================================================================
+// INITIALIZE 3D WORLD WITH HDR ENVIRONMENT & UNREAL BLOOM POST-PROCESSING
+// =========================================================================
 function init3DWorld() {
     if (renderer) return;
 
     const container = document.getElementById('canvasContainer');
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b19);
-    scene.fog = new THREE.FogExp2(0x060b19, 0.0022);
+    scene.background = new THREE.Color(0x050914);
+    scene.fog = new THREE.FogExp2(0x050914, 0.0020);
 
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
-    camera.position.set(0, 8, 18);
+    camera.position.set(0, 7.5, 16);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -588,8 +649,32 @@ function init3DWorld() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
+    renderer.toneMappingExposure = 1.22;
     container.appendChild(renderer.domElement);
+
+    // 1. Apply Real Procedural HDRI Studio Reflections to Scene!
+    const hdrEnv = window.AAA_ENGINE.createHDRIEnvironment(renderer);
+    if (hdrEnv) {
+        scene.environment = hdrEnv;
+    }
+
+    // 2. Setup UnrealBloomPass Post-Processing Pipeline!
+    try {
+        if (THREE.EffectComposer && THREE.RenderPass && THREE.UnrealBloomPass) {
+            const renderScene = new THREE.RenderPass(scene, camera);
+            bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.65, // Bloom Strength (Cinematic glow on fire, neon, blades & headlights)
+                0.45, // Radius
+                0.82  // Threshold (Only bright/emissive surfaces bloom!)
+            );
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+        }
+    } catch (e) {
+        composer = null;
+    }
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 2, 0);
@@ -597,21 +682,23 @@ function init3DWorld() {
     controls.dampingFactor = 0.05;
     controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-    scene.add(new THREE.HemisphereLight(0xdbeafe, 0x091024, 0.85));
+    scene.add(new THREE.HemisphereLight(0xdbeafe, 0x091024, 0.90));
 
-    const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.85);
+    const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.0);
     sunLight.position.set(55, 110, 75);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
-    const d = 75;
+    const d = 80;
     sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
     sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
     sunLight.shadow.bias = -0.0005;
     scene.add(sunLight);
 
     const floorGeo = new THREE.PlaneGeometry(10000, 10000);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x091024, roughness: 0.82, metalness: 0.12 });
+    const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x080f20, roughness: 0.65, metalness: 0.25
+    });
     infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
     infiniteFloor.rotation.x = -Math.PI / 2;
     infiniteFloor.receiveShadow = true;
@@ -629,6 +716,7 @@ function init3DWorld() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (composer) composer.setSize(window.innerWidth, window.innerHeight);
     });
 
     animate3D();
@@ -653,5 +741,10 @@ function animate3D() {
     }
 
     controls.update();
-    renderer.render(scene, camera);
+
+    if (composer && bloomEnabled) {
+        composer.render();
+    } else {
+        renderer.render(scene, camera);
+    }
 }
