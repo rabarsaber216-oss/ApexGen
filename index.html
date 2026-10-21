@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ApexGen - C++ / C# & Three.js HDR AI Engine</title>
+    <title>ApexGen - C++ / C# / Three.js HDR 3D Engine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js Core, OrbitControls, Loaders & SkeletonUtils -->
@@ -49,15 +49,15 @@
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-5 md:p-7 relative z-10 border border-sky-500/30 my-auto">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h2 class="font-cyber text-xl md:text-2xl font-extrabold text-sky-400">ApexGen Engine</h2>
-                    <p class="text-slate-400 text-xs mt-0.5">C++ / C# / Three.js HDR & Bloom AI Game Engine</p>
+                    <h2 class="font-cyber text-xl md:text-2xl font-extrabold text-sky-400">ApexGen C++ / C# Engine</h2>
+                    <p class="text-slate-400 text-xs mt-0.5">C++ / C# / Three.js HDR + Bloom 3D AI Compiler</p>
                 </div>
                 <div class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
                     <i class="fa-solid fa-microchip text-lg text-sky-400"></i>
                 </div>
             </div>
 
-            <label class="block text-xs font-semibold text-sky-300 mb-2">1. Select AI Brain (Powers C++/C# 3D Compiler & Story):</label>
+            <label class="block text-xs font-semibold text-sky-300 mb-2">1. Select AI Brain:</label>
             <div class="grid grid-cols-3 gap-2 mb-4">
                 <button type="button" onclick="selectProvider('gemini')" id="btn-gemini" class="provider-btn flex flex-col items-center p-3 rounded-2xl border transition-all bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/20">
                     <i class="fa-solid fa-wand-magic-sparkles text-lg text-sky-400 mb-1"></i>
@@ -112,7 +112,7 @@
             <div class="glass px-2.5 py-1.5 rounded-xl flex items-center gap-2 pointer-events-auto shadow-md">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
                 <span class="font-cyber font-bold text-xs text-sky-400">ApexGen</span>
-                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">C# / C++ HDR</span>
+                <span id="activeProviderBadge" class="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-300 font-semibold">C++ / C# HDR</span>
                 <button onclick="window.AAA_ENGINE.toggleBloom()" id="bloomToggleBtn" class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-400/50 text-purple-300 font-bold" title="Toggle HDR Bloom">
                     ✨ Bloom: ON
                 </button>
@@ -218,17 +218,17 @@
             <span>Open AI Chats</span>
         </button>
 
-        <!-- DUAL STACKED AI CHAT SYSTEM WITH C++ / C# / THREE.JS LANGUAGE SELECTOR -->
+        <!-- DUAL STACKED AI CHAT SYSTEM WITH C++ / C# / JS COMPILER SELECTOR -->
         <div id="chatWrapper" class="fixed bottom-2 left-1/2 -translate-x-1/2 z-30 w-[95%] max-w-md pointer-events-auto transition-all duration-300">
             
-            <!-- Header Bar: Engine Language Selector (C++ | C# | Three.js) + AI Power -->
+            <!-- Header Bar: C++ / C# / JS Language Selector + AI Power -->
             <div class="glass rounded-t-xl px-2.5 py-1.5 flex items-center justify-between border-b border-slate-800/80 gap-1">
                 <div class="flex items-center gap-1">
-                    <span class="text-[10px] font-bold text-emerald-400">Lang:</span>
+                    <span class="text-[10px] font-bold text-emerald-400">Code:</span>
                     <div class="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-700/80">
-                        <button type="button" onclick="setEngineLanguage('cpp')" id="lang-cpp" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-emerald-500 text-slate-950 shadow">C++</button>
-                        <button type="button" onclick="setEngineLanguage('csharp')" id="lang-csharp" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">C#</button>
-                        <button type="button" onclick="setEngineLanguage('js')" id="lang-js" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">Three.js</button>
+                        <button type="button" onclick="setCodeLanguage('cpp')" id="lang-cpp" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-emerald-500 text-slate-950 shadow">C++</button>
+                        <button type="button" onclick="setCodeLanguage('csharp')" id="lang-csharp" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">C#</button>
+                        <button type="button" onclick="setCodeLanguage('js')" id="lang-js" class="px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white">JS</button>
                     </div>
                 </div>
 
@@ -255,20 +255,20 @@
             <div id="liveTimerBar" class="hidden glass px-3 py-1.5 border-t-0 border-b-0 bg-slate-950/95 flex-col gap-1">
                 <div class="flex items-center justify-between text-[10px] font-mono-code">
                     <span class="text-amber-300 flex items-center gap-1.5 truncate">
-                        <i class="fa-solid fa-microchip fa-spin text-emerald-400"></i>
-                        <strong id="liveStageText">Compiling C++ / C# to WebGL 3D...</strong>
+                        <i class="fa-solid fa-satellite-dish fa-spin text-sky-400"></i>
+                        <strong id="liveStageText">Compiling C++ / C# 3D scene...</strong>
                     </span>
                     <span id="liveTimerText" class="text-emerald-400 font-bold shrink-0">0.0s</span>
                 </div>
                 <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="liveProgressBar" class="h-full bg-gradient-to-r from-emerald-400 via-sky-500 to-purple-500 w-0 transition-all duration-100"></div>
+                    <div id="liveProgressBar" class="h-full bg-gradient-to-r from-emerald-400 via-sky-500 to-amber-400 w-0 transition-all duration-100"></div>
                 </div>
             </div>
 
             <!-- Chat History Log -->
             <div id="chatHistory" class="glass px-3 py-1.5 max-h-20 overflow-y-auto space-y-1 text-[11px] border-t-0 border-b-0">
                 <div class="text-amber-300 leading-snug bg-amber-950/40 rounded-lg px-2 py-1 border border-amber-500/30">
-                    <strong id="chatBuilderGreeting">C++ 3D Builder:</strong> say something to make or build
+                    <strong>C++ / C# 3D Builder:</strong> say something to make or build
                 </div>
                 <div class="text-sky-300 leading-snug bg-sky-950/40 rounded-lg px-2 py-1 border border-sky-500/30">
                     <strong>Story AI:</strong> make the story
@@ -288,9 +288,9 @@
 
             <!-- TOP CHAT: C++ / C# / THREE.JS 3D BUILDER ("say something to make or build") -->
             <div class="glass p-1.5 flex items-center gap-1.5 border-t border-amber-500/30 bg-slate-950/85">
-                <span class="px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
-                    <i class="fa-solid fa-code"></i>
-                    <span id="builderLangBadge">C++</span>
+                <span id="codeModeBadge" class="px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-[10px] shrink-0 flex items-center gap-1">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span id="codeModeText">C++</span>
                 </span>
 
                 <label class="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center justify-center cursor-pointer shrink-0 text-amber-400 transition-all" title="Upload Reference Image">
@@ -327,26 +327,20 @@
         </div>
     </div>
 
-    <!-- 4. SHOW CODE MODAL (View C++ / C# Source Code & Compiled Three.js WebGL Code) -->
+    <!-- 4. SHOW CODE MODAL (Supports C++, C#, and Three.js Execution!) -->
     <div id="codeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-3xl rounded-3xl p-5 md:p-6 border border-emerald-500/30 flex flex-col max-h-[85vh]">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-code text-emerald-400 text-lg"></i>
-                    <h3 class="text-sm md:text-lg font-extrabold text-emerald-400 font-cyber" id="codeModalTitle">C++ / C# & WebGL Source Code</h3>
+                    <h3 class="text-base md:text-lg font-extrabold text-emerald-400 font-cyber">C++ / C# / Three.js Engine Source</h3>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="switchCodeViewTab('source')" id="tabSourceBtn" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400 text-xs text-emerald-300 font-bold">
-                        C++ / C# Code
-                    </button>
-                    <button onclick="switchCodeViewTab('webgl')" id="tabWebglBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-300 font-semibold">
-                        Compiled Three.js
-                    </button>
-                    <button onclick="copyGeneratedCode()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-sky-300 font-semibold flex items-center gap-1">
+                    <button onclick="copyGeneratedCode()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-sky-300 font-semibold flex items-center gap-1.5">
                         <i class="fa-solid fa-copy"></i>
-                        <span>Copy</span>
+                        <span id="copyCodeBtnText">Copy</span>
                     </button>
-                    <button onclick="runEditedCode()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold flex items-center gap-1">
+                    <button onclick="runEditedCode()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold flex items-center gap-1.5">
                         <i class="fa-solid fa-play"></i>
                         <span>Compile & Run</span>
                     </button>
@@ -357,7 +351,7 @@
             </div>
             <textarea id="codeViewerTextarea" spellcheck="false"
                 class="w-full flex-1 min-h-[320px] bg-slate-950/95 border border-slate-800 rounded-2xl p-4 text-xs text-emerald-300 font-mono-code outline-none resize-none leading-relaxed"
-                placeholder="// Generated C++ / C# & Three.js code will appear here"></textarea>
+                placeholder="// Generated C++ / C# / Three.js source code will appear here"></textarea>
         </div>
     </div>
 
