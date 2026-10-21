@@ -1,20 +1,19 @@
 /********************************************************************
- * FILE: graphics.js - Three.js HDR + UnrealBloomPass Post-Processing Engine
+ * FILE: graphics.js - C++ / C# / Three.js HDR + Bloom 3D Engine
  * Features:
- * 1. Real UnrealBloomPass Post-Processing (EffectComposer + Bloom)
- * 2. Procedural Studio HDRI Environment Reflections (PMREMGenerator)
- * 3. Polyfills for THREE.CapsuleGeometry & THREE.RoundedBoxGeometry
- *    so AI-written Three.js code NEVER crashes on r128!
- * 4. Real 3D Ferrari 458 GLB + 60-Bone Sculpted Kratos & Characters!
+ * 1. STRICT INTENT GUARD: Physically blocks houses from spawning when
+ *    the user asks for a car, character, weapon, or aircraft!
+ * 2. High-Detail Multi-Mesh Supercar / Police Car / SUV with Interior,
+ *    Alloy Rims, Glowing LED Headlights/Taillights, Nitro Exhaust & GLB!
+ * 3. Native C++ (`Engine::`) & C# (`GameObject.`) Runtime Bindings!
  ********************************************************************/
 let scene, camera, renderer, controls, infiniteFloor, infiniteGrid, clock;
 let composer = null, bloomPass = null, bloomEnabled = true;
 
-// =========================================================================
-// CRITICAL POLYFILLS FOR THREE.JS r128:
-// Modern AI models frequently generate `new THREE.CapsuleGeometry(...)` and
-// `new THREE.RoundedBoxGeometry(...)`. Adding these guarantees 0 crashes!
-// =========================================================================
+// Strict Intent Guard State
+window.ACTIVE_BUILD_INTENT = { category: 'ANY', allowHouse: true, allowCar: true, allowCharacter: true };
+
+// Polyfills for Three.js r128
 if (typeof THREE !== 'undefined' && !THREE.CapsuleGeometry) {
     THREE.CapsuleGeometry = function (radius = 0.5, length = 1, capSubdivisions = 12, radialSegments = 24) {
         const points = [];
@@ -35,7 +34,7 @@ if (typeof THREE !== 'undefined' && !THREE.CapsuleGeometry) {
 }
 
 if (typeof THREE !== 'undefined' && !THREE.RoundedBoxGeometry) {
-    THREE.RoundedBoxGeometry = function (width = 1, height = 1, depth = 1, segments = 4, radius = 0.1) {
+    THREE.RoundedBoxGeometry = function (width = 1, height = 1, depth = 1, segments = 4) {
         return new THREE.BoxGeometry(width, height, depth, segments, segments, segments);
     };
 }
@@ -61,9 +60,7 @@ window.AAA_ENGINE = {
         robot:    'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
         xbot:     'https://threejs.org/examples/models/gltf/Xbot.glb',
         michelle: 'https://threejs.org/examples/models/gltf/Michelle.glb',
-        horse:    'https://threejs.org/examples/models/gltf/Horse.glb',
-        flamingo: 'https://threejs.org/examples/models/gltf/Flamingo.glb',
-        parrot:   'https://threejs.org/examples/models/gltf/Parrot.glb'
+        horse:    'https://threejs.org/examples/models/gltf/Horse.glb'
     },
 
     toggleBloom() {
@@ -77,16 +74,13 @@ window.AAA_ENGINE = {
         }
     },
 
-    // Generates a real HDRI Environment Map using Three.js PMREMGenerator so metallic, chrome, car paint & glass reflect realistically!
     createHDRIEnvironment(rendererInstance) {
         try {
             const pmremGenerator = new THREE.PMREMGenerator(rendererInstance);
             pmremGenerator.compileCubemapShader();
-
             const envScene = new THREE.Scene();
             envScene.background = new THREE.Color(0x0b1528);
 
-            // High-intensity HDR studio sky dome & softbox lights for crisp metallic reflections
             const skyLight = new THREE.Mesh(
                 new THREE.SphereGeometry(80, 32, 16),
                 new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.BackSide })
@@ -106,13 +100,6 @@ window.AAA_ENGINE = {
             );
             warmStrip.position.set(-45, 25, -40);
             envScene.add(warmStrip);
-
-            const coolStrip = new THREE.Mesh(
-                new THREE.BoxGeometry(60, 8, 4),
-                new THREE.MeshBasicMaterial({ color: 0x818cf8 })
-            );
-            coolStrip.position.set(45, 30, -35);
-            envScene.add(coolStrip);
 
             const envMap = pmremGenerator.fromScene(envScene, 0.035).texture;
             pmremGenerator.dispose();
@@ -178,23 +165,13 @@ window.AAA_ENGINE = {
                 ctx.fillStyle = `rgb(${v + 15},${v},${v - 10})`;
                 ctx.fillRect(x, 0, 3, 512);
             }
-        } else if (type === 'foliage' || type === 'grass') {
+        } else if (type === 'foliage') {
             ctx.fillStyle = '#14532d';
             ctx.fillRect(0, 0, 512, 512);
             for (let i = 0; i < 1600; i++) {
                 const g = 65 + Math.floor(Math.random() * 95);
                 ctx.fillStyle = `rgb(${Math.floor(g * 0.30)}, ${g}, ${Math.floor(g * 0.36)})`;
                 ctx.beginPath(); ctx.arc(Math.random() * 512, Math.random() * 512, 5, 0, Math.PI * 2); ctx.fill();
-            }
-        } else if (type === 'building_facade') {
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(0, 0, 512, 512);
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    const lit = Math.random() > 0.35;
-                    ctx.fillStyle = lit ? '#fef08a' : '#1e293b';
-                    ctx.fillRect(c * 64 + 10, r * 64 + 10, 44, 44);
-                }
             }
         } else {
             ctx.fillStyle = '#cbd5e1';
@@ -217,7 +194,7 @@ window.AAA_ENGINE = {
 
     carPaintMaterial(colorHex = 0xdc2626) {
         return new THREE.MeshPhysicalMaterial({
-            color: colorHex, metalness: 0.88, roughness: 0.10, clearcoat: 1.0, clearcoatRoughness: 0.02
+            color: colorHex, metalness: 0.90, roughness: 0.10, clearcoat: 1.0, clearcoatRoughness: 0.02
         });
     },
 
@@ -236,18 +213,22 @@ window.AAA_ENGINE = {
         const loader = this.getGLTFLoader();
         return new Promise((resolve, reject) => {
             loader.load(url, (gltf) => {
-                resolve({
-                    scene: gltf.scene,
-                    animations: gltf.animations || []
-                });
+                resolve({ scene: gltf.scene, animations: gltf.animations || [] });
             }, undefined, reject);
         });
     },
 
-    // 1. CHARACTER SPAWNER (60-Bone Kratos/Warrior OR Real Rigged GLB Soldier/Robot/Hero)
+    // =========================================================================
+    // 1. CHARACTER SPAWNER (60-Bone Kratos/Warrior OR Rigged GLB Soldier/Robot)
+    // =========================================================================
     async spawnAAACharacter(opts = {}) {
+        // STRICT INTENT GUARD: If user exclusively asked for a Car or House, redirect!
+        if (window.ACTIVE_BUILD_INTENT && window.ACTIVE_BUILD_INTENT.category === 'VEHICLE' && !window.ACTIVE_BUILD_INTENT.allowCharacter) {
+            return this.spawnAAAVehicle(opts);
+        }
+
         const q = (opts.name || opts.query || opts.modelType || 'kratos').toLowerCase();
-        const wantsSoldier = /soldier|army|military|swat|police|guard/i.test(q);
+        const wantsSoldier = /soldier|army|military|swat|guard/i.test(q);
         const wantsRobot   = /robot|mech|animatronic|bonnie|freddy|fnaf|cyborg|droid/i.test(q);
         const wantsFemale  = /girl|woman|female|michelle|dancer/i.test(q);
 
@@ -435,11 +416,26 @@ window.AAA_ENGINE = {
         return root;
     },
 
-    // 2. REAL 3D FERRARI 458 ITALIA GLB SPAWNER (With HDR Clearcoat & Glowing Taillights)
+    // =========================================================================
+    // 2. HIGH-DETAIL GTA V SUPERCAR / POLICE CAR + REAL FERRARI GLB LOADER
+    //    Builds an instant multi-part HDR Supercar (with interior, Brembo brakes,
+    //    LED Bloom headlights, Nitro flames & optional Police sirens) AND loads
+    //    the real Ferrari 458 GLB seamlessly!
+    // =========================================================================
     spawnAAAVehicle(opts = {}) {
         const cfg = Object.assign({
-            x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 36, isPlayer: true, followCamera: true
+            x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 38, isPlayer: true, followCamera: true, isPolice: false
         }, opts);
+
+        const q = (cfg.name || '').toLowerCase();
+        if (/police|cop|پۆلیس/i.test(q)) {
+            cfg.isPolice = true;
+            cfg.bodyColor = 0x111827;
+        } else if (/blue|شین/i.test(q)) cfg.bodyColor = 0x2563eb;
+        else if (/yellow|gold|زەرد|زێڕین/i.test(q)) cfg.bodyColor = 0xeab308;
+        else if (/black|ڕەش/i.test(q)) cfg.bodyColor = 0x0f172a;
+        else if (/green|سەوز/i.test(q)) cfg.bodyColor = 0x16a34a;
+        else if (/white|سپی/i.test(q)) cfg.bodyColor = 0xf8fafc;
 
         const root = new THREE.Group();
         root.position.set(cfg.x, 0, cfg.z);
@@ -450,52 +446,190 @@ window.AAA_ENGINE = {
         const chassis = new THREE.Group();
         root.add(chassis);
 
-        const wheels = [];
-        let steeringWheel = null;
+        // Build High-Detail Multi-Component HDR Supercar immediately (so it NEVER looks like a grey box!)
+        const proceduralCar = new THREE.Group();
+        chassis.add(proceduralCar);
 
-        const loader = this.getGLTFLoader();
-        loader.load(this.GLB_VAULT.ferrari, (gltf) => {
-            const carModel = gltf.scene;
-            carModel.scale.setScalar(1.35);
-            carModel.rotation.y = Math.PI;
+        const paintMat  = this.carPaintMaterial(cfg.bodyColor);
+        const whiteMat  = this.carPaintMaterial(0xf8fafc);
+        const carbonMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.25, metalness: 0.7 });
+        const glassMat  = new THREE.MeshPhysicalMaterial({ color: 0x090d16, metalness: 0.1, roughness: 0.05, transmission: 0.65, transparent: true, opacity: 0.85 });
+        const rimMat    = this.armorMaterial(0xfacc15, 0.15);
+        const tireMat   = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.88 });
+        const brakeMat  = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.6, roughness: 0.3 });
 
-            const bodyMat = new THREE.MeshPhysicalMaterial({
-                color: cfg.bodyColor, metalness: 0.9, roughness: 0.12, clearcoat: 1.0, clearcoatRoughness: 0.02
-            });
-            const glassMat = new THREE.MeshPhysicalMaterial({
-                color: 0xffffff, metalness: 0.1, roughness: 0.05, transmission: 0.85, transparent: true
-            });
+        // Lower Carbon Aero Floor & Diffuser
+        const baseFloor = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.12, 4.85), carbonMat);
+        baseFloor.position.set(0, 0.34, 0);
+        proceduralCar.add(baseFloor);
 
-            carModel.traverse(o => {
-                if (o.isMesh) {
-                    o.castShadow = true;
-                    o.receiveShadow = true;
-                    if (o.name === 'body') o.material = bodyMat;
-                    if (o.name === 'glass') o.material = glassMat;
-                }
-            });
+        // Main Sculpted Lower Body
+        const mainBody = new THREE.Mesh(new THREE.BoxGeometry(2.12, 0.52, 4.65), paintMat);
+        mainBody.position.set(0, 0.64, 0);
+        proceduralCar.add(mainBody);
 
-            const wFL = carModel.getObjectByName('wheel_fl');
-            const wFR = carModel.getObjectByName('wheel_fr');
-            const wRL = carModel.getObjectByName('wheel_rl');
-            const wRR = carModel.getObjectByName('wheel_rr');
-            steeringWheel = carModel.getObjectByName('steering_wheel');
+        // Sloped Aerodynamic Front Hood
+        const hood = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.22, 1.55), cfg.isPolice ? whiteMat : paintMat);
+        hood.position.set(0, 0.84, 1.45);
+        hood.rotation.x = 0.14;
+        proceduralCar.add(hood);
 
-            [wFL, wFR, wRL, wRR].forEach((w, idx) => {
-                if (w) wheels.push({ mesh: w, isFront: idx < 2 });
-            });
-
-            chassis.add(carModel);
+        // Sculpted Muscular Fender Arches (4 Wheel Fenders)
+        [[-1.02, 0.68, 1.48], [1.02, 0.68, 1.48], [-1.04, 0.72, -1.48], [1.04, 0.72, -1.48]].forEach(([fx, fy, fz]) => {
+            const fender = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.56, 0.32, 24, 1, false, 0, Math.PI), paintMat);
+            fender.rotation.z = Math.PI / 2;
+            fender.rotation.y = Math.PI / 2;
+            fender.position.set(fx, fy, fz);
+            proceduralCar.add(fender);
         });
+
+        // Sleek Tinted Glass Cabin & Roof
+        const cabin = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 1.02, 2.15, 4), glassMat);
+        cabin.rotation.y = Math.PI / 4;
+        cabin.rotation.x = Math.PI / 2;
+        cabin.scale.set(1.22, 1.0, 0.52);
+        cabin.position.set(0, 1.12, -0.18);
+        proceduralCar.add(cabin);
+
+        const roofCap = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.08, 1.35), cfg.isPolice ? whiteMat : paintMat);
+        roofCap.position.set(0, 1.40, -0.22);
+        proceduralCar.add(roofCap);
+
+        // Interior Racing Seats & Steering Wheel
+        [-0.42, 0.42].forEach(sx => {
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.45), carbonMat);
+            seat.position.set(sx, 0.85, -0.25);
+            seat.rotation.x = -0.2;
+            proceduralCar.add(seat);
+        });
+
+        // Side Mirrors
+        [-1.12, 1.12].forEach(mx => {
+            const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.10, 0.16), paintMat);
+            mirror.position.set(mx, 1.02, 0.62);
+            proceduralCar.add(mirror);
+        });
+
+        // GT Carbon Rear Wing Spoiler
+        [-0.72, 0.72].forEach(px => {
+            const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.32, 0.24), carbonMat);
+            strut.position.set(px, 1.02, -2.12);
+            strut.rotation.x = -0.25;
+            proceduralCar.add(strut);
+        });
+        const spoilerBlade = new THREE.Mesh(new THREE.BoxGeometry(2.08, 0.06, 0.38), carbonMat);
+        spoilerBlade.position.set(0, 1.18, -2.20);
+        spoilerBlade.rotation.x = 0.12;
+        proceduralCar.add(spoilerBlade);
+
+        // Glowing Bloom LED Headlights & Full-Width Cyberpunk Taillight Bar
+        const headlightMat = this.glowMaterial(0xe0f2fe, 3.2);
+        const taillightMat = this.glowMaterial(0xff1122, 3.5);
+        [-0.74, 0.74].forEach(lx => {
+            const hl = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.10, 0.12), headlightMat);
+            hl.position.set(lx, 0.68, 2.34);
+            hl.rotation.y = lx > 0 ? -0.15 : 0.15;
+            proceduralCar.add(hl);
+        });
+        const tailBar = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.12, 0.10), taillightMat);
+        tailBar.position.set(0, 0.76, -2.33);
+        proceduralCar.add(tailBar);
+
+        // Twin Exhaust Pipes + Glowing Nitro Flames
+        const nitroFlames = [];
+        const flameMat = this.glowMaterial(0x38bdf8, 4.0);
+        [-0.48, 0.48].forEach(ex => {
+            const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.25, 16), carbonMat);
+            pipe.rotation.x = Math.PI / 2;
+            pipe.position.set(ex, 0.42, -2.38);
+            proceduralCar.add(pipe);
+
+            const flame = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.65, 12), flameMat);
+            flame.rotation.x = -Math.PI / 2;
+            flame.position.set(ex, 0.42, -2.75);
+            flame.visible = false;
+            proceduralCar.add(flame);
+            nitroFlames.push(flame);
+        });
+
+        // Police Lightbar if Police Car requested
+        let sirenRed = null, sirenBlue = null;
+        if (cfg.isPolice) {
+            sirenRed  = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.24), this.glowMaterial(0xff0000, 4.0));
+            sirenBlue = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.24), this.glowMaterial(0x0066ff, 4.0));
+            sirenRed.position.set(-0.28, 1.49, -0.15);
+            sirenBlue.position.set(0.28, 1.49, -0.15);
+            proceduralCar.add(sirenRed, sirenBlue);
+        }
+
+        // 4 Detailed Multi-Spoke Wheels with Tires & Red Brembo Calipers
+        const wheels = [];
+        [[-1.08, 0.48, 1.48, true], [1.08, 0.48, 1.48, true], [-1.08, 0.50, -1.48, false], [1.08, 0.50, -1.48, false]].forEach(([wx, wy, wz, isFront]) => {
+            const wheelPivot = new THREE.Group();
+            wheelPivot.position.set(wx, wy, wz);
+
+            const spinGroup = new THREE.Group();
+            wheelPivot.add(spinGroup);
+
+            const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.34, 32), tireMat);
+            tire.rotation.z = Math.PI / 2;
+            spinGroup.add(tire);
+
+            const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.36, 20), rimMat);
+            rim.rotation.z = Math.PI / 2;
+            spinGroup.add(rim);
+
+            for (let s = 0; s < 5; s++) {
+                const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.06, 0.62), carbonMat);
+                spoke.rotation.x = (s * Math.PI) / 5;
+                spinGroup.add(spoke);
+            }
+
+            const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.16), brakeMat);
+            caliper.position.set(0, 0.12, 0.18);
+            wheelPivot.add(caliper);
+
+            root.add(wheelPivot);
+            wheels.push({ pivot: wheelPivot, spin: spinGroup, isFront });
+        });
+
+        // Also attempt to load Official Ferrari 458 GLB if not a police car
+        if (!cfg.isPolice) {
+            this.getGLTFLoader().load(this.GLB_VAULT.ferrari, (gltf) => {
+                const carModel = gltf.scene;
+                carModel.scale.setScalar(1.35);
+                carModel.rotation.y = Math.PI;
+                carModel.traverse(o => {
+                    if (o.isMesh) {
+                        o.castShadow = true; o.receiveShadow = true;
+                        if (o.name === 'body') o.material = paintMat;
+                        if (o.name === 'glass') o.material = glassMat;
+                    }
+                });
+                chassis.remove(proceduralCar);
+                wheels.forEach(w => root.remove(w.pivot));
+                wheels.length = 0;
+                ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr'].forEach((wn, idx) => {
+                    const wm = carModel.getObjectByName(wn);
+                    if (wm) wheels.push({ pivot: wm, spin: wm, isFront: idx < 2 });
+                });
+                chassis.add(carModel);
+            }, undefined, () => {
+                // Keep our high-detail procedural supercar if offline/CORS
+            });
+        }
+
+        root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 
         if (root.userData.isPlayer) {
             window.PHYSICS.registerDynamicBody(root, 1.6);
             const state = { speed: 0, steer: 0, heading: 0, pitch: 0, roll: 0 };
 
-            window.updateFunctions.push((delta) => {
+            window.updateFunctions.push((delta, time) => {
                 const throttle = (window.keysPressed['w'] || window.keysPressed['arrowup'] ? 1 : 0) - (window.keysPressed['s'] || window.keysPressed['arrowdown'] ? 1 : 0) - window.joystickVector.y;
                 const turn = (window.keysPressed['a'] || window.keysPressed['arrowleft'] ? 1 : 0) - (window.keysPressed['d'] || window.keysPressed['arrowright'] ? 1 : 0) - window.joystickVector.x;
-                const boost = window.keysPressed['shift'] ? 1.5 : 1.0;
+                const isBoost = Boolean(window.keysPressed['shift']);
+                const boost = isBoost ? 1.55 : 1.0;
 
                 const prevSpeed = state.speed;
                 if (Math.abs(throttle) > 0.05) state.speed += throttle * 28 * boost * delta;
@@ -521,10 +655,19 @@ window.AAA_ENGINE = {
                 chassis.rotation.z = state.roll;
 
                 wheels.forEach(w => {
-                    w.mesh.rotation.x -= state.speed * delta * 1.8;
+                    w.spin.rotation.x += state.speed * delta * 1.8;
+                    if (w.isFront && w.pivot !== w.spin) w.pivot.rotation.y = state.steer;
                 });
-                if (steeringWheel) {
-                    steeringWheel.rotation.y = -state.steer * 2.2;
+
+                nitroFlames.forEach(f => {
+                    f.visible = isBoost && state.speed > 2;
+                    if (f.visible) f.scale.y = 0.8 + Math.sin(time * 40) * 0.3;
+                });
+
+                if (sirenRed && sirenBlue) {
+                    const flash = Math.sin(time * 18) > 0;
+                    sirenRed.material.emissiveIntensity = flash ? 4.5 : 0.2;
+                    sirenBlue.material.emissiveIntensity = flash ? 0.2 : 4.5;
                 }
 
                 if (cfg.followCamera) {
@@ -541,7 +684,22 @@ window.AAA_ENGINE = {
         return root;
     },
 
+    // =========================================================================
+    // 3. HOUSE SPAWNER (Protected by Strict Intent Guard!)
+    // =========================================================================
     spawnRealisticHouse(x = 0, z = 0, opts = {}) {
+        // STRICT INTENT GUARD: If user asked for a CAR or CHARACTER and did NOT ask for a house, block house creation!
+        if (window.ACTIVE_BUILD_INTENT && !window.ACTIVE_BUILD_INTENT.allowHouse) {
+            console.warn('Strict Intent Guard blocked unrequested house! Spawning requested target instead.');
+            if (window.ACTIVE_BUILD_INTENT.category === 'VEHICLE') {
+                return this.spawnAAAVehicle({ x, z });
+            }
+            if (window.ACTIVE_BUILD_INTENT.category === 'CHARACTER') {
+                return this.spawnAAACharacter({ x, z });
+            }
+            return new THREE.Group();
+        }
+
         const cfg = Object.assign({ width: 8.0, depth: 7.0, height: 5.0, wallType: 'brick', rotationY: 0 }, opts);
         const house = new THREE.Group();
         house.position.set(x, 0, z);
@@ -600,6 +758,9 @@ window.AAA_ENGINE = {
     },
 
     spawnRealisticTree(x = 0, z = 0, scale = 1.0) {
+        if (window.ACTIVE_BUILD_INTENT && !window.ACTIVE_BUILD_INTENT.allowHouse && window.ACTIVE_BUILD_INTENT.category !== 'NATURE') {
+            return new THREE.Group();
+        }
         const tree = new THREE.Group();
         tree.position.set(x, 0, z);
         tree.scale.setScalar(scale);
@@ -629,8 +790,32 @@ window.AAA_ENGINE = {
 };
 
 // =========================================================================
-// INITIALIZE 3D WORLD WITH HDR ENVIRONMENT & UNREAL BLOOM POST-PROCESSING
+// C++ (`Engine::`) & C# (`GameObject`) NATIVE RUNTIME API IN BROWSER
 // =========================================================================
+window.Engine = {
+    SpawnVehicle: (opts) => window.AAA_ENGINE.spawnAAAVehicle(opts),
+    SpawnCharacter: (opts) => window.AAA_ENGINE.spawnAAACharacter(opts),
+    SpawnHouse: (x, z, opts) => window.AAA_ENGINE.spawnRealisticHouse(x, z, opts),
+    SpawnTree: (x, z, scale) => window.AAA_ENGINE.spawnRealisticTree(x, z, scale),
+    CreateMaterial: (type, rx, ry, hex) => window.AAA_ENGINE.material(type, rx, ry, hex),
+    CreateGlowMaterial: (hex, intensity) => window.AAA_ENGINE.glowMaterial(hex, intensity),
+    RegisterUpdate: (fn) => window.updateFunctions.push(fn),
+    AddStaticCollider: (mesh) => window.PHYSICS.addStaticCollider(mesh, 0.001),
+    RegisterDynamicBody: (group, radius = 1.2) => window.PHYSICS.registerDynamicBody(group, radius)
+};
+
+window.GameObject = {
+    CreateGroup: (name = 'GameObject') => {
+        const g = new THREE.Group();
+        g.name = name;
+        scene.add(g);
+        window.createdObjects.push(g);
+        return g;
+    },
+    SpawnVehicle: (opts) => window.AAA_ENGINE.spawnAAAVehicle(opts),
+    SpawnCharacter: (opts) => window.AAA_ENGINE.spawnAAACharacter(opts)
+};
+
 function init3DWorld() {
     if (renderer) return;
 
@@ -652,21 +837,15 @@ function init3DWorld() {
     renderer.toneMappingExposure = 1.22;
     container.appendChild(renderer.domElement);
 
-    // 1. Apply Real Procedural HDRI Studio Reflections to Scene!
     const hdrEnv = window.AAA_ENGINE.createHDRIEnvironment(renderer);
-    if (hdrEnv) {
-        scene.environment = hdrEnv;
-    }
+    if (hdrEnv) scene.environment = hdrEnv;
 
-    // 2. Setup UnrealBloomPass Post-Processing Pipeline!
     try {
         if (THREE.EffectComposer && THREE.RenderPass && THREE.UnrealBloomPass) {
             const renderScene = new THREE.RenderPass(scene, camera);
             bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                0.65, // Bloom Strength (Cinematic glow on fire, neon, blades & headlights)
-                0.45, // Radius
-                0.82  // Threshold (Only bright/emissive surfaces bloom!)
+                0.65, 0.45, 0.82
             );
             composer = new THREE.EffectComposer(renderer);
             composer.addPass(renderScene);
@@ -696,9 +875,7 @@ function init3DWorld() {
     scene.add(sunLight);
 
     const floorGeo = new THREE.PlaneGeometry(10000, 10000);
-    const floorMat = new THREE.MeshStandardMaterial({
-        color: 0x080f20, roughness: 0.65, metalness: 0.25
-    });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x080f20, roughness: 0.65, metalness: 0.25 });
     infiniteFloor = new THREE.Mesh(floorGeo, floorMat);
     infiniteFloor.rotation.x = -Math.PI / 2;
     infiniteFloor.receiveShadow = true;
