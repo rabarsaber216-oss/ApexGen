@@ -1,8 +1,10 @@
 /********************************************************************
- * FILE: ai-core.js - Unified Three.js HDR AI Controller
- * - Auto-logins immediately with your saved Gemini / OpenAI / Claude key
- * - Top Chat ("say something to make or build"): Live Three.js 3D Coding
- * - Bottom Chat ("make the story"): Interactive Playable Story & Quest HUD
+ * FILE: ai-core.js - ApexGen "Create" Hub + Landscape Game Stage
+ * - Keeps API Key login & localStorage auto-save intact
+ * - Displays the ApexGen "Create" UI (zero bottom nav buttons)
+ * - Waits until 10 questions + AI compilation finish, then shows Play ▶️
+ * - Launches Fullscreen Horizontal (Landscape) mode on Play ▶️ with
+ *   Exit and Edit buttons!
  ********************************************************************/
 const PROVIDERS = {
     gemini: {
@@ -30,41 +32,39 @@ let currentAIPower = localStorage.getItem('apexgen_ai_power') || 'high';
 let currentApiKey = '';
 let verifiedGeminiModels = [];
 let buildHistoryStack = [];
-let currentModalMode = 'save';
-let projectIconDataUrl = '';
 let attachedImageDataUrl = null;
-let buildTimerInterval = null;
 let activeAbortController = null;
-
-// Active Story State
-let activeStoryCampaign = null;
-let currentChapterIndex = 0;
-let storyQuestProgress = 0;
-let prevAttackState = false;
+let isPortraitRotated = false;
 
 window.updateFunctions = [];
 window.createdObjects = [];
 window.keysPressed = {};
 window.joystickVector = { x: 0, y: 0 };
-window.isControlExited = false;
+window.isControlExited = true;
+
+const GAME_IDEA_PILLS = [
+    { icon: 'fa-chess-rook', color: 'text-emerald-400', label: 'Isometric strategy RPG', prompt: 'Create an isometric strategy RPG game with medieval castles, warriors, and tactical combat' },
+    { icon: 'fa-lightbulb', color: 'text-amber-400', label: 'Physics sandbox', prompt: 'Create a 3D physics sandbox game with destructible towers, ramps, and vehicles' },
+    { icon: 'fa-biohazard', color: 'text-rose-400', label: 'Zombie survival shooter', prompt: 'Create a zombie survival game where players defend a base, gather resources, and fight waves of zombies' },
+    { icon: 'fa-car-burst', color: 'text-sky-400', label: 'Street racing drift', prompt: 'Create a high-speed street racing game with neon city roads, nitro boost, and drifting physics' },
+    { icon: 'fa-campground', color: 'text-lime-400', label: 'Wilderness survival', prompt: 'Create a wilderness forest survival game with tree chopping, campfire crafting, hunger bar, and night predators' },
+    { icon: 'fa-futbol', color: 'text-indigo-400', label: '3D Football match', prompt: 'Create a 3D football stadium game with goals, goalkeeper AI, score scoreboard, and ball physics' }
+];
 
 /********************************************************************
- * 1. STARTUP & INSTANT AUTO-LOGIN
+ * 1. STARTUP & SAVED API KEY AUTO-LOGIN
  ********************************************************************/
 window.addEventListener('DOMContentLoaded', () => {
-    setAIPower(currentAIPower);
+    updatePowerLabel();
     initJoystick();
+    shuffleIdeaPills();
 
     let savedProvider = currentProvider;
     let savedKey = localStorage.getItem(PROVIDERS[savedProvider].storageKey) || '';
     if (!savedKey || savedKey.length < 15) {
         for (const p of ['gemini', 'openai', 'claude']) {
             const k = localStorage.getItem(PROVIDERS[p].storageKey) || '';
-            if (k && k.length >= 15) {
-                savedProvider = p;
-                savedKey = k;
-                break;
-            }
+            if (k && k.length >= 15) { savedProvider = p; savedKey = k; break; }
         }
     }
     currentProvider = savedProvider;
@@ -84,12 +84,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (splash) splash.classList.add('hidden');
 
             if (currentApiKey && currentApiKey.length >= 15) {
-                updateTopBadges();
                 const ws = document.getElementById('workspace');
-                if (ws) ws.classList.remove('hidden');
-                init3DWorld();
-                initStoryQuestTrackerLoop();
-
+                if (ws) { ws.classList.remove('hidden'); ws.classList.add('flex'); }
                 if (currentProvider === 'gemini') {
                     fetchActiveGeminiModels(currentApiKey)
                         .then(m => { verifiedGeminiModels = m; })
@@ -97,41 +93,55 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 const auth = document.getElementById('authScreen');
-                if (auth) {
-                    auth.classList.remove('hidden');
-                    auth.classList.add('flex');
-                }
+                if (auth) { auth.classList.remove('hidden'); auth.classList.add('flex'); }
             }
         }, 500);
     }, 1500);
 });
 
 window.addEventListener('keydown', e => {
-    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
     window.keysPressed[e.key.toLowerCase()] = true;
 });
 window.addEventListener('keyup', e => {
     window.keysPressed[e.key.toLowerCase()] = false;
 });
 
-function setAIPower(level) {
-    currentAIPower = level;
-    localStorage.setItem('apexgen_ai_power', level);
-    ['low', 'medium', 'high'].forEach(p => {
-        const btn = document.getElementById(`pwr-${p}`);
-        if (!btn) return;
-        btn.className = p === level
-            ? 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow'
-            : 'px-2 py-0.5 rounded-md text-[10px] font-bold transition-all text-slate-400 hover:text-white';
-    });
+function cycleAIPowerMode() {
+    const order = ['high', 'medium', 'low'];
+    const next = order[(order.indexOf(currentAIPower) + 1) % order.length];
+    currentAIPower = next;
+    localStorage.setItem('apexgen_ai_power', next);
+    updatePowerLabel();
 }
 
-function updateTopBadges() {
-    const storyName = PROVIDERS[currentProvider].name;
-    const topBadge = document.getElementById('activeProviderBadge');
-    if (topBadge) topBadge.innerText = `${storyName} + Three.js HDR`;
-    const storyProvName = document.getElementById('storyProviderName');
-    if (storyProvName) storyProvName.innerText = storyName;
+function updatePowerLabel() {
+    const lbl = document.getElementById('autoPowerLabel');
+    if (!lbl) return;
+    lbl.innerText = currentAIPower === 'high' ? 'Auto (High)' : currentAIPower === 'medium' ? 'Medium' : 'Fast';
+}
+
+function shuffleIdeaPills() {
+    const container = document.getElementById('ideaPillsContainer');
+    if (!container) return;
+    const shuffled = [...GAME_IDEA_PILLS].sort(() => Math.random() - 0.5);
+    container.innerHTML = shuffled.map(item => `
+        <button type="button" onclick="fillIdeaPrompt(${JSON.stringify(item.prompt).replace(/"/g, '&quot;')})"
+            class="px-4 py-2.5 rounded-full bg-[#13151d] hover:bg-[#1c1f2b] border border-[#232736] text-slate-200 text-xs font-semibold flex items-center gap-2.5 shrink-0 transition-all">
+            <span class="w-6 h-6 rounded-full bg-[#1c202e] flex items-center justify-center">
+                <i class="fa-solid ${item.icon} ${item.color} text-[11px]"></i>
+            </span>
+            <span>${item.label}</span>
+        </button>
+    `).join('');
+}
+
+function fillIdeaPrompt(text) {
+    const inp = document.getElementById('hfPromptInput');
+    if (inp) {
+        inp.value = text;
+        inp.focus();
+    }
 }
 
 function selectProvider(provider) {
@@ -154,7 +164,6 @@ function selectProvider(provider) {
     }
     const link = document.getElementById('getKeyLink');
     if (link) link.href = config.keyUrl;
-    updateTopBadges();
 }
 
 function handleKeyInput(val) {
@@ -176,49 +185,40 @@ async function fetchActiveGeminiModels(apiKey) {
         )
         .map(m => m.name);
 
-    validModels.sort((a, b) => {
-        const rank = n => n.includes('3.8-flash') ? 100 : n.includes('2.0-flash') ? 95 : n.includes('flash') ? 85 : 70;
-        return rank(b) - rank(a);
-    });
     return validModels.length > 0 ? validModels : ['models/gemini-2.0-flash', 'models/gemini-3.8-flash'];
 }
 
 async function verifyAndConnect() {
-    const storyKey = (document.getElementById('apiKeyInput')?.value || '').trim();
+    const key = (document.getElementById('apiKeyInput')?.value || '').trim();
     const status = document.getElementById('authStatus');
     const btn = document.getElementById('connectBtn');
 
-    if (!storyKey || storyKey.length < 15) {
+    if (!key || key.length < 15) {
         if (status) status.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5"></i> <span class="text-rose-400">Please enter your ${PROVIDERS[currentProvider].name} API Key!</span>`;
         return;
     }
 
-    handleKeyInput(storyKey);
+    handleKeyInput(key);
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Connecting to ${PROVIDERS[currentProvider].name}...</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving & Connecting...</span>`;
     }
 
     try {
         if (currentProvider === 'gemini') {
             verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
         }
-        updateTopBadges();
-        setTimeout(() => {
-            const auth = document.getElementById('authScreen');
-            if (auth) { auth.classList.add('hidden'); auth.classList.remove('flex'); }
-            const ws = document.getElementById('workspace');
-            if (ws) ws.classList.remove('hidden');
-            init3DWorld();
-            initStoryQuestTrackerLoop();
-        }, 200);
+        const auth = document.getElementById('authScreen');
+        if (auth) { auth.classList.add('hidden'); auth.classList.remove('flex'); }
+        const ws = document.getElementById('workspace');
+        if (ws) { ws.classList.remove('hidden'); ws.classList.add('flex'); }
     } catch (err) {
         if (status) status.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400 mt-0.5"></i> <span class="text-rose-400">${err.message}</span>`;
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Launch Three.js HDR 3D World</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-plug-circle-bolt"></i> <span>Save & Open ApexGen Studio</span>`;
         }
     }
 }
@@ -230,39 +230,83 @@ function openAuthSettings() {
 }
 
 /********************************************************************
- * 2. TOP CHAT: LIVE THREE.JS 3D BUILDER ("say something to make or build")
+ * 2. BUILD WORKFLOW: 10 QUESTIONS -> WAIT UNTIL DONE -> SHOW PLAY ▶️
  ********************************************************************/
-async function send3DBuildPrompt() {
+function updateProjectStatusCard({ title, stateText, pct = 0, isReady = false, isError = false }) {
+    const card = document.getElementById('projectStatusCard');
+    const titleEl = document.getElementById('projectCardTitle');
+    const stateEl = document.getElementById('projectCardStateText');
+    const dotEl = document.getElementById('projectCardDot');
+    const subEl = document.getElementById('projectCardSub');
+    const playBtn = document.getElementById('playBuiltGameBtn');
+    const stopBtn = document.getElementById('stopBuildBtn');
+    const progWrap = document.getElementById('projectCardProgressWrap');
+    const progBar = document.getElementById('projectCardProgressBar');
+
+    if (card) card.classList.remove('hidden');
+    if (title && titleEl) titleEl.innerText = title;
+    if (stateText && stateEl) stateEl.innerText = stateText;
+
+    if (isError) {
+        if (subEl) subEl.className = 'text-xs font-semibold text-rose-400 flex items-center gap-1.5 mt-0.5';
+        if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-rose-500';
+        if (playBtn) { playBtn.classList.add('hidden'); playBtn.classList.remove('flex'); }
+        if (stopBtn) stopBtn.classList.add('hidden');
+        if (progWrap) progWrap.classList.add('hidden');
+    } else if (isReady) {
+        if (subEl) subEl.className = 'text-xs font-semibold text-emerald-400 flex items-center gap-1.5 mt-0.5';
+        if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        if (playBtn) { playBtn.classList.remove('hidden'); playBtn.classList.add('flex'); }
+        if (stopBtn) stopBtn.classList.add('hidden');
+        if (progWrap) progWrap.classList.add('hidden');
+    } else {
+        if (subEl) subEl.className = 'text-xs font-semibold text-amber-400 flex items-center gap-1.5 mt-0.5';
+        if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+        if (playBtn) { playBtn.classList.add('hidden'); playBtn.classList.remove('flex'); }
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        if (progWrap) progWrap.classList.remove('hidden');
+        if (progBar) progBar.style.width = `${pct}%`;
+    }
+}
+
+async function send3DBuildPrompt(customEditPrompt = null) {
+    const isEditMode = Boolean(customEditPrompt);
     const input = document.getElementById('hfPromptInput');
-    const text = input ? input.value.trim() : '';
+    const text = isEditMode ? customEditPrompt : (input ? input.value.trim() : '');
     if (!text && !attachedImageDataUrl) return;
 
     const imgDataUrl = attachedImageDataUrl;
-    if (input) input.value = '';
+    if (!isEditMode && input) input.value = '';
     clearAttachedImage();
 
-    appendChatMessage('3d-user', text || '📷 [Image-to-3D]');
-
-    const stopBtn = document.getElementById('stopBtn');
-    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
+    updateProjectStatusCard({
+        title: text,
+        stateText: isEditMode ? 'Updating game...' : 'Planning (10 Questions)...',
+        pct: 8,
+        isReady: false
+    });
 
     activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer(10.0);
-    const stageEl = document.getElementById('liveStageText');
 
     try {
         const result = await window.REAL_3D_AI_BUILDER.generateAndExecute3D(
-            text || 'Build the 3D object shown in this image',
+            text || 'Build 3D game from attached image',
             imgDataUrl,
             currentProvider,
             currentApiKey,
             verifiedGeminiModels,
             currentAIPower,
-            (statusText) => { if (stageEl) stageEl.innerText = statusText; },
-            activeAbortController.signal
+            (statusText, pctVal) => {
+                updateProjectStatusCard({
+                    title: text,
+                    stateText: statusText,
+                    pct: pctVal || 50,
+                    isReady: false
+                });
+            },
+            activeAbortController.signal,
+            isEditMode
         );
-
-        const dt = stopRealLiveTimer(t0);
 
         buildHistoryStack.push({
             code: result.code,
@@ -270,287 +314,157 @@ async function send3DBuildPrompt() {
             updateFns: result.updateFns
         });
 
-        const ab = document.getElementById('actionButtons');
-        if (ab) { ab.classList.remove('hidden'); ab.classList.add('flex'); }
-
-        appendChatMessage('3d-ai', `✅ <strong>Built in ${dt}s:</strong> ${result.summary}`);
+        // Wait finished! Show the "Play ▶️" button!
+        updateProjectStatusCard({
+            title: text,
+            stateText: result.summary,
+            pct: 100,
+            isReady: true
+        });
     } catch (err) {
-        const dt = stopRealLiveTimer(t0);
-        appendChatMessage('3d-ai', err.name === 'AbortError'
-            ? `🛑 Stopped at ${dt}s.`
-            : `⚠️ <strong>3D Build Error:</strong> ${err.message}`);
+        updateProjectStatusCard({
+            title: text,
+            stateText: err.name === 'AbortError' ? 'Build stopped' : `Error: ${err.message}`,
+            isError: true
+        });
     } finally {
         activeAbortController = null;
-        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
+    }
+}
+
+function stopAICoding() {
+    if (activeAbortController) {
+        activeAbortController.abort();
+        activeAbortController = null;
     }
 }
 
 /********************************************************************
- * 3. BOTTOM CHAT: INTERACTIVE PLAYABLE STORY ENGINE ("make the story")
+ * 3. LANDSCAPE (HORIZONTAL) GAME STAGE ("Play ▶️" & "Exit")
  ********************************************************************/
-const STORY_ENGINE_SYSTEM_PROMPT = `
-You are the Interactive Game Story & Quest Director inside "ApexGen".
-Create a playable 3-chapter interactive story campaign for the user's 3D game!
-Return ONLY raw valid JSON (no markdown fences) matching this exact structure:
-{
-  "gameTitle": "Title of the Story",
-  "skyColor": "#12061c",
-  "fogDensity": 0.003,
-  "chapters": [
-    {
-      "chapterLabel": "CHAPTER 1",
-      "title": "Chapter Title",
-      "narrative": "2 sentences of dramatic story narration or character dialogue.",
-      "objectiveText": "Explore Forward (Move 15m)",
-      "objectiveType": "move",
-      "targetAmount": 15,
-      "choices": [
-        { "label": "Attack Path", "nextChapter": 1 },
-        { "label": "Stealth Path", "nextChapter": 1 }
-      ]
-    },
-    {
-      "chapterLabel": "CHAPTER 2",
-      "title": "The Clash",
-      "narrative": "Dramatic continuation of the story.",
-      "objectiveText": "Strike 3 Times (Press ATTACK)",
-      "objectiveType": "attack",
-      "targetAmount": 3,
-      "choices": [
-        { "label": "Final Strike", "nextChapter": 2 },
-        { "label": "Spare Enemy", "nextChapter": 2 }
-      ]
-    },
-    {
-      "chapterLabel": "FINALE",
-      "title": "Triumph",
-      "narrative": "Epic conclusion of the story.",
-      "objectiveText": "Leap in Victory (Press JUMP 2 times)",
-      "objectiveType": "jump",
-      "targetAmount": 2,
-      "choices": []
+async function enterLandscapeGameMode() {
+    const stage = document.getElementById('landscapeGameStage');
+    if (!stage) return;
+
+    stage.classList.remove('hidden');
+
+    // Initialize Three.js / Canvas if not yet created
+    if (typeof init3DWorld === 'function' && !renderer) {
+        init3DWorld();
     }
-  ]
+
+    // Request Fullscreen & Lock Orientation to Horizontal (Landscape)
+    try {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        }
+        if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+        }
+    } catch (e) {}
+
+    // Apply automatic horizontal layout & resize WebGL Canvas
+    applyHorizontalViewportLayout();
+    window.addEventListener('resize', applyHorizontalViewportLayout);
+
+    // Unpause game loop so player & AI start running!
+    window.isControlExited = false;
 }
-`;
 
-async function sendStoryPrompt() {
-    const input = document.getElementById('storyPromptInput');
-    const text = input ? input.value.trim() : '';
-    if (!text) return;
+function applyHorizontalViewportLayout() {
+    const stage = document.getElementById('landscapeGameStage');
+    if (!stage || stage.classList.contains('hidden')) return;
 
-    input.value = '';
-    const storyAI = PROVIDERS[currentProvider].name;
-    appendChatMessage('story-user', text);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
-    const stopBtn = document.getElementById('stopBtn');
-    if (stopBtn) { stopBtn.classList.remove('hidden'); stopBtn.classList.add('flex'); }
+    // If mobile device is still physically in portrait (h > w), rotate stage 90deg into horizontal landscape!
+    if (h > w) {
+        isPortraitRotated = true;
+        stage.style.width = `${h}px`;
+        stage.style.height = `${w}px`;
+        stage.style.position = 'fixed';
+        stage.style.top = '50%';
+        stage.style.left = '50%';
+        stage.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+        if (camera && renderer) {
+            camera.aspect = h / w;
+            camera.updateProjectionMatrix();
+            renderer.setSize(h, w);
+            if (typeof composer !== 'undefined' && composer) composer.setSize(h, w);
+        }
+    } else {
+        isPortraitRotated = false;
+        stage.style.width = '100vw';
+        stage.style.height = '100vh';
+        stage.style.top = '0';
+        stage.style.left = '0';
+        stage.style.transform = 'none';
+        if (camera && renderer) {
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            if (typeof composer !== 'undefined' && composer) composer.setSize(w, h);
+        }
+    }
+}
 
-    activeAbortController = new AbortController();
-    const t0 = startRealLiveTimer(7.0);
-    const stageEl = document.getElementById('liveStageText');
-    if (stageEl) stageEl.innerText = `📖 [${storyAI}] Writing playable story & quests...`;
+async function exitLandscapeGameMode() {
+    // Pause game loop
+    window.isControlExited = true;
+
+    const stage = document.getElementById('landscapeGameStage');
+    if (stage) {
+        stage.classList.add('hidden');
+        stage.style.transform = 'none';
+    }
+    isPortraitRotated = false;
+    window.removeEventListener('resize', applyHorizontalViewportLayout);
 
     try {
-        const campaignData = await requestStoryCampaignJSON(text, activeAbortController.signal);
-        const dt = stopRealLiveTimer(t0);
-
-        launchPlayableStoryCampaign(campaignData);
-
-        appendChatMessage('story-ai', `📖 <strong>${storyAI} Story Active (${dt}s):</strong> "${campaignData.gameTitle}" is now live on screen!`);
-    } catch (err) {
-        const dt = stopRealLiveTimer(t0);
-        appendChatMessage('story-ai', err.name === 'AbortError'
-            ? `🛑 Story stopped at ${dt}s.`
-            : `⚠️ <strong>Story Error:</strong> ${err.message}`);
-    } finally {
-        activeAbortController = null;
-        if (stopBtn) { stopBtn.classList.add('hidden'); stopBtn.classList.remove('flex'); }
-    }
-}
-
-async function requestStoryCampaignJSON(userStoryPrompt, abortSignal) {
-    const fullPrompt = `${STORY_ENGINE_SYSTEM_PROMPT}\n\nUSER STORY REQUEST: "${userStoryPrompt}"`;
-    let rawResponse = '';
-
-    if (currentProvider === 'gemini') {
-        if (verifiedGeminiModels.length === 0) verifiedGeminiModels = await fetchActiveGeminiModels(currentApiKey);
-        const candidates = [...verifiedGeminiModels, 'models/gemini-2.0-flash', 'models/gemini-3.8-flash'];
-        let lastErr = null;
-
-        for (const modelName of candidates) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${currentApiKey}`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: fullPrompt }] }],
-                        generationConfig: { temperature: 0.65, maxOutputTokens: 2048 }
-                    }),
-                    signal: abortSignal
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    rawResponse = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    if (rawResponse.trim()) break;
-                } else {
-                    lastErr = new Error(data.error?.message || 'Gemini Error');
-                }
-            } catch (e) {
-                if (e.name === 'AbortError') throw e;
-                lastErr = e;
-            }
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
         }
-        if (!rawResponse) throw lastErr || new Error('Story request failed.');
-    } else if (currentProvider === 'openai') {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentApiKey}` },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: fullPrompt }]
-            }),
-            signal: abortSignal
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
-        rawResponse = data.choices[0].message.content;
-    } else if (currentProvider === 'claude') {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': currentApiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-5-sonnet-latest',
-                max_tokens: 2048,
-                messages: [{ role: 'user', content: fullPrompt }]
-            }),
-            signal: abortSignal
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
-        rawResponse = data.content[0].text;
-    }
-
-    const cleaned = rawResponse.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-    const jsonStart = cleaned.indexOf('{');
-    const jsonEnd = cleaned.lastIndexOf('}');
-    return JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1));
-}
-
-function launchPlayableStoryCampaign(campaign) {
-    activeStoryCampaign = campaign;
-    currentChapterIndex = 0;
-    storyQuestProgress = 0;
-
-    if (scene && campaign.skyColor) {
-        try {
-            const col = new THREE.Color(campaign.skyColor);
-            scene.background = col;
-            if (scene.fog) {
-                scene.fog.color = col;
-                if (campaign.fogDensity) scene.fog.density = campaign.fogDensity;
-            }
-        } catch (e) {}
-    }
-
-    renderCurrentStoryChapter();
-}
-
-function renderCurrentStoryChapter() {
-    const hud = document.getElementById('storyGameHud');
-    if (!activeStoryCampaign || !activeStoryCampaign.chapters || !hud) return;
-
-    const chap = activeStoryCampaign.chapters[currentChapterIndex];
-    if (!chap) return;
-
-    storyQuestProgress = 0;
-    hud.classList.remove('hidden');
-    hud.classList.add('flex');
-
-    document.getElementById('hudStoryChapter').innerText = chap.chapterLabel || `CHAPTER ${currentChapterIndex + 1}`;
-    document.getElementById('hudStoryTitle').innerText = `${activeStoryCampaign.gameTitle}: ${chap.title}`;
-    document.getElementById('hudStoryNarrative').innerText = `"${chap.narrative}"`;
-    document.getElementById('hudQuestObjective').innerText = chap.objectiveText || 'Complete objective';
-    document.getElementById('hudQuestProgressText').innerText = '0%';
-    document.getElementById('hudQuestBar').style.width = '0%';
-
-    const choicesBox = document.getElementById('hudStoryChoices');
-    choicesBox.innerHTML = '';
-
-    (chap.choices || []).forEach(ch => {
-        const btn = document.createElement('button');
-        btn.className = 'px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/40 border border-sky-400/40 text-sky-200 font-bold text-[10px] transition-all truncate';
-        btn.innerHTML = `<i class="fa-solid fa-compass mr-1"></i> ${ch.label}`;
-        btn.onclick = () => {
-            const nextIdx = ch.nextChapter !== undefined ? ch.nextChapter : currentChapterIndex + 1;
-            if (nextIdx < activeStoryCampaign.chapters.length) {
-                currentChapterIndex = nextIdx;
-                renderCurrentStoryChapter();
-            } else {
-                appendChatMessage('story-ai', `🏆 <strong>Story Completed:</strong> You finished "${activeStoryCampaign.gameTitle}"!`);
-            }
-        };
-        choicesBox.appendChild(btn);
-    });
-}
-
-function closeStoryHud() {
-    const hud = document.getElementById('storyGameHud');
-    if (hud) { hud.classList.add('hidden'); hud.classList.remove('flex'); }
-    activeStoryCampaign = null;
-}
-
-function initStoryQuestTrackerLoop() {
-    setInterval(() => {
-        if (!activeStoryCampaign || !activeStoryCampaign.chapters) return;
-        const chap = activeStoryCampaign.chapters[currentChapterIndex];
-        if (!chap) return;
-
-        const target = Math.max(1, chap.targetAmount || 10);
-        const type = (chap.objectiveType || 'move').toLowerCase();
-
-        const isMoving = Boolean(
-            window.keysPressed['w'] || window.keysPressed['a'] ||
-            window.keysPressed['s'] || window.keysPressed['d'] ||
-            Math.hypot(window.joystickVector.x, window.joystickVector.y) > 0.25
-        );
-
-        if (type === 'move' && isMoving) {
-            storyQuestProgress += 0.35;
-        } else if (type === 'attack' && window.keysPressed['e'] && !prevAttackState) {
-            storyQuestProgress += 1;
-        } else if (type === 'jump' && window.keysPressed[' '] && !prevAttackState) {
-            storyQuestProgress += 1;
+        if (document.fullscreenElement && document.exitFullscreen) {
+            await document.exitFullscreen();
         }
-        prevAttackState = Boolean(window.keysPressed['e'] || window.keysPressed[' ']);
-
-        const pct = Math.min(100, Math.round((storyQuestProgress / target) * 100));
-        const bar = document.getElementById('hudQuestBar');
-        const txt = document.getElementById('hudQuestProgressText');
-        if (bar) bar.style.width = `${pct}%`;
-        if (txt) txt.innerText = `${pct}%`;
-
-        if (pct >= 100) {
-            if (currentChapterIndex + 1 < activeStoryCampaign.chapters.length) {
-                currentChapterIndex++;
-                renderCurrentStoryChapter();
-                appendChatMessage('story-ai', `✨ <strong>Objective Complete!</strong> Advancing to ${activeStoryCampaign.chapters[currentChapterIndex].chapterLabel}...`);
-            } else {
-                appendChatMessage('story-ai', `🏆 <strong>Campaign Victory!</strong> Completed "${activeStoryCampaign.gameTitle}"!`);
-                activeStoryCampaign = null;
-            }
-        }
-    }, 100);
+    } catch (e) {}
 }
 
 /********************************************************************
- * 4. UI HELPERS, JOYSTICK, UNDO, CLEAN ALL, LIVE CODE RUNNER
+ * 4. "EDIT" BUTTON MODAL (Allows modifying/improving the game)
+ ********************************************************************/
+function openEditGameModal() {
+    const modal = document.getElementById('editGameModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('editGamePromptInput')?.focus();
+    }
+}
+
+function closeEditGameModal() {
+    const modal = document.getElementById('editGameModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+async function submitEditGamePrompt() {
+    const inp = document.getElementById('editGamePromptInput');
+    const editTxt = inp ? inp.value.trim() : '';
+    if (!editTxt) return;
+    inp.value = '';
+    closeEditGameModal();
+
+    // Exit landscape mode back to Create screen while AI applies the edit, then user can click Play ▶️
+    await exitLandscapeGameMode();
+    await send3DBuildPrompt(editTxt);
+}
+
+/********************************************************************
+ * 5. ORIENTATION-AWARE JOYSTICK & CODE VIEWER
  ********************************************************************/
 function initJoystick() {
     const zone = document.getElementById('joystickZone');
@@ -561,10 +475,21 @@ function initJoystick() {
 
     function updateStick(clientX, clientY) {
         const rect = zone.getBoundingClientRect();
-        let dx = clientX - (rect.left + rect.width / 2);
-        let dy = clientY - (rect.top + rect.height / 2);
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        let rawDx = clientX - cx;
+        let rawDy = clientY - cy;
+
+        // Remap touch axes if stage is CSS-rotated 90deg into horizontal mode!
+        let dx = isPortraitRotated ? rawDy : rawDx;
+        let dy = isPortraitRotated ? -rawDx : rawDy;
+
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
+        if (dist > maxRadius) {
+            dx = (dx / dist) * maxRadius;
+            dy = (dy / dist) * maxRadius;
+        }
         knob.style.transform = `translate(${dx}px, ${dy}px)`;
         window.joystickVector.x = dx / maxRadius;
         window.joystickVector.y = dy / maxRadius;
@@ -580,94 +505,27 @@ function initJoystick() {
         ['w', 'a', 's', 'd'].forEach(k => window.keysPressed[k] = false);
     }
 
-    zone.addEventListener('touchstart', e => { e.preventDefault(); activeTouchId = e.changedTouches[0].identifier; updateStick(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
+    zone.addEventListener('touchstart', e => {
+        e.preventDefault();
+        activeTouchId = e.changedTouches[0].identifier;
+        updateStick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }, { passive: false });
+
     zone.addEventListener('touchmove', e => {
         e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === activeTouchId) { updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY); break; }
+            if (e.changedTouches[i].identifier === activeTouchId) {
+                updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                break;
+            }
         }
     }, { passive: false });
+
     zone.addEventListener('touchend', () => { activeTouchId = null; resetStick(); });
     zone.addEventListener('mousedown', e => { isDraggingMouse = true; updateStick(e.clientX, e.clientY); });
     window.addEventListener('mousemove', e => { if (isDraggingMouse) updateStick(e.clientX, e.clientY); });
     window.addEventListener('mouseup', () => { if (isDraggingMouse) { isDraggingMouse = false; resetStick(); } });
 }
-
-function undoLastStep() {
-    if (buildHistoryStack.length === 0) return appendChatMessage('story-ai', 'Nothing left to undo!');
-    const last = buildHistoryStack.pop();
-    last.objects.forEach(obj => scene.remove(obj));
-    last.updateFns.forEach(fn => { const i = window.updateFunctions.indexOf(fn); if (i > -1) window.updateFunctions.splice(i, 1); });
-    window.PHYSICS.updateControllerVisibility();
-    if (buildHistoryStack.length === 0) {
-        const ab = document.getElementById('actionButtons');
-        if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
-    }
-    appendChatMessage('story-ai', '↩️ Undid last step.');
-}
-
-function cleanAllWorld() {
-    while (buildHistoryStack.length > 0) {
-        const s = buildHistoryStack.pop();
-        s.objects.forEach(obj => scene.remove(obj));
-    }
-    window.createdObjects.forEach(obj => scene.remove(obj));
-    window.createdObjects = [];
-    window.updateFunctions = [];
-    window.PHYSICS.clearAll();
-    closeStoryHud();
-    if (scene) {
-        scene.background = new THREE.Color(0x050914);
-        if (scene.fog) { scene.fog.color = new THREE.Color(0x050914); scene.fog.density = 0.0020; }
-    }
-    const ab = document.getElementById('actionButtons');
-    if (ab) { ab.classList.add('hidden'); ab.classList.remove('flex'); }
-    appendChatMessage('story-ai', '🧹 Cleaned all 3D models & reset map!');
-}
-
-function toggleExitControl() {
-    window.isControlExited = !window.isControlExited;
-    const txt = document.getElementById('exitBtnText');
-    if (txt) txt.innerText = window.isControlExited ? 'Resume' : 'Exit';
-    window.PHYSICS.updateControllerVisibility();
-}
-
-function openCodeModal() {
-    const modal = document.getElementById('codeModal');
-    const ta = document.getElementById('codeViewerTextarea');
-    if (ta) {
-        ta.value = buildHistoryStack.length
-            ? buildHistoryStack.map((s, i) => `// === STEP ${i + 1} ===\n${s.code}`).join('\n\n')
-            : '// No Three.js 3D code generated yet.';
-    }
-    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-}
-function closeCodeModal() { const m = document.getElementById('codeModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
-function copyGeneratedCode() { navigator.clipboard.writeText(document.getElementById('codeViewerTextarea').value); }
-
-async function runEditedCode() {
-    const c = document.getElementById('codeViewerTextarea').value;
-    if (!c.trim()) return;
-    cleanAllWorld();
-    closeCodeModal();
-    const prevScene = [...scene.children];
-    const prevFns = [...window.updateFunctions];
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', c);
-    await execFn(THREE, scene, camera, renderer, controls);
-    const newObjects = scene.children.filter(ch => !prevScene.includes(ch));
-    const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
-    window.PHYSICS.autoRegisterSceneObstacles(newObjects);
-    buildHistoryStack.push({ code: c, objects: newObjects, updateFns: newFns });
-    appendChatMessage('3d-ai', '✅ Custom Three.js code executed on map!');
-}
-
-function toggleChatBox(show) {
-    document.getElementById('chatWrapper')?.classList.toggle('hidden', !show);
-    document.getElementById('showChatBtn')?.classList.toggle('hidden', show);
-    document.getElementById('showChatBtn')?.classList.toggle('flex', !show);
-}
-function toggleHistoryView() { document.getElementById('chatHistory')?.classList.toggle('hidden'); }
 
 function handleChatImageSelect(e) {
     const file = e.target.files[0];
@@ -681,75 +539,33 @@ function handleChatImageSelect(e) {
     };
     reader.readAsDataURL(file);
 }
+
 function clearAttachedImage() {
     attachedImageDataUrl = null;
     document.getElementById('imageAttachmentBar')?.classList.add('hidden');
     document.getElementById('imageAttachmentBar')?.classList.remove('flex');
 }
 
-function startRealLiveTimer(estSeconds = 10.0) {
-    const bar = document.getElementById('liveTimerBar');
-    if (bar) { bar.classList.remove('hidden'); bar.classList.add('flex'); }
-    const startTime = performance.now();
-    clearInterval(buildTimerInterval);
-    buildTimerInterval = setInterval(() => {
-        const elapsed = (performance.now() - startTime) / 1000;
-        const pct = Math.min(95, Math.round((elapsed / Math.max(estSeconds, elapsed + 2)) * 100));
-        const pb = document.getElementById('liveProgressBar');
-        const tt = document.getElementById('liveTimerText');
-        if (pb) pb.style.width = `${pct}%`;
-        if (tt) tt.innerText = `${elapsed.toFixed(1)}s`;
-    }, 80);
-    return startTime;
-}
-
-function stopRealLiveTimer(startTime) {
-    clearInterval(buildTimerInterval);
-    const pb = document.getElementById('liveProgressBar');
-    if (pb) pb.style.width = '100%';
-    setTimeout(() => {
-        const bar = document.getElementById('liveTimerBar');
-        if (bar) { bar.classList.add('hidden'); bar.classList.remove('flex'); }
-    }, 250);
-    return ((performance.now() - startTime) / 1000).toFixed(1);
-}
-
-function stopAICoding() { if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; } }
-
-function appendChatMessage(role, msg) {
-    const h = document.getElementById('chatHistory');
-    if (!h) return;
-    h.classList.remove('hidden');
-    const d = document.createElement('div');
-    if (role === '3d-user') {
-        d.className = 'bg-amber-950/60 border border-amber-700/50 rounded-lg px-2 py-1 text-amber-100 leading-snug';
-        d.innerHTML = `<strong class="text-amber-400">You (3D):</strong> ${msg}`;
-    } else if (role === '3d-ai') {
-        d.className = 'bg-slate-900/90 border border-amber-500/40 rounded-lg px-2 py-1 text-slate-200 leading-snug';
-        d.innerHTML = msg;
-    } else if (role === 'story-user') {
-        d.className = 'bg-indigo-950/60 border border-indigo-700/50 rounded-lg px-2 py-1 text-indigo-100 leading-snug';
-        d.innerHTML = `<strong class="text-sky-400">You (Story):</strong> ${msg}`;
-    } else {
-        d.className = 'bg-slate-900/90 border border-sky-500/40 rounded-lg px-2 py-1 text-slate-200 leading-snug';
-        d.innerHTML = msg;
+function openCodeModal() {
+    const modal = document.getElementById('codeModal');
+    const ta = document.getElementById('codeViewerTextarea');
+    if (ta) {
+        ta.value = window.REAL_3D_AI_BUILDER.lastGeneratedCode || '// No code generated yet.';
     }
-    h.appendChild(d);
-    h.scrollTop = h.scrollHeight;
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 }
+function closeCodeModal() { const m = document.getElementById('codeModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
+function copyGeneratedCode() { navigator.clipboard.writeText(document.getElementById('codeViewerTextarea').value); }
 
-function openProjectModal(mode) { currentModalMode = mode; document.getElementById('projectModal')?.classList.remove('hidden'); document.getElementById('projectModal')?.classList.add('flex'); }
-function closeProjectModal() { document.getElementById('projectModal')?.classList.add('hidden'); document.getElementById('projectModal')?.classList.remove('flex'); }
-function handleIconUpload(e) {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => { projectIconDataUrl = ev.target.result; document.getElementById('iconPreviewImg').src = projectIconDataUrl; document.getElementById('iconPreviewImg').classList.remove('hidden'); document.getElementById('defaultIconPreview').classList.add('hidden'); };
-    r.readAsDataURL(f);
-}
-function executeProjectAction() {
-    const name = document.getElementById('projectNameInput')?.value.trim() || 'ApexGen_Project';
-    const scripts = buildHistoryStack.map(s => s.code);
-    const blob = new Blob([JSON.stringify({ name, scripts }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${name}.json`; a.click();
-    closeProjectModal();
+async function runEditedCode() {
+    const c = document.getElementById('codeViewerTextarea').value;
+    if (!c.trim()) return;
+    closeCodeModal();
+    if (typeof init3DWorld === 'function' && !renderer) init3DWorld();
+    window.REAL_3D_AI_BUILDER.cleanupPreviousGame();
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', c);
+    await execFn(THREE, scene, camera, renderer, controls);
+    window.REAL_3D_AI_BUILDER.lastGeneratedCode = c;
+    updateProjectStatusCard({ title: 'Custom Edited Code', stateText: 'Ready to Play', pct: 100, isReady: true });
 }
