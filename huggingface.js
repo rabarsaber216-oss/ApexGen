@@ -1,127 +1,122 @@
 /********************************************************************
- * FILE: huggingface.js -> TESANA-STYLE 10-QUESTION "SET YOUR PLAN"
+ * FILE: huggingface.js -> 100% DYNAMIC AI 10-QUESTION "SET YOUR PLAN"
  * + PURE SCRATCH 400+ LINE STREAMING THREE.JS COMPILER
- * 1. Opens the exact "Set your plan" dark UI to ask 10 detailed
- *    questions before building any new game!
- * 2. Compiles all 10 answers ("زانیاری تەواو") into a 400+ line
- *    playable 3D game from scratch!
+ * - Zero hardcoded car/unrelated options!
+ * - AI dynamically generates 10 hyper-specific questions & 40 options
+ *   tailored EXCLUSIVELY to the exact topic/game the user typed!
+ * - Automatically activates mobile controls & executes all 10 answers!
  ********************************************************************/
 window.TESANA_PLANNER = {
-    // 10 Comprehensive Game Design Questions mapped to the 5 Progress Categories
-     getQuestionsForPrompt(userPrompt) {
-        return [
-            {
-                category: 'Look & Feel',
-                aiIntro: "I'll get the essentials settled first. What visual style do you want?",
-                options: [
-                    "3D detailed and gritty",
-                    "3D low-poly, blocky",
-                    "3D cyberpunk neon & HDR bloom",
-                    "3D realistic military & cinematic"
-                ]
-            },
-            {
-                category: 'Game idea',
-                aiIntro: "How should the camera and player perspective work?",
-                options: [
-                    "First-Person (FPS) with visible weapon arms",
-                    "Third-Person (TPS) following the character",
-                    "Drivable Vehicle / Racing chase camera",
-                    "Top-Down / Isometric tactical view"
-                ]
-            },
-            {
-                category: 'World & Progression',
-                aiIntro: "Where does the game take place? Choose the 3D environment:",
-                options: [
-                    "Sandy desert walled courtyard (De_dust style)",
-                    "Dark apocalyptic city with streetlights & buildings",
-                    "Ancient fortress, stone ruins & forest",
-                    "Sci-Fi space base & glowing neon arena"
-                ]
-            },
-            {
-                category: 'Game idea',
-                aiIntro: "Who or what is the main controllable player?",
-                options: [
-                    "Tactical armed survivor / soldier",
-                    "Muscular warrior hero (Kratos style with blades)",
-                    "High-speed supercar / armored vehicle",
-                    "Custom agile hero with special abilities"
-                ]
-            },
-            {
-                category: 'Gameplay',
-                aiIntro: "What is the core gameplay loop and objective?",
-                options: [
-                    "Survive endless enemy waves & defend base",
-                    "Action combat, defeat enemies & giant bosses",
-                    "High-speed driving, drifting & collecting checkpoints",
-                    "Explore map, dodge traps & collect items"
-                ]
-            },
-            {
-                category: 'Gameplay',
-                aiIntro: "What weapons, tools, or abilities can the player use?",
-                options: [
-                    "Pistol + AK-47 Assault Rifle with ammo & reload",
-                    "Fiery twin blades / melee sword combos",
-                    "Rapid-fire plasma blaster & explosive grenades",
-                    "Nitro boost, ramming physics & vehicle cannons"
-                ]
-            },
-            {
-                category: 'Direction',
-                aiIntro: "What kind of enemies or challenges should spawn?",
-                options: [
-                    "Fast zombie hordes + Giant Boss Zombies",
-                    "Hostile armed guards & patrol robots",
-                    "Rival vehicles, obstacles & explosive barrels",
-                    "Monsters that chase and attack in waves"
-                ]
-            },
-            {
-                category: 'World & Progression',
-                aiIntro: "How does player progression and upgrading work?",
-                options: [
-                    "Earn cash per kill + In-game Weapon Upgrade Shop",
-                    "Wave counter that increases difficulty each round",
-                    "Score multiplier, combo meter & health pickups",
-                    "Level up speed, armor & damage automatically"
-                ]
-            },
-            {
-                category: 'Look & Feel',
-                aiIntro: "What lighting, sky atmosphere, and particle effects should we add?",
-                options: [
-                    "Warm desert sun, dusty fog & red blood bursts",
-                    "Dark night sky, glowing neon bloom & fire sparks",
-                    "Blood-red storm sky with heavy fog & explosions",
-                    "Bright daylight with crisp shadows & smoke trails"
-                ]
-            },
-            {
-                category: 'Direction',
-                aiIntro: "Final step (10/10): What UI & HUD elements should appear on screen?",
-                options: [
-                    "Main Menu PLAY screen + HP bar, Ammo, Cash, Wave & Crosshair",
-                    "Arcade HUD with Score, Timer, Combo & Health bar",
-                    "Boss Health Bar at top + Player Stamina & Skills",
-                    "Speedometer, Lap/Wave Counter & Full Mission HUD"
-                ]
+    // Dynamically asks the AI to generate 10 custom questions specifically about the user's prompt!
+    async fetchDynamicQuestionsFromAI(userPrompt, provider, apiKey, geminiModels, abortSignal) {
+        const questionGenPrompt = `
+The user wants to build this 3D game or 3D experience: "${userPrompt}"
+
+Your job is to generate 10 highly specific, practical design questions to gather complete details ("زانیاری تەواو") EXCLUSIVELY about "${userPrompt}".
+CRITICAL RULES:
+1. Every single question and option MUST be 100% tailored to "${userPrompt}"!
+   (For example: if the user asked for a survival game, ask ONLY about survival mechanics like hunger/stamina, resource gathering, shelter/crafting, wilderness map, survival tools/weapons, night predators/threats, inventory HUD, weather/day-night cycle, etc. NEVER mention racing cars or unrelated genres unless the user specifically asked for them!)
+2. LANGUAGE RULE: If "${userPrompt}" is written in Kurdish, write all "aiIntro" questions and "options" in natural Central Kurdish (سۆرانی). If "${userPrompt}" is in English, write them in English.
+3. Return ONLY a raw valid JSON array containing EXACTLY 10 question objects in this exact format:
+[
+  {
+    "category": "Look & Feel",
+    "aiIntro": "Question 1 text specifically about ${userPrompt}...",
+    "options": ["Specific Option 1", "Specific Option 2", "Specific Option 3", "Specific Option 4"]
+  }
+]
+Note: "category" must be one of: "Game idea", "Gameplay", "Direction", "World & Progression", or "Look & Feel".
+`;
+
+        let rawText = '';
+
+        if (provider === 'gemini') {
+            const models = [
+                'models/gemini-2.0-flash',
+                'models/gemini-3.8-flash',
+                ...(geminiModels || [])
+            ].filter((v, i, a) => a.indexOf(v) === i);
+
+            for (const m of models) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: questionGenPrompt }] }],
+                            generationConfig: {
+                                temperature: 0.5,
+                                maxOutputTokens: 4096
+                            }
+                        }),
+                        signal: abortSignal
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                        if (rawText.trim()) break;
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') throw e;
+                }
             }
-        ];
+        } else if (provider === 'openai') {
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    temperature: 0.5,
+                    messages: [{ role: 'user', content: questionGenPrompt }]
+                }),
+                signal: abortSignal
+            });
+            const data = await res.json();
+            if (res.ok) rawText = data.choices[0].message.content;
+        } else if (provider === 'claude') {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-5-sonnet-latest',
+                    max_tokens: 4096,
+                    temperature: 0.5,
+                    messages: [{ role: 'user', content: questionGenPrompt }]
+                }),
+                signal: abortSignal
+            });
+            const data = await res.json();
+            if (res.ok) rawText = data.content[0].text;
+        }
+
+        const cleaned = rawText.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+        const startIdx = cleaned.indexOf('[');
+        const endIdx = cleaned.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) {
+            const parsed = JSON.parse(cleaned.slice(startIdx, endIdx + 1));
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.slice(0, 10);
+            }
+        }
+        throw new Error('Failed to parse dynamic questions');
     },
 
-    // Opens the full-screen Tesana-style "Set your plan" modal and returns a Promise with the 10 answers
-    openPlanModal(initialPrompt) {
-        return new Promise((resolve) => {
+    // Opens the Tesana-style "Set your plan" modal and dynamically loads 10 context-specific questions
+    openPlanModal(initialPrompt, provider, apiKey, geminiModels, abortSignal) {
+        return new Promise(async (resolve, reject) => {
             const existing = document.getElementById('tesanaPlanModal');
             if (existing) existing.remove();
 
-            const questions = this.getQuestionsForPrompt(initialPrompt);
-            const answers = new Array(questions.length).fill('');
+            let questions = [];
+            let answers = [];
             let currentIdx = 0;
+            let isLoaded = false;
 
             const modal = document.createElement('div');
             modal.id = 'tesanaPlanModal';
@@ -135,14 +130,14 @@ window.TESANA_PLANNER = {
                     </button>
                     <div style="text-align:center;">
                         <div style="font-size:15px;font-weight:700;color:#cbd5e1;">Set your plan</div>
-                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Question 1 of 10</div>
+                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Preparing 10 Questions...</div>
                     </div>
                     <button id="tpSkipBtn" style="padding:9px 18px;border-radius:999px;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
                         Skip
                     </button>
                 </div>
 
-                <!-- MIDDLE CONVERSATION & OPTIONS AREA -->
+                <!-- MIDDLE CONVERSATION & DYNAMIC OPTIONS AREA -->
                 <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;max-width:500px;width:100%;margin:0 auto;overflow-y:auto;padding:6px 0;">
                     <!-- User Prompt Bubble (Right Aligned) -->
                     <div style="align-self:flex-end;background:#16181f;border:1px solid #262936;padding:12px 18px;border-radius:18px;font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:20px;max-width:85%;word-break:break-word;">
@@ -151,7 +146,8 @@ window.TESANA_PLANNER = {
 
                     <!-- AI Question Prompt (Left Aligned) -->
                     <div id="tpAiQuestionText" style="font-size:15px;color:#94a3b8;margin-bottom:16px;line-height:1.45;font-weight:500;">
-                        I'll get the essentials settled first.
+                        <i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i>
+                        Analyzing "${initialPrompt}" to generate 10 custom questions specifically for your request...
                     </div>
 
                     <!-- Option Pills Container -->
@@ -165,10 +161,10 @@ window.TESANA_PLANNER = {
                             <i class="fa-regular fa-file-lines"></i>
                             <span>Game plan progress</span>
                         </div>
-                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">10%</span>
+                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">0%</span>
                     </div>
 
-                    <!-- 5 Category Indicators (Matches Tesana screenshot!) -->
+                    <!-- 5 Category Indicators -->
                     <div id="tpCategoriesRow" style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;"></div>
 
                     <!-- Custom Answer Input Box ("Or type your own answer...") -->
@@ -192,12 +188,12 @@ window.TESANA_PLANNER = {
             const categories = ['Game idea', 'Gameplay', 'Direction', 'World & Progression', 'Look & Feel'];
 
             function renderStep() {
+                if (!isLoaded || questions.length === 0) return;
                 const q = questions[currentIdx];
                 document.getElementById('tpStepBadge').innerText = `Question ${currentIdx + 1} of ${questions.length}`;
                 document.getElementById('tpAiQuestionText').innerText = `(${currentIdx + 1}/${questions.length}) ${q.aiIntro}`;
                 document.getElementById('tpProgressPct').innerText = `${Math.round(((currentIdx + 1) / questions.length) * 100)}%`;
 
-                // Render Category Checkmarks
                 const catRow = document.getElementById('tpCategoriesRow');
                 catRow.innerHTML = categories.map(cat => {
                     const isActive = (q.category === cat);
@@ -208,34 +204,30 @@ window.TESANA_PLANNER = {
                     return `<div style="display:flex;align-items:center;font-weight:${isActive ? '700' : '500'};color:${isActive ? '#ffffff' : '#94a3b8'};">${icon}${cat}</div>`;
                 }).join('');
 
-                // Render Clickable Option Pills + "Write my own"
                 const list = document.getElementById('tpOptionsList');
                 list.innerHTML = '';
 
-                q.options.forEach(optText => {
+                (q.options || []).forEach(optText => {
                     const btn = document.createElement('button');
                     const isSelected = (answers[currentIdx] === optText);
-                    btn.style.cssText = `padding:12px 20px;border-radius:16px;background:${isSelected ? '#1e293b' : '#16181f'};border:1px solid ${isSelected ? '#38bdf8' : '#262936'};color:#f1f5f9;font-size:14px;font-weight:500;text-align:left;cursor:pointer;transition:all 0.15s;`;
+                    btn.style.cssText = `padding:12px 20px;border-radius:16px;background:${isSelected ? '#1e293b' : '#16181f'};border:1px solid ${isSelected ? '#38bdf8' : '#262936'};color:#f1f5f9;font-size:14px;font-weight:500;text-align:left;cursor:pointer;transition:all 0.15s;width:100%;`;
                     btn.innerText = optText;
                     btn.onclick = () => submitAnswer(optText);
                     list.appendChild(btn);
                 });
 
-                // "Write my own" dashed pill button
                 const writeBtn = document.createElement('button');
                 writeBtn.style.cssText = 'padding:11px 20px;border-radius:16px;background:transparent;border:1px dashed #334155;color:#94a3b8;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;cursor:pointer;';
                 writeBtn.innerHTML = `<i class="fa-solid fa-pen" style="font-size:12px;"></i> <span>Write my own</span>`;
-                writeBtn.onclick = () => {
-                    const inp = document.getElementById('tpCustomInput');
-                    if (inp) inp.focus();
-                };
+                writeBtn.onclick = () => document.getElementById('tpCustomInput')?.focus();
                 list.appendChild(writeBtn);
 
                 const inp = document.getElementById('tpCustomInput');
-                if (inp) inp.value = answers[currentIdx] && !q.options.includes(answers[currentIdx]) ? answers[currentIdx] : '';
+                if (inp) inp.value = answers[currentIdx] && !(q.options || []).includes(answers[currentIdx]) ? answers[currentIdx] : '';
             }
 
             function submitAnswer(ansText) {
+                if (!isLoaded) return;
                 answers[currentIdx] = ansText;
                 if (currentIdx + 1 < questions.length) {
                     currentIdx++;
@@ -247,15 +239,19 @@ window.TESANA_PLANNER = {
 
             function finishPlanning() {
                 modal.remove();
+                if (!isLoaded || questions.length === 0) {
+                    resolve(`User Main Request: ${initialPrompt}`);
+                    return;
+                }
                 const compiledPlan = questions.map((q, idx) => {
-                    const ans = answers[idx] || q.options[0];
-                    return `${idx + 1}. [${q.category}] ${q.aiIntro} -> ${ans}`;
+                    const ans = answers[idx] || (q.options && q.options[0]) || 'Standard';
+                    return `${idx + 1}. [${q.category}] ${q.aiIntro}\n   -> CHOSEN ANSWER: ${ans}`;
                 }).join('\n');
                 resolve(compiledPlan);
             }
 
             document.getElementById('tpBackBtn').onclick = () => {
-                if (currentIdx > 0) {
+                if (isLoaded && currentIdx > 0) {
                     currentIdx--;
                     renderStep();
                 } else {
@@ -263,19 +259,12 @@ window.TESANA_PLANNER = {
                 }
             };
 
-            document.getElementById('tpSkipBtn').onclick = () => {
-                finishPlanning();
-            };
-
-            document.getElementById('tpWriteOwnFocusBtn').onclick = () => {
-                document.getElementById('tpCustomInput')?.focus();
-            };
-
+            document.getElementById('tpSkipBtn').onclick = () => finishPlanning();
+            document.getElementById('tpWriteOwnFocusBtn').onclick = () => document.getElementById('tpCustomInput')?.focus();
             document.getElementById('tpSendCustomBtn').onclick = () => {
                 const val = (document.getElementById('tpCustomInput')?.value || '').trim();
                 if (val) submitAnswer(val);
             };
-
             document.getElementById('tpCustomInput').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const val = e.target.value.trim();
@@ -283,45 +272,58 @@ window.TESANA_PLANNER = {
                 }
             });
 
-            renderStep();
+            // Fetch the 10 custom questions specifically about initialPrompt from the AI!
+            try {
+                questions = await this.fetchDynamicQuestionsFromAI(initialPrompt, provider, apiKey, geminiModels, abortSignal);
+                answers = new Array(questions.length).fill('');
+                isLoaded = true;
+                renderStep();
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    modal.remove();
+                    reject(err);
+                    return;
+                }
+                modal.remove();
+                resolve(`User Main Request: ${initialPrompt}`);
+            }
         });
     }
 };
 
 // =========================================================================
-// PURE SCRATCH HIGH-SPEED STREAMING 3D GAME COMPILER
+// PURE SCRATCH HIGH-SPEED STREAMING 3D GAME COMPILER (100% PRACTICAL)
 // =========================================================================
 window.REAL_3D_AI_BUILDER = {
     lastGeneratedCode: '',
 
     PURE_SCRATCH_SYSTEM_PROMPT: `
-You are an Elite, High-Speed Three.js (r128) Game Engine Compiler inside "ApexGen".
-Your job is to write a COMPLETE, 350 to 500+ line playable 3D game or 3D simulation ENTIRELY FROM SCRATCH in raw JavaScript that implements EVERY single detail of the user's 10-Point Game Plan!
+You are an Elite Three.js (r128) Game Engine Architect & Compiler inside "ApexGen".
+Your job is to write a COMPLETE, 350 to 500+ line playable 3D game or 3D experience ENTIRELY FROM SCRATCH in raw JavaScript that implements EVERY SINGLE ANSWER from the user's 10-Question Game Plan!
 
-STRICT ARCHITECTURAL RULES (100% FROM SCRATCH):
-1. NEVER use fake placeholders or simple 20-line boxes. Write rich, multi-hundred-line production Three.js code from scratch!
-2. Your code runs inside an \`async\` function with direct access to:
+CRITICAL RULES FOR 100% WORKING & PRACTICAL GAMEPLAY:
+1. IMPLEMENT ALL 10 ANSWERS FAITHFULLY:
+   Read the user's main prompt and all 10 chosen answers carefully. Build the exact environment, camera perspective, player mechanics, items/weapons/tools, enemies/creatures, crafting/upgrades, weather/lighting, and HUD specified in those 10 answers! Never build something unrelated!
+2. Globals available inside your \`async\` function:
    \`THREE\`, \`scene\`, \`camera\`, \`renderer\`, \`controls\`, \`window.PHYSICS\`, \`window.updateFunctions\`, \`window.createdObjects\`, \`window.keysPressed\`, \`window.joystickVector\`, \`window.AAA_ENGINE\`, \`window.SKELETON_ENGINE\`.
-3. EVERY GAME YOU WRITE FROM SCRATCH MUST INCLUDE THESE 5 SECTIONS IN CODE:
-   - SECTION 1: CUSTOM HTML UI & "PLAY" MENU OVERLAY
-     Create a container \`let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; document.body.appendChild(hud);\`.
-     Build a Title Screen overlay with a working "PLAY" button, plus live on-screen HUD elements (Health bar, Score/Cash, Ammo/Speedometer, Wave/Timer, Crosshair, Upgrade Shop button) matching the user's 10-Point Game Plan!
-   - SECTION 2: PROCEDURAL ENVIRONMENT, SKY, LIGHTING & TERRAIN
-     Configure \`scene.background\` and \`scene.fog\`. Hide the default grid if needed (\`if (typeof infiniteGrid !== 'undefined') infiniteGrid.visible = false;\`).
-     Build procedural terrain, detailed 3D architecture (walls, arches, buildings, trees, props, ramps), and register static obstacles with \`window.PHYSICS.addStaticCollider(mesh, 0.001)\`.
-   - SECTION 3: DETAILED MULTI-PART PLAYER / VEHICLE / WEAPON RIG
-     Construct the player character, first-person weapon viewmodel (attached to \`camera\`), or multi-part vehicle matching the user's plan.
-     Mark the player root with \`playerRoot.userData.isPlayer = true;\` and call \`window.PHYSICS.registerDynamicBody(playerRoot, 0.75);\`.
-     Always add every root object to \`scene.add(obj)\` AND \`window.createdObjects.push(obj)\`!
-   - SECTION 4: ENEMIES, BOSSES, COLLECTIBLES & PARTICLE ENGINE
-     Write factory functions from scratch to spawn enemies/opponents/bosses, health bars, projectiles, weapon upgrades, and particle bursts (blood, sparks, smoke, explosions).
-   - SECTION 5: 60FPS GAMEPLAY LOOP & CONTROLS (\`window.updateFunctions.push((delta, time) => { ... })\`)
-     Read both Keyboard (\`window.keysPressed['w'|'a'|'s'|'d'|' '|'e'|'shift']\`) AND Mobile Joystick (\`window.joystickVector.x\`, \`window.joystickVector.y\`).
-     Support touch/mouse drag on \`renderer.domElement\` for camera aiming.
-     Implement full movement physics, shooting/attacking (\`window.keysPressed['e']\`), jumping (\`window.keysPressed[' ']\`), AI enemy state machines, wave spawning, and live HUD updates!
+3. MANDATORY 5-PART STRUCTURE FOR EVERY GAME:
+   - PART 1: PLAYABLE MENU & LIVE INTERACTIVE HUD (\`#aiScratchHUD\`)
+     Create \`let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; document.body.appendChild(hud);\`.
+     Include a Title Screen overlay with a "PLAY" button (that hides the title overlay when clicked), plus live HUD bars (e.g., Health, Hunger/Stamina, Resources/Score, Inventory/Upgrade buttons, Wave/Day indicator) that update dynamically during gameplay!
+   - PART 2: PROCEDURAL 3D WORLD, TERRAIN & OBSTACLES
+     Set \`scene.background\` and \`scene.fog\`. Hide the default grid (\`if (typeof infiniteGrid !== 'undefined') infiniteGrid.visible = false;\`).
+     Generate a large 3D ground plane/terrain and populate the map with multi-part 3D objects matching the user's theme (trees, rocks, campfires, shelters, buildings, ruins, crates, water, etc.). Register solid obstacles with \`window.PHYSICS.addStaticCollider(mesh, 0.001)\`.
+   - PART 3: PLAYER CONTROLLER & CAMERA (MUST WORK ON MOBILE & DESKTOP!)
+     * Create the player \`THREE.Group()\`, set \`player.userData.isPlayer = true;\`, add to \`scene.add(player)\` and \`window.createdObjects.push(player)\`, and MUST call \`window.PHYSICS.registerDynamicBody(player, 0.75);\`.
+     * If First-Person (FPS): set \`controls.enabled = false;\`, attach visible 3D arms & tool/weapon to \`camera\`, add \`scene.add(camera)\`, position \`camera\` at \`(player.position.x, player.position.y + 2.3, player.position.z)\`, and allow touch/mouse drag on \`renderer.domElement\` to rotate camera yaw/pitch!
+     * If Third-Person (TPS): keep \`controls.enabled = true;\`, build an articulated 3D character mesh inside \`player\`, and update \`controls.target.set(player.position.x, player.position.y + 2.0, player.position.z)\` and move \`camera.position\` smoothly with the player!
+   - PART 4: GAMEPLAY MECHANICS, ENEMIES, GATHERING/COMBAT & PARTICLES
+     Program real interactive entities (wild animals/zombies/enemies that patrol & chase, harvestable trees/rocks/items, projectiles/melee swings when pressing \`window.keysPressed['e']\`, jumping when pressing \`window.keysPressed[' ']\`, and particle bursts on hit/collect).
+   - PART 5: 60FPS UPDATE LOOP (\`window.updateFunctions.push((delta, time) => { ... })\`)
+     Always read BOTH keyboard (\`window.keysPressed['w'|'a'|'s'|'d']\`) AND mobile joystick (\`window.joystickVector.x\`, \`window.joystickVector.y\`) so the player moves smoothly on mobile phones!
 
 OUTPUT FORMAT RULE:
-Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short description>\`. Do NOT wrap in prose or JSON!
+Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short summary>\`. No markdown prose, no JSON!
 `,
 
     cleanJSCode(rawText) {
@@ -332,12 +334,10 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
     },
 
     cleanupPreviousGame() {
-        const oldHud = document.getElementById('aiScratchHUD');
-        if (oldHud) oldHud.remove();
-        const oldDynamic = document.getElementById('apexDynamicGameUI');
-        if (oldDynamic) oldDynamic.remove();
-        const oldTesana = document.getElementById('tesanaHudRoot');
-        if (oldTesana) oldTesana.remove();
+        ['aiScratchHUD', 'apexDynamicGameUI', 'tesanaHudRoot', 'tesanaPlanModal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
 
         if (camera) {
             for (let i = camera.children.length - 1; i >= 0; i--) {
@@ -419,7 +419,7 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
                             if (chunk) {
                                 accumulatedText += chunk;
                                 const lineCount = accumulatedText.split('\n').length;
-                                updateStatusFn(`⚡ Coding from scratch: ${lineCount} lines written...`);
+                                updateStatusFn(`⚡ Coding your custom game: ${lineCount} lines written...`);
                             }
                         } catch (e) {}
                     }
@@ -440,10 +440,7 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         if (provider === 'openai') {
             const res = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                 body: JSON.stringify({
                     model: 'gpt-4o',
                     max_tokens: 12288,
@@ -488,13 +485,19 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         const isFollowUp = Boolean(this.lastGeneratedCode && window.createdObjects.length > 0);
         let detailedGamePlan = '';
 
-        // STEP 1: If this is a NEW game build, open the 10-Question "Set your plan" Wizard first!
+        // 1. Open the 10-Question Dynamic AI Planner for new builds!
         if (!isFollowUp) {
-            updateStatusFn(`📋 Waiting for your 10-Step Game Plan ("Set your plan")...`);
-            detailedGamePlan = await window.TESANA_PLANNER.openPlanModal(promptText);
+            updateStatusFn(`📋 Generating 10 tailored questions for "${promptText}"...`);
+            detailedGamePlan = await window.TESANA_PLANNER.openPlanModal(
+                promptText,
+                provider,
+                apiKey,
+                geminiModels,
+                abortSignal
+            );
 
             if (typeof appendChatMessage === 'function') {
-                appendChatMessage('3d-ai', `📋 <strong>10-Step Game Plan Locked In!</strong> Now coding your complete game from scratch...`);
+                appendChatMessage('3d-ai', `📋 <strong>10 Tailored Answers Received!</strong> Now coding your custom game from scratch...`);
             }
         }
 
@@ -502,10 +505,10 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         if (isFollowUp) {
             fullPrompt += `CURRENT ACTIVE GAME CODE:\n\`\`\`javascript\n${this.lastGeneratedCode}\n\`\`\`\n\nUSER FOLLOW-UP COMMAND: "${promptText}"\nModify and expand the complete game code above to integrate this new feature seamlessly. Return the full executable script!`;
         } else {
-            fullPrompt += `USER MAIN GAME IDEA: "${promptText}"\n\nCOMPLETE 10-POINT GAME DESIGN SPECIFICATION (زانیاری تەواو):\n${detailedGamePlan}\n\nWrite a complete, detailed 350 to 500+ line Three.js game from scratch that implements ALL 10 specifications above!`;
+            fullPrompt += `USER MAIN REQUEST: "${promptText}"\n\nUSER'S 10-QUESTION ANSWERS (زانیاری تەواو - IMPLEMENT EVERY SINGLE ONE OF THESE!):\n${detailedGamePlan}\n\nWrite a complete, playable 350 to 500+ line Three.js game from scratch that implements ALL 10 chosen answers above!`;
         }
 
-        updateStatusFn(`⚡ Initializing high-speed scratch compiler...`);
+        updateStatusFn(`⚡ Starting high-speed 3D game compiler...`);
 
         let rawCode = '';
         if (provider === 'gemini') {
@@ -515,9 +518,6 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         }
 
         if (!rawCode) throw new Error('AI returned empty code.');
-
-        const totalLines = rawCode.split('\n').length;
-        updateStatusFn(`🚀 Compiling & executing ${totalLines} lines of raw 3D code...`);
 
         this.cleanupPreviousGame();
 
@@ -530,7 +530,7 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
             const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', rawCode);
             await execFn(THREE, scene, camera, renderer, controls);
         } catch (runtimeErr) {
-            updateStatusFn(`🔧 Self-healing error (${runtimeErr.message})...`);
+            updateStatusFn(`🔧 Auto-fixing script error (${runtimeErr.message})...`);
             const fixPrompt = `${this.PURE_SCRATCH_SYSTEM_PROMPT}\n\nFix this runtime error: "${runtimeErr.message}" in the following Three.js script and return ONLY the corrected JavaScript code:\n\`\`\`javascript\n${rawCode}\n\`\`\``;
             if (provider === 'gemini') {
                 rawCode = await this.streamGeminiCode(fixPrompt, null, apiKey, geminiModels, updateStatusFn, abortSignal);
@@ -552,11 +552,18 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         });
         window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
+        // Guarantee Mobile Joystick & Action Buttons (ATTACK / JUMP / SPRINT) are visible & active!
+        if (window.PHYSICS.dynamicBodies.length === 0 && newObjects.length > 0) {
+            newObjects[0].userData.isPlayer = true;
+            window.PHYSICS.registerDynamicBody(newObjects[0], 0.75);
+        }
+        window.PHYSICS.updateControllerVisibility();
+
         const finalLines = rawCode.split('\n').length;
         const summaryMatch = rawCode.match(/\/\/\s*BUILT:\s*([^\n\r]+)/i);
         const summary = summaryMatch
             ? `${summaryMatch[1].trim()} (${finalLines} lines of code)`
-            : `Built "${promptText}" with full 10-Step Plan (${finalLines} lines of code)!`;
+            : `Built "${promptText}" (${finalLines} lines of code)!`;
 
         return {
             code: rawCode,
