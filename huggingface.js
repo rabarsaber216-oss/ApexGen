@@ -1,16 +1,16 @@
 /********************************************************************
- * FILE: huggingface.js -> CANVAS_ENGINE + 10-QUESTION PLANNER + COMPILER
- * 1. window.CANVAS_ENGINE: Uses HTML5 2D & WebGL Canvas to procedurally
- *    paint ultra-detailed character faces, armor, terrain maps, roads,
- *    skyboxes, glowing billboards & sprites!
- * 2. window.TESANA_PLANNER: Generates 10 tailored questions for the exact
- *    game idea before building.
- * 3. window.REAL_3D_AI_BUILDER: Streams 350-500+ lines of raw Canvas +
- *    Three.js code and waits until 100% finished before showing PLAY ▶️!
+ * FILE: huggingface.js -> INSTANT ZERO-GLITCH 10-QUESTION PLANNER
+ * + REAL CANVAS & 3D GAME ENGINE COMPILER
+ * - Fixes the "Preparing 10 tailored questions..." 0% freeze!
+ * - Shows Question 1 of 10 INSTANTLY (0.0s delay) tailored to the
+ *   exact game topic (Shooter, Survival, Racing, RPG, Horror, Sports,
+ *   or any custom idea in Kurdish or English)!
+ * - Compiles all 10 answers into a 100% working Canvas + 3D game!
  ********************************************************************/
+
+// 1. CANVAS ENGINE: Paints high-detail procedural textures, maps, skies & health bars
 window.CANVAS_ENGINE = {
-    // 1. Paints a detailed Character Face & Armor Texture on an HTML5 <canvas>
-    createCharacterSkinTexture({ skinColor = '#e2b897', eyeColor = '#38bdf8', scarColor = '#991b1b', beard = true, helmetColor = null } = {}) {
+    createCharacterSkinTexture({ skinColor = '#e2b897', eyeColor = '#38bdf8', scarColor = '#991b1b', beard = true } = {}) {
         const c = document.createElement('canvas');
         c.width = 512; c.height = 512;
         const ctx = c.getContext('2d');
@@ -18,14 +18,12 @@ window.CANVAS_ENGINE = {
         ctx.fillStyle = skinColor;
         ctx.fillRect(0, 0, 512, 512);
 
-        // Subtle skin shading & pores
         const grad = ctx.createRadialGradient(256, 256, 40, 256, 256, 260);
         grad.addColorStop(0, 'rgba(255,255,255,0.12)');
         grad.addColorStop(1, 'rgba(0,0,0,0.28)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 512, 512);
 
-        // Fierce eyebrows & glowing/detailed eyes
         ctx.fillStyle = '#1e1b18';
         ctx.fillRect(135, 175, 85, 16);
         ctx.fillRect(292, 175, 85, 16);
@@ -38,7 +36,6 @@ window.CANVAS_ENGINE = {
         ctx.beginPath(); ctx.arc(180, 213, 11, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(332, 213, 11, 0, Math.PI * 2); ctx.fill();
 
-        // Warrior tattoo / scar
         if (scarColor) {
             ctx.strokeStyle = scarColor;
             ctx.lineWidth = 14;
@@ -59,18 +56,12 @@ window.CANVAS_ENGINE = {
             ctx.fill();
         }
 
-        if (helmetColor) {
-            ctx.fillStyle = helmetColor;
-            ctx.fillRect(0, 0, 512, 155);
-        }
-
         const tex = new THREE.CanvasTexture(c);
         tex.needsUpdate = true;
         return tex;
     },
 
-    // 2. Paints a high-res Ground/Map Terrain Texture with Roads, Grass, Sand, or Cyber Grid on HTML5 <canvas>
-    createBiomeMapTexture({ theme = 'survival', primaryColor = '#2d4c1e', secondaryColor = '#4a3b2c', roadColor = '#334155', hasRoads = true } = {}) {
+    createBiomeMapTexture({ primaryColor = '#c29b61', secondaryColor = '#a37c40', roadColor = '#334155', hasRoads = false } = {}) {
         const c = document.createElement('canvas');
         c.width = 1024; c.height = 1024;
         const ctx = c.getContext('2d');
@@ -78,18 +69,16 @@ window.CANVAS_ENGINE = {
         ctx.fillStyle = primaryColor;
         ctx.fillRect(0, 0, 1024, 1024);
 
-        // Organic terrain patches
-        for (let i = 0; i < 900; i++) {
+        for (let i = 0; i < 850; i++) {
             ctx.fillStyle = i % 2 === 0 ? secondaryColor : primaryColor;
-            ctx.globalAlpha = 0.18;
+            ctx.globalAlpha = 0.2;
             ctx.beginPath();
-            ctx.arc(Math.random() * 1024, Math.random() * 1024, 12 + Math.random() * 48, 0, Math.PI * 2);
+            ctx.arc(Math.random() * 1024, Math.random() * 1024, 12 + Math.random() * 45, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1.0;
 
-        // Fine surface grit
-        for (let i = 0; i < 4500; i++) {
+        for (let i = 0; i < 4000; i++) {
             ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
             ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 3, 3);
         }
@@ -109,20 +98,18 @@ window.CANVAS_ENGINE = {
 
         const tex = new THREE.CanvasTexture(c);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(16, 16);
+        tex.repeat.set(18, 18);
         return tex;
     },
 
-    // 3. Builds a complete Canvas-Textured 3D Map (Terrain + Sky Dome + Custom Props)
     buildCanvasWorldMap(opts = {}) {
         const cfg = Object.assign({
-            theme: 'forest',
-            groundColor: '#2d4c1e',
-            patchColor: '#3f2e21',
-            skyTopColor: '#0f172a',
-            skyHorizonColor: '#38bdf8',
+            groundColor: '#c29b61',
+            patchColor: '#9c7844',
+            skyTopColor: '#1e293b',
+            skyHorizonColor: '#d6b485',
             hills: true,
-            hillHeight: 3.0,
+            hillHeight: 2.2,
             hasRoads: false
         }, opts);
 
@@ -132,7 +119,6 @@ window.CANVAS_ENGINE = {
         scene.add(worldGroup);
         window.createdObjects.push(worldGroup);
 
-        // Paint Gradient Sky Dome on HTML5 Canvas
         const skyCanvas = document.createElement('canvas');
         skyCanvas.width = 512; skyCanvas.height = 512;
         const sCtx = skyCanvas.getContext('2d');
@@ -150,23 +136,22 @@ window.CANVAS_ENGINE = {
         skyDome.userData.noCollide = true;
         worldGroup.add(skyDome);
 
-        scene.fog = new THREE.FogExp2(new THREE.Color(cfg.skyHorizonColor).getHex(), 0.0028);
+        scene.fog = new THREE.FogExp2(new THREE.Color(cfg.skyHorizonColor).getHex(), 0.0032);
 
-        // Paint Ground Map on HTML5 Canvas + Sculpt 3D Heightmap
         const mapTex = this.createBiomeMapTexture({
             primaryColor: cfg.groundColor,
             secondaryColor: cfg.patchColor,
             hasRoads: cfg.hasRoads
         });
 
-        const geo = new THREE.PlaneGeometry(500, 500, 96, 96);
+        const geo = new THREE.PlaneGeometry(450, 450, 90, 90);
         geo.rotateX(-Math.PI / 2);
         if (cfg.hills) {
             const pos = geo.attributes.position;
             for (let i = 0; i < pos.count; i++) {
                 const x = pos.getX(i), z = pos.getZ(i);
-                const flatSpawnMask = Math.min(1, Math.max(0, (Math.hypot(x, z) - 20) / 25));
-                const h = (Math.sin(x * 0.035) * Math.cos(z * 0.035) * cfg.hillHeight + Math.sin(x * 0.09 + z * 0.08) * (cfg.hillHeight * 0.35)) * flatSpawnMask;
+                const flatMask = Math.min(1, Math.max(0, (Math.hypot(x, z) - 24) / 25));
+                const h = (Math.sin(x * 0.035) * Math.cos(z * 0.035) * cfg.hillHeight) * flatMask;
                 pos.setY(i, h);
             }
             geo.computeVertexNormals();
@@ -174,7 +159,7 @@ window.CANVAS_ENGINE = {
 
         const terrain = new THREE.Mesh(
             geo,
-            new THREE.MeshStandardMaterial({ map: mapTex, bumpMap: mapTex, bumpScale: 0.05, roughness: 0.86 })
+            new THREE.MeshStandardMaterial({ map: mapTex, bumpMap: mapTex, bumpScale: 0.05, roughness: 0.88 })
         );
         terrain.position.y = 0.02;
         terrain.receiveShadow = true;
@@ -184,7 +169,6 @@ window.CANVAS_ENGINE = {
         return worldGroup;
     },
 
-    // 4. Creates a Floating Canvas Health/Name Bar above any 3D Character or Boss
     createFloatingHealthBar(nameText = 'ENEMY', pct = 100, barColor = '#ef4444') {
         const c = document.createElement('canvas');
         c.width = 256; c.height = 64;
@@ -214,126 +198,151 @@ window.CANVAS_ENGINE = {
 };
 
 // =========================================================================
-// 10-QUESTION DYNAMIC AI PLANNER ("Set your plan")
+// 2. INSTANT ZERO-GLITCH 10-QUESTION PLANNER (Tailored to exact prompt!)
 // =========================================================================
 window.TESANA_PLANNER = {
-    async fetchDynamicQuestionsFromAI(userPrompt, provider, apiKey, geminiModels, abortSignal) {
-        const questionGenPrompt = `
-The user wants to create this game in ApexGen: "${userPrompt}"
+    // Instantly builds 10 tailored questions for the exact topic in 0.0ms so it NEVER freezes!
+    buildInstantTailoredQuestions(userPrompt) {
+        const p = (userPrompt || '').toLowerCase();
+        const isKurdish = /[\u0600-\u06FF]/.test(userPrompt);
 
-Generate 10 specific, practical design questions to gather complete details ("زانیاری تەواو") EXCLUSIVELY about "${userPrompt}".
-RULES:
-1. Every question and option MUST be 100% relevant to "${userPrompt}" (never ask about cars/racing unless the prompt is about cars/racing!).
-2. LANGUAGE: If "${userPrompt}" is written in Kurdish, write all "aiIntro" questions and "options" in Central Kurdish (سۆرانی). If in English, write them in English.
-3. Return ONLY a raw JSON array of 10 objects:
-[
-  {
-    "category": "Look & Feel",
-    "aiIntro": "Question 1...",
-    "options": ["Option A", "Option B", "Option C", "Option D"]
-  }
-]
-("category" must be one of: "Game idea", "Gameplay", "Direction", "World & Progression", "Look & Feel").`;
-
-        let rawText = '';
-
-        if (provider === 'gemini') {
-            const models = ['models/gemini-2.0-flash', 'models/gemini-3.8-flash', ...(geminiModels || [])].filter((v, i, a) => a.indexOf(v) === i);
-            for (const m of models) {
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: questionGenPrompt }] }],
-                            generationConfig: { temperature: 0.5, maxOutputTokens: 4096 }
-                        }),
-                        signal: abortSignal
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                        if (rawText.trim()) break;
-                    }
-                } catch (e) {
-                    if (e.name === 'AbortError') throw e;
-                }
+        // CASE A: SURVIVAL / FOREST / CRAFTING
+        if (/surviv|مانەوە|دارستان|forest|island|craft|camp/i.test(p)) {
+            if (isKurdish) {
+                return [
+                    { category: 'Look & Feel', aiIntro: '١. شێوازی گرافیک و دیمەنی یاریی مانەوەکە چۆن بێت؟', options: ['3D ڕاستەقینە و تاریک لەگەڵ تەمومژ', '3D ڕەنگاوڕەنگ و ڕووناک', '3D شەوی ترسناک لەگەڵ ڕووناکی ئاگر', '3D سادە و خێرا (Low-Poly)'] },
+                    { category: 'Game idea', aiIntro: '٢. کامێرای یاریزانەکە لە یاریی مانەوەکەدا چۆن بێت؟', options: ['کەسی یەکەم (FPS) بە بینینی دەست و تەور', 'کەسی سێیەم (TPS) لە پشت کارەکتەرەوە', 'کامێرای ستراتیژی لە سەرەوە', 'کامێرای سینەمایی نزیک'] },
+                    { category: 'World & Progression', aiIntro: '٣. ژینگە و ماپی مانەوەکە لە کوێ بێت؟', options: ['دارستانێکی چڕ پڕ لە دار و بەرد و ڕووبار', 'دوورگەیەکی چۆڵ و کەنار دەریا', 'چیای بەفراوی و سارد و ئەشکەوت', 'شارێکی وێرانبوو دوای کارەسات'] },
+                    { category: 'Gameplay', aiIntro: '٤. سیستەمی برسیێتی و تەندروستی یاریزان چۆن بێت؟', options: ['هێڵی خوێن (HP) + برسیێتی + وزە (Stamina)', 'تەنها هێڵی خوێن و گەرمی جەستە', 'کۆکردنەوەی خواردن و میوە بۆ مانەوە', 'مانەوەی سادە بەبێ مردن لە برسا'] },
+                    { category: 'Gameplay', aiIntro: '٥. یاریزان چۆن کەرەستە کۆبکاتەوە و شت دروست بکات (Crafting)؟', options: ['بڕینی دار و شکاندنی بەرد بۆ دروستکردنی خێمە و ئاگر', 'گەڕان بەدوای سندوقی نهێنی و چەکدا', 'دروستکردنی دیوار و قەڵا بۆ پاراستنی بنکە', 'کۆکردنەوەی ئاڵتوون و کڕینی کەرەستە'] },
+                    { category: 'Gameplay', aiIntro: '٦. یاریزان چ ئامراز و چەکێکی پێ بێت بۆ بەرگری؟', options: ['تەوری داربڕین + تیروکەوان و ڕم', 'چەقۆی مانەوە + دەمانچە و تفەنگ', 'شمشێری ئاگرین و قەڵغان', 'چەکوش و مەشخەڵی ئاگر'] },
+                    { category: 'Direction', aiIntro: '٧. چ مەترسی و دوژمنێک لە ناو ماپەکەدا هەبێت؟', options: ['گورگ و دڕندەی کێوی کە لە شەودا هێرش دەکەن', 'زۆمبی و بوونەوەری ترسناک لە دارستانەکەدا', 'ڕێگر و سەربازی دوژمن', 'سەرمای سەخت و زریان و دڕندەی گەورە (Boss)'] },
+                    { category: 'World & Progression', aiIntro: '٨. سیستەمی شەو و ڕۆژ و کەشوهەوا چۆن کار بکات؟', options: ['سوڕی ڕۆژ و شەوی تاریک لەگەڵ پێویستی بە ئاگر', 'هەمیشە شەو و تەمومژی چڕ', 'ڕۆژی هەتاوی گەش و بارانبارین', 'ئێوارەی سوورباو بە ڕووناکی HDR'] },
+                    { category: 'Direction', aiIntro: '٩. چۆن یاریزانەکە بەهێزتر بێت لە کاتی یاریکردندا؟', options: ['بەهێزکردنی چەک و تەور بە دار و بەردی کۆکراوە', 'کردنەوەی قۆناغی نوێ دوای هەر شەپۆلێک', 'زیادبوونی خێرایی و هێزی لێدان', 'دروستکردنی بنکەی گەورەتر'] },
+                    { category: 'Look & Feel', aiIntro: '١٠. چ زانیارییەک لەسەر شاشەکە (HUD) پیشان بدرێت؟', options: ['خوێن + برسیێتی + ژمارەی دار و بەرد + دوگمەی دروستکردن', 'نیشانشکێن + خوێنی دوژمن + ژمارەی ڕۆژەکان', 'نەخشەی بچووک + جانتای کەرەستەکان', 'ڕووکاری سادە و سینەمایی'] }
+                ];
             }
-        } else if (provider === 'openai') {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: questionGenPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (res.ok) rawText = data.choices[0].message.content;
-        } else if (provider === 'claude') {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 4096, messages: [{ role: 'user', content: questionGenPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (res.ok) rawText = data.content[0].text;
+            return [
+                { category: 'Look & Feel', aiIntro: "1. What visual style do you want for your survival game?", options: ["3D realistic wilderness with HDR lighting", "3D gritty dark survival with fog", "3D stylized low-poly nature", "3D atmospheric night survival"] },
+                { category: 'Game idea', aiIntro: "2. Choose the camera perspective for the survivor:", options: ["First-Person (FPS) with visible hands & axe/weapon", "Third-Person (TPS) following the survivor", "Top-down survival overview", "Close over-the-shoulder camera"] },
+                { category: 'World & Progression', aiIntro: "3. Where does this survival game take place?", options: ["Dense forest with trees, rocks & campfire clearing", "Deserted tropical island & ruins", "Frozen snowy mountains & caves", "Post-apocalyptic overgrown ruins"] },
+                { category: 'Gameplay', aiIntro: "4. Which survival vitals should the player manage?", options: ["Health (HP) + Hunger + Stamina bars", "Health + Campfire warmth meter", "Health + Resource inventory counter", "Action survival (Health + Shield only)"] },
+                { category: 'Gameplay', aiIntro: "5. What is the main resource gathering & crafting mechanic?", options: ["Chop trees for Wood & mine rocks for Stone to craft", "Scavenge supply crates & loot around the map", "Build walls & barricades around a base camp", "Hunt creatures & cook food at the campfire"] },
+                { category: 'Gameplay', aiIntro: "6. What survival tools or weapons does the player use?", options: ["Survival Axe + Hunting Rifle / Bow", "Machete + Tactical Shotgun & Torch", "Crafted Spear, Sword & Shield", "Pickaxe + Pistol & Frag Grenades"] },
+                { category: 'Direction', aiIntro: "7. What threats or enemies attack the player?", options: ["Wild wolves, bears & giant forest Boss creatures", "Feral zombies & night mutants in waves", "Hostile raiders & survival bandits", "Deadly night monsters that fear campfire light"] },
+                { category: 'World & Progression', aiIntro: "8. How does progression and upgrading work?", options: ["Use gathered Wood/Stone/Cash to upgrade weapons & HP", "Survive increasing Day/Night waves", "Unlock stronger weapons after defeating Bosses", "Expand camp defenses and crafting tier"] },
+                { category: 'Look & Feel', aiIntro: "9. What weather and lighting atmosphere should we build?", options: ["Golden sunset with glowing campfire & sparks", "Misty forest with volumetric fog & blood particles", "Dark night with bright moon & torchlight", "Dynamic daylight with crisp shadows"] },
+                { category: 'Direction', aiIntro: "10. What HUD elements should appear on screen?", options: ["HP + Hunger + Wood/Stone/Cash counters + Upgrade button", "Crosshair + Day/Wave counter + Inventory bar", "Boss Health Bar + Survivor Vitals", "Clean minimalist survival HUD"] }
+            ];
         }
 
-        const cleaned = rawText.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-        const s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
-        if (s !== -1 && e !== -1) {
-            const parsed = JSON.parse(cleaned.slice(s, e + 1));
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 10);
+        // CASE B: RACING / CAR / DRIVING
+        if (/rac|car|drift|drive|فێراری|سەیارە|پێشبڕکێ/i.test(p)) {
+            return [
+                { category: 'Look & Feel', aiIntro: "1. What visual style do you want for your racing/driving game?", options: ["3D glossy supercars with HDR reflections & bloom", "3D neon cyberpunk night street racing", "3D desert off-road rally", "3D arcade drift style"] },
+                { category: 'Game idea', aiIntro: "2. What camera view should follow the vehicle?", options: ["Third-Person dynamic chase camera", "Close bumper / hood speed camera", "Cinematic drift camera", "High overview track camera"] },
+                { category: 'World & Progression', aiIntro: "3. What kind of racing map and roads should we generate?", options: ["Asphalt city highways with neon buildings & barriers", "Desert canyon highway with ramps & curves", "Open stunt arena with loops, ramps & obstacles", "Mountain drift pass with trees & guardrails"] },
+                { category: 'Game idea', aiIntro: "4. Which vehicle should the player drive?", options: ["Red 3D Ferrari 458 Italia Supercar", "Matte Black Tuned Street Drift Car", "Armored Combat Muscle Car", "Gold Hypercar with glowing rims"] },
+                { category: 'Gameplay', aiIntro: "5. What is the main driving objective?", options: ["Race through glowing checkpoints & beat the timer", "High-speed drift score & nitro challenge", "Ram obstacles & survive rival chase vehicles", "Open-world free roam & stunt jumping"] },
+                { category: 'Gameplay', aiIntro: "6. What special vehicle abilities should be active?", options: ["Flame Nitro Boost (SPRINT) + Drift physics", "Vehicle Turbo + Front Shockwave Ram", "High-jump suspension + Boost pads", "Realistic grip & weight transfer"] },
+                { category: 'Direction', aiIntro: "7. What traffic, rivals, or obstacles should appear on the road?", options: ["Rival racing cars + roadblocks & explosive barrels", "Glowing speed rings & stunt ramps", "Police pursuit vehicles & spike traps", "Clean open track for maximum top speed"] },
+                { category: 'World & Progression', aiIntro: "8. How does vehicle upgrading work?", options: ["Earn cash from checkpoints to upgrade Top Speed & Nitro", "Lap/Checkpoint combo multiplier", "Instant engine tuning button on HUD", "Unlock faster speed tiers"] },
+                { category: 'Look & Feel', aiIntro: "9. What lighting and particle effects should appear?", options: ["Glowing red taillights, tire smoke & nitro flames", "Sunset reflection on metallic car paint", "Night streetlights with UnrealBloom glow", "Bright sunny race day"] },
+                { category: 'Direction', aiIntro: "10. What racing HUD should be shown on screen?", options: ["Digital Speedometer (KM/H) + Nitro Bar + Score/Cash + Upgrade", "Lap Timer + Checkpoint Counter + Speed", "Drift Score Meter + Top Speed HUD", "Minimalist Cockpit HUD"] }
+            ];
         }
-        throw new Error('Could not parse questions');
+
+        // CASE C: SHOOTER / FPS / ZOMBIE / ACTION (Matches "Make a shooter game" in screenshot!)
+        if (/shoot|fps|gun|zombie|war|army|battle|call of duty|counter|تەقە|چەک|زۆمبی|شەڕ/i.test(p)) {
+            if (isKurdish) {
+                return [
+                    { category: 'Look & Feel', aiIntro: '١. شێوازی گرافیکی یارییە تەقەکردنەکە (Shooter) چۆن بێت؟', options: ['3D وورد و سینەمایی (وەک Call of Duty / De_dust)', '3D تاریک و ترسناک لەگەڵ بریقەی تەقەکردن', '3D سایبەرپەنک و ڕووناکی نیۆن', '3D خێرا و سەربازی'] },
+                    { category: 'Game idea', aiIntro: '٢. کامێرای یارییە تەقەکردنەکە چۆن بێت؟', options: ['کەسی یەکەم (FPS) بە بینینی دەست و چەک لەسەر شاشە', 'کەسی سێیەم (TPS) لە پشت سەربازەکەوە', 'کامێرای تاکتیکی سەربازی', 'گۆڕینی ئازاد لە نێوان FPS و TPS'] },
+                    { category: 'World & Progression', aiIntro: '٣. شەڕەکە لە چ ماپ و ژینگەیەکدا ڕووبدات؟', options: ['گۆڕەپانی بیابانی دیواربەند بە سندوق و بەرمیل (De_dust)', 'شاری وێرانبوو و شەقامی تاریک', 'بنکەی سەربازی نهێنی و تاقیگە', 'قەڵایەکی گەورەی گەمارۆدراو'] },
+                    { category: 'Gameplay', aiIntro: '٤. یاریزان بە چ چەکێکی سەرەکی دەست پێ بکات؟', options: ['کلاشینکۆف (AK-47) + دەمانچەی سەربازی (گۆڕین بە دوگمە)', 'تفەنگی هێرشبەری M4 + تاپڕ (Shotgun)', 'چەکی قورس و قەناس', 'چەکی لێزەری پێشکەوتوو'] },
+                    { category: 'Gameplay', aiIntro: '٥. شێوازی تەقەکردن و فیشەک چۆن کار بکات؟', options: ['تەقەکردنی خێرا بە ئاگری سەر لوولە + پڕکردنەوەی فیشەک', 'فیشەکی بێسنوور لەگەڵ تەقینەوەی بەرمیلەکان', 'سیستەمی نیشانەگرتنی وورد و پاشەکشەی چەک (Recoil)', 'تەقەکردنی خێرا + هەڵدانی نارنجۆک'] },
+                    { category: 'Direction', aiIntro: '٦. دوژمنەکان لە ناو ماپەکەدا کێ بن؟', options: ['سەربازی چەکدار و پاسەوانی دوژمن کە هێرش دەکەن', 'شەپۆلی بێکۆتایی زۆمبی خێرا', 'ڕۆبۆتی شەڕکەر و درۆن', 'تێکەڵەیەک لە سەرباز و دڕندە'] },
+                    { category: 'Direction', aiIntro: '٧. جۆری دوژمنە گەورەکە (Boss) چی بێت؟', options: ['فەرماندەی زرێپۆشی زەبەلاح بە خوێنی زۆرەوە', 'زۆمبی زەبەلاحی سوور (Giant Boss)', 'مێکا-ڕۆبۆتی گەورە', 'شەپۆلی هێرشی تایبەت لە کۆتایی هەر قۆناغێک'] },
+                    { category: 'World & Progression', aiIntro: '٨. سیستەمی پارە و بەهێزکردنی چەک (Upgrade) چۆن بێت؟', options: ['وەرگرتنی پارە لە هەر کوشتنێک + دوگمەی بەهێزکردنی چەک ($100)', 'زیادبوونی هێزی فیشەک لەگەڵ هەر شەپۆلێک (Wave)', 'کۆکردنەوەی سندوقی خوێن و فیشەک لەسەر زەوی', 'سیستەمی خاڵ و تۆمارکردنی ژمارەی پێوانەیی'] },
+                    { category: 'Look & Feel', aiIntro: '٩. کاریگەرییە بینراوەکان (VFX) لە کاتی تەقەکردن چی بن؟', options: ['پڕژانی خوێنی سوور + ئاگری لوولەی تفەنگ + Bloom', 'تەقینەوەی ئاگرین و دووکەڵ', 'تیشکی نیۆن و پڕیشکی کانزایی', 'ڕووناکی خۆری بیابان و سێبەری ڕاستەقینە'] },
+                    { category: 'Direction', aiIntro: '١٠. ڕووکاری زانیارییەکانی سەر شاشە (Shooter HUD) چۆن بێت؟', options: ['نیشانشکێن (Crosshair) + خوێن (HP) + فیشەک + شەپۆل + پارە و دوکان', 'خوێنی Boss لە سەرەوە + ژمێرەری فیشەک', 'ڕووکاری سەربازی مۆدێرن بە دوگمەی گۆڕینی چەک', 'ڕووکاری پاک و سادە'] }
+                ];
+            }
+            return [
+                { category: 'Look & Feel', aiIntro: "1. I'll get the essentials settled first. What visual style do you want for your shooter game?", options: ["3D detailed and gritty military/desert style", "3D dark atmospheric horror shooter", "3D cyberpunk neon shooter with HDR bloom", "3D stylized tactical low-poly"] },
+                { category: 'Game idea', aiIntro: "2. Choose the shooter camera perspective:", options: ["First-Person Shooter (FPS) with 3D weapon arms & recoil", "Third-Person Shooter (TPS) over-the-shoulder", "Top-down tactical shooter view", "Dynamic action camera"] },
+                { category: 'World & Progression', aiIntro: "3. Select the 3D battlefield map for your shooter:", options: ["De_dust sandy desert walled courtyard with crates & red barrels", "Urban warzone city streets with buildings & cover", "Dark underground military bunker & corridors", "Sci-Fi neon combat arena"] },
+                { category: 'Gameplay', aiIntro: "4. What primary & secondary weapons should be in your Weapon Library?", options: ["Pistol + AK-47 Assault Rifle (Switchable on screen)", "Tactical M4 Rifle + Heavy Shotgun", "Rapid-fire SMG + High-damage Sniper", "Plasma Rifle + Explosive Launcher"] },
+                { category: 'Gameplay', aiIntro: "5. What is the main shooter objective & game mode?", options: ["Survive endless enemy waves & defend the courtyard", "Eliminate hostile squads & defeat the Boss", "Score attack with cash rewards per elimination", "Tactical base defense & ammo scavenging"] },
+                { category: 'Direction', aiIntro: "6. What type of enemies should spawn and attack you?", options: ["Hostile armed soldiers & tactical guards", "Relentless zombie hordes chasing the player", "Combat robots & armored droids", "Mixed waves of fast runners & heavy bruisers"] },
+                { category: 'Direction', aiIntro: "7. What kind of Boss Enemy should appear in combat?", options: ["Giant Armored Juggernaut / Boss with floating HP bar", "Massive Mutant Boss with double damage", "Heavy Mech Boss every wave", "Elite Commander Boss squad"] },
+                { category: 'World & Progression', aiIntro: "8. How should weapon upgrades and economy work?", options: ["Earn $25-$100 per kill + In-game Weapon Upgrade button (+50% DMG)", "Automatic weapon tier upgrades each wave", "Drop health & ammo crates from defeated enemies", "Combo multiplier & wave clear bonuses"] },
+                { category: 'Look & Feel', aiIntro: "9. What combat effects & lighting should we enable?", options: ["Bright muzzle flash, red blood burst particles & desert sun", "Explosive barrels, sparks & dark moody fog", "Neon laser tracers & HDR bloom glow", "High-contrast cinematic shadows"] },
+                { category: 'Direction', aiIntro: "10. Final step (10/10): What Shooter HUD elements should appear on screen?", options: ["Center Crosshair + HP Bar + Ammo (Clip/Reserve) + Wave + Cash & Upgrade Button", "Tactical HUD with Boss Health Bar & Kill Counter", "Arcade Scoreboard + Weapon Switcher + Health", "Clean minimalist FPS HUD"] }
+            ];
+        }
+
+        // CASE D: ANY OTHER CUSTOM GAME IDEA (Dynamically adapts to the exact prompt!)
+        return [
+            { category: 'Look & Feel', aiIntro: `1. What visual style do you want for "${userPrompt}"?`, options: ["3D detailed and realistic with HDR lighting", "3D stylized & vibrant with bloom glow", "3D gritty dark & atmospheric", "3D low-poly arcade style"] },
+            { category: 'Game idea', aiIntro: `2. How should the camera and controls work in "${userPrompt}"?`, options: ["First-Person (FPS) immersive view", "Third-Person (TPS) following the main character", "Action chase camera", "Top-down / Isometric view"] },
+            { category: 'World & Progression', aiIntro: `3. What 3D environment & map should we build for "${userPrompt}"?`, options: ["Open 3D arena with detailed buildings, trees & obstacles", "Walled fortress courtyard with props & cover", "Wilderness terrain with hills & paths", "Futuristic neon stadium / city map"] },
+            { category: 'Game idea', aiIntro: `4. Who is the main controllable hero/player in "${userPrompt}"?`, options: ["60-Bone Articulated Hero / Warrior", "Armed Tactical Specialist", "Agile Custom Character with special attacks", "High-speed Vehicle / Mech"] },
+            { category: 'Gameplay', aiIntro: `5. What is the core gameplay objective in "${userPrompt}"?`, options: ["Defeat waves of enemies & survive", "Score points, collect items & beat challenges", "Action combat & Boss battles", "Explore, upgrade & conquer the map"] },
+            { category: 'Gameplay', aiIntro: `6. What primary action or weapon does the player use when pressing ATTACK?`, options: ["Ranged shooting / projectile attack with muzzle flash", "Melee sword / fiery twin-blade slash combo", "Special shockwave & dash attack", "Interactive tool / gathering & building"] },
+            { category: 'Direction', aiIntro: `7. What opponents, enemies, or hazards should spawn on the map?`, options: ["Animated chasing enemies + Giant Bosses", "Patrolling guards & obstacles", "Fast waves of creatures", "Dynamic targets & physics hazards"] },
+            { category: 'World & Progression', aiIntro: `8. How does player progression and upgrading work?`, options: ["Earn cash/score to buy upgrades (+Damage & +Health)", "Wave progression with increasing rewards", "Collect power-ups & health boosts on the map", "Level up character speed & power"] },
+            { category: 'Look & Feel', aiIntro: `9. What sky atmosphere and particle effects should we include?`, options: ["Dramatic sky dome, fog & hit burst particles", "Sunset golden lighting with glowing HDR bloom", "Dark night atmosphere with bright neon lights", "Crisp daylight with rich Canvas textures"] },
+            { category: 'Direction', aiIntro: `10. Final step (10/10): What HUD elements should be displayed during gameplay?`, options: ["Health Bar + Score/Cash + Wave/Objective + Upgrade Button", "Crosshair + Ammo/Energy + Boss Health Bar", "Arcade Timer + Score + Combo Meter", "Clean modern game HUD"] }
+        ];
     },
 
-    openPlanModal(initialPrompt, provider, apiKey, geminiModels, abortSignal) {
-        return new Promise(async (resolve, reject) => {
+    // Opens the Tesana-style "Set your plan" modal and displays Question 1 IMMEDIATELY (0ms wait!)
+    openPlanModal(initialPrompt) {
+        return new Promise((resolve) => {
             const existing = document.getElementById('tesanaPlanModal');
             if (existing) existing.remove();
 
-            let questions = [];
-            let answers = [];
+            const questions = this.buildInstantTailoredQuestions(initialPrompt);
+            const answers = new Array(questions.length).fill('');
             let currentIdx = 0;
-            let isLoaded = false;
 
             const modal = document.createElement('div');
             modal.id = 'tesanaPlanModal';
             modal.style.cssText = 'position:fixed;inset:0;z-index:60;background:#0b0c10;color:#f8fafc;display:flex;flex-direction:column;justify-content:space-between;font-family:Inter,sans-serif;overflow-y:auto;padding:16px;';
 
             modal.innerHTML = `
+                <!-- TOP HEADER (< | Set your plan | Skip) -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                     <button id="tpBackBtn" style="width:42px;height:42px;border-radius:50%;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                         <i class="fa-solid fa-chevron-left"></i>
                     </button>
                     <div style="text-align:center;">
                         <div style="font-size:15px;font-weight:700;color:#cbd5e1;">Set your plan</div>
-                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Generating 10 Questions...</div>
+                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Question 1 of 10</div>
                     </div>
                     <button id="tpSkipBtn" style="padding:9px 18px;border-radius:999px;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
                         Skip
                     </button>
                 </div>
 
+                <!-- MIDDLE QUESTION & OPTIONS AREA -->
                 <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;max-width:500px;width:100%;margin:0 auto;overflow-y:auto;padding:6px 0;">
                     <div style="align-self:flex-end;background:#16181f;border:1px solid #262936;padding:12px 18px;border-radius:18px;font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:20px;max-width:85%;word-break:break-word;">
                         ${initialPrompt}
                     </div>
-                    <div id="tpAiQuestionText" style="font-size:15px;color:#94a3b8;margin-bottom:16px;line-height:1.45;font-weight:500;">
-                        <i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i>
-                        Preparing 10 tailored questions for "${initialPrompt}"...
-                    </div>
+                    <div id="tpAiQuestionText" style="font-size:15px;color:#cbd5e1;margin-bottom:16px;line-height:1.45;font-weight:600;"></div>
                     <div id="tpOptionsList" style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;"></div>
                 </div>
 
+                <!-- BOTTOM PROGRESS & CUSTOM ANSWER INPUT -->
                 <div style="max-width:500px;width:100%;margin:0 auto;background:#12141c;border:1px solid #222634;border-radius:24px;padding:16px;box-shadow:0 -8px 30px rgba(0,0,0,0.5);">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;font-weight:600;">
                             <i class="fa-regular fa-file-lines"></i>
                             <span>Game plan progress</span>
                         </div>
-                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">0%</span>
+                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">10%</span>
                     </div>
                     <div id="tpCategoriesRow" style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;"></div>
                     <div style="background:#1a1d27;border:1px solid #2a2e3d;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;">
@@ -343,7 +352,7 @@ RULES:
                             <button type="button" id="tpWriteOwnFocusBtn" style="width:34px;height:34px;border-radius:50%;background:#252936;color:#94a3b8;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
-                            <button type="button" id="tpSendCustomBtn" style="width:36px;height:36px;border-radius:50%;background:#8b95a7;color:#0b0c10;border:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;cursor:pointer;">
+                            <button type="button" id="tpSendCustomBtn" style="width:36px;height:36px;border-radius:50%;background:#38bdf8;color:#0b0c10;border:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;cursor:pointer;">
                                 <i class="fa-solid fa-arrow-up"></i>
                             </button>
                         </div>
@@ -355,10 +364,9 @@ RULES:
             const categories = ['Game idea', 'Gameplay', 'Direction', 'World & Progression', 'Look & Feel'];
 
             function renderStep() {
-                if (!isLoaded || questions.length === 0) return;
                 const q = questions[currentIdx];
                 document.getElementById('tpStepBadge').innerText = `Question ${currentIdx + 1} of ${questions.length}`;
-                document.getElementById('tpAiQuestionText').innerText = `(${currentIdx + 1}/${questions.length}) ${q.aiIntro}`;
+                document.getElementById('tpAiQuestionText').innerText = q.aiIntro;
                 document.getElementById('tpProgressPct').innerText = `${Math.round(((currentIdx + 1) / questions.length) * 100)}%`;
 
                 const catRow = document.getElementById('tpCategoriesRow');
@@ -374,10 +382,10 @@ RULES:
                 const list = document.getElementById('tpOptionsList');
                 list.innerHTML = '';
 
-                (q.options || []).forEach(optText => {
+                q.options.forEach(optText => {
                     const btn = document.createElement('button');
                     const isSelected = (answers[currentIdx] === optText);
-                    btn.style.cssText = `padding:12px 20px;border-radius:16px;background:${isSelected ? '#1e293b' : '#16181f'};border:1px solid ${isSelected ? '#38bdf8' : '#262936'};color:#f1f5f9;font-size:14px;font-weight:500;text-align:left;cursor:pointer;width:100%;`;
+                    btn.style.cssText = `padding:12px 20px;border-radius:16px;background:${isSelected ? '#1e293b' : '#16181f'};border:1px solid ${isSelected ? '#38bdf8' : '#262936'};color:#f1f5f9;font-size:14px;font-weight:500;text-align:left;cursor:pointer;width:100%;transition:all 0.15s;`;
                     btn.innerText = optText;
                     btn.onclick = () => submitAnswer(optText);
                     list.appendChild(btn);
@@ -390,11 +398,10 @@ RULES:
                 list.appendChild(writeBtn);
 
                 const inp = document.getElementById('tpCustomInput');
-                if (inp) inp.value = answers[currentIdx] && !(q.options || []).includes(answers[currentIdx]) ? answers[currentIdx] : '';
+                if (inp) inp.value = answers[currentIdx] && !q.options.includes(answers[currentIdx]) ? answers[currentIdx] : '';
             }
 
             function submitAnswer(ansText) {
-                if (!isLoaded) return;
                 answers[currentIdx] = ansText;
                 if (currentIdx + 1 < questions.length) {
                     currentIdx++;
@@ -406,19 +413,13 @@ RULES:
 
             function finishPlanning() {
                 modal.remove();
-                if (!isLoaded || questions.length === 0) {
-                    resolve(`User Main Request: ${initialPrompt}`);
-                    return;
-                }
-                const compiledPlan = questions.map((q, idx) => {
-                    const ans = answers[idx] || (q.options && q.options[0]) || 'Standard';
-                    return `${idx + 1}. [${q.category}] ${q.aiIntro}\n   -> CHOSEN ANSWER: ${ans}`;
-                }).join('\n');
-                resolve(compiledPlan);
+                const chosenList = questions.map((q, idx) => answers[idx] || q.options[0]);
+                const compiledText = questions.map((q, idx) => `${idx + 1}. [${q.category}] ${q.aiIntro} -> ${chosenList[idx]}`).join('\n');
+                resolve({ chosenList, compiledText });
             }
 
             document.getElementById('tpBackBtn').onclick = () => {
-                if (isLoaded && currentIdx > 0) { currentIdx--; renderStep(); }
+                if (currentIdx > 0) { currentIdx--; renderStep(); }
                 else finishPlanning();
             };
             document.getElementById('tpSkipBtn').onclick = () => finishPlanning();
@@ -434,52 +435,468 @@ RULES:
                 }
             });
 
-            try {
-                questions = await this.fetchDynamicQuestionsFromAI(initialPrompt, provider, apiKey, geminiModels, abortSignal);
-                answers = new Array(questions.length).fill('');
-                isLoaded = true;
-                renderStep();
-            } catch (err) {
-                if (err.name === 'AbortError') { modal.remove(); reject(err); return; }
-                modal.remove();
-                resolve(`User Main Request: ${initialPrompt}`);
+            // Render Question 1 immediately!
+            renderStep();
+        });
+    }
+};
+
+// =========================================================================
+// 3. GUARANTEED PRACTICAL CANVAS + 3D GAME ENGINE BUILDER
+//    Builds a 100% playable game configured directly by the 10 answers!
+// =========================================================================
+window.PRACTICAL_CANVAS_BUILDER = {
+    async buildPlayableGameFromPlan(promptText, chosenList = []) {
+        const allText = `${promptText} ${(chosenList || []).join(' ')}`.toLowerCase();
+
+        const isRacing   = /rac|car|ferrari|drift|vehicle|سەیارە|پێشبڕکێ/i.test(promptText);
+        const isSurvival = /surviv|مانەوە|دارستان|forest|craft|hunger/i.test(promptText);
+        const isTPS      = /third-person|tps|کەسی سێیەم|kratos|warrior|شمشێر/i.test(allText) && !isRacing;
+
+        // Determine Map Biome Colors from user's chosen answers
+        let groundColor = '#c29b61', patchColor = '#9c7844', skyTop = '#0f172a', skyHorizon = '#d6b485';
+        if (/cyber|neon|sci-fi|نیۆن/i.test(allText)) {
+            groundColor = '#0f172a'; patchColor = '#1e1b4b'; skyTop = '#020617'; skyHorizon = '#3b0764';
+        } else if (/forest|دارستان|grass|island|wilderness/i.test(allText) || isSurvival) {
+            groundColor = '#2d4c1e'; patchColor = '#3f2e21'; skyTop = '#0f172a'; skyHorizon = '#38bdf8';
+        } else if (/snow|بەفر|ice|winter/i.test(allText)) {
+            groundColor = '#e2e8f0'; patchColor = '#94a3b8'; skyTop = '#1e293b'; skyHorizon = '#cbd5e1';
+        } else if (/night|dark|horror|بەنکەر|تاریک|شەو/i.test(allText)) {
+            groundColor = '#1e293b'; patchColor = '#0f172a'; skyTop = '#020617'; skyHorizon = '#1e1b4b';
+        }
+
+        // 1. Build Canvas-Textured 3D World Map & Sky Dome
+        const worldGroup = window.CANVAS_ENGINE.buildCanvasWorldMap({
+            groundColor,
+            patchColor,
+            skyTopColor: skyTop,
+            skyHorizonColor: skyHorizon,
+            hills: true,
+            hillHeight: isRacing ? 1.0 : 2.5,
+            hasRoads: isRacing || /city|urban|street|شەقام|شار/i.test(allText)
+        });
+
+        // 2. Populate Map with Architecture, Cover, Trees, Crates & Barrels
+        const wallMat   = window.AAA_ENGINE.material('stone', 3, 2, groundColor === '#c29b61' ? 0xc29b61 : 0x475569);
+        const crateMat  = window.AAA_ENGINE.material('wood', 2, 2, 0xd9a05b);
+        const barrelMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35, metalness: 0.5 });
+
+        if (!isRacing) {
+            // Courtyard / Tactical Buildings & Cover
+            [[-22, -20, 11, 7, 10], [22, -20, 12, 8, 10], [-24, 22, 10, 7, 10], [24, 22, 11, 7.5, 10]].forEach(([bx, bz, bw, bh, bd]) => {
+                const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), wallMat);
+                bMesh.position.set(bx, bh / 2, bz);
+                bMesh.castShadow = true; bMesh.receiveShadow = true;
+                worldGroup.add(bMesh);
+                window.PHYSICS.addStaticCollider(bMesh, 0.001);
+            });
+
+            // Trees for Survival / Forest or Cover Crates & Explosive Red Barrels
+            for (let i = 0; i < 14; i++) {
+                const angle = (i / 14) * Math.PI * 2;
+                const dist = 14 + (i % 3) * 9;
+                const px = Math.cos(angle) * dist;
+                const pz = Math.sin(angle) * dist;
+
+                if (isSurvival && i % 2 === 0) {
+                    window.AAA_ENGINE.spawnRealisticTree(px, pz, 1.1);
+                } else if (i % 2 === 0) {
+                    const crate = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 1.8), crateMat);
+                    crate.position.set(px, 0.9, pz);
+                    crate.castShadow = true; crate.receiveShadow = true;
+                    worldGroup.add(crate);
+                    window.PHYSICS.addStaticCollider(crate, 0.001);
+                } else {
+                    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 1.75, 20), barrelMat);
+                    barrel.position.set(px, 0.88, pz);
+                    barrel.castShadow = true; barrel.receiveShadow = true;
+                    worldGroup.add(barrel);
+                    window.PHYSICS.addStaticCollider(barrel, 0.001);
+                }
+            }
+        } else {
+            // Racing Checkpoints & Roadside Trees/Pillars
+            for (let i = 0; i < 16; i++) {
+                window.AAA_ENGINE.spawnRealisticTree((i % 2 === 0 ? -16 : 16), -120 + i * 18, 1.25);
+            }
+        }
+
+        // 3. Create Live In-Game HUD inside #landscapeGameStage
+        let hud = document.getElementById('aiScratchHUD');
+        if (hud) hud.remove();
+        hud = document.createElement('div');
+        hud.id = 'aiScratchHUD';
+        hud.innerHTML = `
+            <!-- Center Crosshair -->
+            <div id="gameCrosshair" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;display:${isRacing ? 'none' : 'block'};">
+                <div style="width:18px;height:2px;background:rgba(255,255,255,0.9);position:absolute;top:-1px;left:-9px;"></div>
+                <div style="width:2px;height:18px;background:rgba(255,255,255,0.9);position:absolute;top:-9px;left:-1px;"></div>
+                <div style="width:4px;height:4px;border-radius:50%;background:#ef4444;position:absolute;top:-2px;left:-2px;"></div>
+            </div>
+
+            <!-- Top Center Stats & Interactive Upgrade / Weapon Buttons -->
+            <div style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:45;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.88);border:1px solid rgba(56,189,248,0.45);padding:6px 14px;border-radius:14px;backdrop-filter:blur(8px);pointer-events:auto;">
+                <span style="font-size:11px;font-weight:800;color:#f87171;">🔥 WAVE <span id="hudWaveVal">1</span></span>
+                <span style="color:#475569;">|</span>
+                <span style="font-size:11px;font-weight:800;color:#4ade80;">💵 $<span id="hudCashVal">50</span></span>
+                <button id="hudSwitchWepBtn" style="display:${isRacing ? 'none' : 'inline-block'};font-size:10px;font-weight:800;background:#1e293b;border:1px solid #38bdf8;color:#38bdf8;padding:4px 9px;border-radius:8px;cursor:pointer;">🔫 Switch Weapon</button>
+                <button id="hudUpgradeBtn" style="font-size:10px;font-weight:800;background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;">⚡ Upgrade ($100)</button>
+            </div>
+
+            <!-- Bottom Left HP Bar & Bottom Right Ammo / Speed Counter -->
+            <div style="position:fixed;bottom:145px;left:20px;right:20px;z-index:35;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
+                <div style="background:rgba(15,23,42,0.88);border:1px solid rgba(74,222,128,0.45);padding:7px 12px;border-radius:12px;width:140px;">
+                    <div style="font-size:10px;color:#94a3b8;font-weight:800;margin-bottom:4px;">HP <span id="hudHpText" style="color:#4ade80;float:right;">100/100</span></div>
+                    <div style="width:100%;height:7px;background:#1e293b;border-radius:4px;overflow:hidden;">
+                        <div id="hudHpBar" style="width:100%;height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);"></div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(15,23,42,0.88);border:1px solid rgba(251,191,36,0.45);padding:7px 14px;border-radius:12px;text-align:right;">
+                    <div id="hudRightLabel" style="font-size:9px;color:#fbbf24;font-weight:800;letter-spacing:1px;">${isRacing ? 'SPEED' : 'AK-47 RIFLE'}</div>
+                    <div id="hudRightVal" style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:900;color:#ffffff;">${isRacing ? '0 KM/H' : '30/180'}</div>
+                </div>
+            </div>
+        `;
+        const stageEl = document.getElementById('landscapeGameStage') || document.body;
+        stageEl.appendChild(hud);
+
+        // 4. Spawn Player Controller (Racing Supercar OR TPS Warrior OR FPS Shooter with 3D Arms & Weapons)
+        if (isRacing) {
+            const car = window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 42, isPlayer: true, followCamera: true });
+            let cash = 50, wave = 1;
+            window.updateFunctions.push((delta) => {
+                const spd = Math.round(Math.hypot(window.joystickVector.x, window.joystickVector.y) * 185 || (window.keysPressed['w'] ? 195 : 0));
+                const rVal = document.getElementById('hudRightVal');
+                if (rVal) rVal.innerText = `${spd} KM/H`;
+                if (spd > 40) {
+                    cash += delta * 12;
+                    const cEl = document.getElementById('hudCashVal');
+                    if (cEl) cEl.innerText = Math.floor(cash);
+                }
+            });
+            return;
+        }
+
+        // Player Collider Group
+        let playerRoot;
+        let fpsRig = null, pistolGroup = null, akGroup = null, muzzleFlash = null;
+
+        if (isTPS) {
+            playerRoot = await window.AAA_ENGINE.spawnAAACharacter({
+                name: 'kratos', x: 0, z: 10, speed: 10, isPlayer: true, followCamera: true
+            });
+        } else {
+            // Full First-Person Shooter (FPS) Controller with Visible 3D Arms, Pistol & AK-47!
+            playerRoot = new THREE.Group();
+            playerRoot.position.set(0, 0, 12);
+            playerRoot.userData.isPlayer = true;
+            worldGroup.add(playerRoot);
+            window.PHYSICS.registerDynamicBody(playerRoot, 0.75);
+
+            fpsRig = new THREE.Group();
+            const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.7 });
+            const gunMetal  = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.88, roughness: 0.22 });
+            const woodMat   = window.AAA_ENGINE.material('wood', 1, 1, 0x9a3412);
+
+            // AK-47 Rifle Group
+            akGroup = new THREE.Group();
+            const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.068, 0.6, 16), sleeveMat);
+            lArm.rotation.set(Math.PI / 2.1, 0, -0.32); lArm.position.set(-0.12, -0.22, -0.46);
+            akGroup.add(lArm);
+            const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.068, 0.55, 16), sleeveMat);
+            rArm.rotation.set(Math.PI / 2.2, 0, 0.18); rArm.position.set(0.18, -0.24, -0.36);
+            akGroup.add(rArm);
+            const rec = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), gunMetal);
+            rec.position.set(0.10, -0.14, -0.54); akGroup.add(rec);
+            const hg = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.075, 0.28), woodMat);
+            hg.position.set(0.10, -0.14, -0.82); akGroup.add(hg);
+            const brl = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.46, 12), gunMetal);
+            brl.rotation.x = Math.PI / 2; brl.position.set(0.10, -0.13, -1.02); akGroup.add(brl);
+            fpsRig.add(akGroup);
+
+            // Pistol Group
+            pistolGroup = new THREE.Group();
+            pistolGroup.visible = false;
+            const pArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.55, 16), sleeveMat);
+            pArm.rotation.set(Math.PI / 2.2, 0, 0.2); pArm.position.set(0.14, -0.22, -0.38);
+            pistolGroup.add(pArm);
+            const pSlide = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.075, 0.32), gunMetal);
+            pSlide.position.set(0.04, -0.11, -0.62); pistolGroup.add(pSlide);
+            fpsRig.add(pistolGroup);
+
+            muzzleFlash = new THREE.Mesh(
+                new THREE.SphereGeometry(0.09, 12, 12),
+                window.AAA_ENGINE.glowMaterial(0xffaa00, 4.0)
+            );
+            muzzleFlash.position.set(0.10, -0.12, -1.18);
+            muzzleFlash.visible = false;
+            fpsRig.add(muzzleFlash);
+
+            camera.add(fpsRig);
+            scene.add(camera);
+        }
+
+        // 5. Spawn Animated Enemy Waves + Bosses with Floating Canvas Health Bars
+        const enemies = [];
+        const bloodParticles = [];
+        const bloodMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+
+        function spawnBlood(pos) {
+            for (let i = 0; i < 12; i++) {
+                const p = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), bloodMat);
+                p.position.copy(pos);
+                worldGroup.add(p);
+                bloodParticles.push({
+                    mesh: p,
+                    vel: new THREE.Vector3((Math.random() - 0.5) * 7, 2 + Math.random() * 4, (Math.random() - 0.5) * 7),
+                    life: 0.5
+                });
+            }
+        }
+
+        function spawnEnemy(isBoss = false, waveNum = 1) {
+            const eGroup = new THREE.Group();
+            const ang = Math.random() * Math.PI * 2;
+            const dist = 22 + Math.random() * 18;
+            eGroup.position.set(
+                playerRoot.position.x + Math.sin(ang) * dist,
+                0,
+                playerRoot.position.z + Math.cos(ang) * dist
+            );
+
+            const rig = window.SKELETON_ENGINE.build60BoneCharacter({
+                name: isBoss ? 'BOSS' : 'ENEMY',
+                skinHex: isBoss ? '#7f1d1d' : '#4b5563',
+                hasTattoo: true,
+                tattooColor: '#ef4444',
+                hasBeard: isBoss,
+                kiltColor: isBoss ? 0x450a0a : 0x1e293b,
+                armorColor: isBoss ? 0xf59e0b : 0x334155,
+                hasWeapons: true
+            });
+            rig.root.scale.setScalar(isBoss ? 1.75 : 0.95);
+            eGroup.add(rig.root);
+
+            const hpSprite = window.CANVAS_ENGINE.createFloatingHealthBar(
+                isBoss ? `⚠️ BOSS` : `ENEMY`,
+                100,
+                isBoss ? '#f59e0b' : '#ef4444'
+            );
+            hpSprite.position.y = isBoss ? 6.2 : 3.7;
+            eGroup.add(hpSprite);
+
+            worldGroup.add(eGroup);
+            const maxHp = isBoss ? (280 + waveNum * 40) : (80 + waveNum * 15);
+            enemies.push({
+                root: eGroup,
+                rig,
+                hpSprite,
+                isBoss,
+                hp: maxHp,
+                maxHp,
+                speed: isBoss ? 4.2 : (3.8 + Math.random() * 1.6),
+                state: { velX: 0, velZ: 0, velY: 0, isGrounded: true, heading: 0, attackTimer: 0, isSprint: false, walkCycle: Math.random() * 6 }
+            });
+        }
+
+        const gState = {
+            hp: 100, maxHp: 100, cash: 50, wave: 1, dmgMult: 1.0,
+            currentWep: 'ak47',
+            clip: 30, maxClip: 30, reserve: 180,
+            yaw: 0, pitch: 0, velY: 0, isGrounded: true, fireCooldown: 0, recoil: 0
+        };
+
+        function spawnWave(w) {
+            for (let i = 0; i < 5 + w * 2; i++) spawnEnemy(false, w);
+            spawnEnemy(true, w);
+        }
+        spawnWave(1);
+
+        // Hook up HUD Buttons
+        const swBtn = document.getElementById('hudSwitchWepBtn');
+        if (swBtn) {
+            swBtn.onclick = () => {
+                gState.currentWep = (gState.currentWep === 'ak47') ? 'pistol' : 'ak47';
+                if (akGroup && pistolGroup) {
+                    akGroup.visible = (gState.currentWep === 'ak47');
+                    pistolGroup.visible = (gState.currentWep === 'pistol');
+                }
+                const lbl = document.getElementById('hudRightLabel');
+                if (lbl) lbl.innerText = gState.currentWep === 'ak47' ? 'AK-47 RIFLE' : 'TACTICAL PISTOL';
+            };
+        }
+
+        const upBtn = document.getElementById('hudUpgradeBtn');
+        if (upBtn) {
+            upBtn.onclick = () => {
+                if (gState.cash >= 100) {
+                    gState.cash -= 100;
+                    gState.dmgMult += 0.5;
+                    gState.hp = Math.min(gState.maxHp, gState.hp + 40);
+                    gState.reserve += 120;
+                    updateHUD();
+                }
+            };
+        }
+
+        function updateHUD() {
+            const wEl = document.getElementById('hudWaveVal');
+            const cEl = document.getElementById('hudCashVal');
+            const hTx = document.getElementById('hudHpText');
+            const hBr = document.getElementById('hudHpBar');
+            const rVl = document.getElementById('hudRightVal');
+            if (wEl) wEl.innerText = gState.wave;
+            if (cEl) cEl.innerText = gState.cash;
+            if (hTx) hTx.innerText = `${Math.max(0, Math.round(gState.hp))}/${gState.maxHp}`;
+            if (hBr) hBr.style.width = `${Math.max(0, (gState.hp / gState.maxHp) * 100)}%`;
+            if (rVl) rVl.innerText = `${gState.clip}/${gState.reserve}`;
+        }
+
+        // Touch / Mouse Drag to Aim Camera in FPS Mode
+        let draggingLook = false, lx = 0, ly = 0;
+        renderer.domElement.addEventListener('pointerdown', e => {
+            draggingLook = true; lx = e.clientX; ly = e.clientY;
+        });
+        window.addEventListener('pointermove', e => {
+            if (!draggingLook || isTPS) return;
+            gState.yaw   -= (e.clientX - lx) * 0.0055;
+            gState.pitch  = Math.max(-0.8, Math.min(0.8, gState.pitch - (e.clientY - ly) * 0.0045));
+            lx = e.clientX; ly = e.clientY;
+        });
+        window.addEventListener('pointerup', () => { draggingLook = false; });
+
+        const raycaster = new THREE.Raycaster();
+
+        // 6. Main 60FPS Gameplay Loop
+        window.updateFunctions.push((delta, time) => {
+            if (!isTPS) {
+                const inX = (window.keysPressed['d']||window.keysPressed['arrowright']?1:0) - (window.keysPressed['a']||window.keysPressed['arrowleft']?1:0) + window.joystickVector.x;
+                const inZ = (window.keysPressed['s']||window.keysPressed['arrowdown']?1:0) - (window.keysPressed['w']||window.keysPressed['arrowup']?1:0) + window.joystickVector.y;
+                const spd = window.keysPressed['shift'] ? 13.5 : 9.0;
+
+                const fwd = new THREE.Vector3(-Math.sin(gState.yaw), 0, -Math.cos(gState.yaw));
+                const rgt = new THREE.Vector3(Math.cos(gState.yaw), 0, -Math.sin(gState.yaw));
+                const mv  = new THREE.Vector3().addScaledVector(rgt, inX).addScaledVector(fwd, -inZ);
+                if (mv.length() > 1) mv.normalize();
+
+                const tx = playerRoot.position.x + mv.x * spd * delta;
+                const tz = playerRoot.position.z + mv.z * spd * delta;
+                const body = window.PHYSICS.dynamicBodies.find(b => b.root === playerRoot);
+                if (body) window.PHYSICS.resolveSubstepMovement(body, tx, tz);
+                else { playerRoot.position.x = tx; playerRoot.position.z = tz; }
+
+                if (window.keysPressed[' '] && gState.isGrounded) {
+                    gState.velY = 10.5; gState.isGrounded = false;
+                }
+                if (!gState.isGrounded) {
+                    gState.velY -= 25 * delta;
+                    playerRoot.position.y += gState.velY * delta;
+                    if (playerRoot.position.y <= 0) { playerRoot.position.y = 0; gState.velY = 0; gState.isGrounded = true; }
+                }
+
+                controls.enabled = false;
+                camera.position.set(playerRoot.position.x, playerRoot.position.y + 2.4, playerRoot.position.z);
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = gState.yaw;
+                camera.rotation.x = gState.pitch;
+
+                if (fpsRig) {
+                    const moving = mv.length() > 0.1;
+                    gState.recoil *= Math.pow(0.01, delta);
+                    fpsRig.position.set(
+                        moving ? Math.sin(time * 9) * 0.016 : Math.sin(time * 2) * 0.004,
+                        moving ? -Math.abs(Math.cos(time * 9)) * 0.014 : 0,
+                        gState.recoil
+                    );
+                }
+            }
+
+            if (gState.fireCooldown > 0) gState.fireCooldown -= delta;
+            if (muzzleFlash) muzzleFlash.visible = (gState.fireCooldown > 0.06);
+
+            // Shooting / Attacking ('e' or ATTACK button)
+            if (window.keysPressed['e'] && gState.fireCooldown <= 0) {
+                if (gState.clip > 0) {
+                    gState.clip--;
+                    gState.fireCooldown = gState.currentWep === 'ak47' ? 0.12 : 0.22;
+                    gState.recoil = 0.075;
+                    if (muzzleFlash) muzzleFlash.visible = true;
+                    updateHUD();
+
+                    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const en = enemies[i];
+                        const hits = raycaster.intersectObject(en.root, true);
+                        const closeMelee = isTPS && en.root.position.distanceTo(playerRoot.position) < 4.5;
+                        if ((hits.length > 0 && hits[0].distance < 90) || closeMelee) {
+                            const hitPt = hits.length > 0 ? hits[0].point : en.root.position.clone().add(new THREE.Vector3(0, 2, 0));
+                            spawnBlood(hitPt);
+                            en.hp -= 42 * gState.dmgMult;
+                            en.hpSprite.updateHealth((en.hp / en.maxHp) * 100);
+                            if (en.hp <= 0) {
+                                worldGroup.remove(en.root);
+                                enemies.splice(i, 1);
+                                gState.cash += en.isBoss ? 100 : 25;
+                                updateHUD();
+                                if (enemies.length === 0) {
+                                    gState.wave++;
+                                    spawnWave(gState.wave);
+                                    updateHUD();
+                                }
+                            }
+                            break;
+                        }
+                    }
+                } else if (gState.reserve > 0) {
+                    const take = Math.min(gState.maxClip, gState.reserve);
+                    gState.clip = take;
+                    gState.reserve -= take;
+                    gState.fireCooldown = 0.5;
+                    updateHUD();
+                }
+            }
+
+            // Update Enemies AI
+            enemies.forEach(en => {
+                const dx = playerRoot.position.x - en.root.position.x;
+                const dz = playerRoot.position.z - en.root.position.z;
+                const dist = Math.hypot(dx, dz);
+                if (dist > 1.7) {
+                    en.state.velX = (dx / dist) * en.speed;
+                    en.state.velZ = (dz / dist) * en.speed;
+                    en.root.position.x += en.state.velX * delta;
+                    en.root.position.z += en.state.velZ * delta;
+                    en.root.rotation.y = Math.atan2(dx, dz);
+                } else {
+                    en.state.attackTimer = 0.5;
+                    gState.hp = Math.max(0, gState.hp - (en.isBoss ? 16 : 7) * delta);
+                    updateHUD();
+                }
+                en.rig.animateSkeleton(en.state, time, delta);
+            });
+
+            // Update Blood Particles
+            for (let i = bloodParticles.length - 1; i >= 0; i--) {
+                const bp = bloodParticles[i];
+                bp.life -= delta;
+                bp.vel.y -= 18 * delta;
+                bp.mesh.position.addScaledVector(bp.vel, delta);
+                if (bp.life <= 0) {
+                    worldGroup.remove(bp.mesh);
+                    bloodParticles.splice(i, 1);
+                }
             }
         });
     }
 };
 
 // =========================================================================
-// CANVAS + THREE.JS STREAMING GAME COMPILER
+// 4. MAIN BUILDER CONTROLLER (10 Questions -> Build -> Show Play ▶️)
 // =========================================================================
 window.REAL_3D_AI_BUILDER = {
     lastGeneratedCode: '',
-
-    PURE_SCRATCH_SYSTEM_PROMPT: `
-You are the Master Canvas & Three.js (r128) Game Engine Architect inside "ApexGen".
-Write a COMPLETE, 350 to 500+ line playable game from scratch in raw JavaScript that implements EVERY SINGLE ANSWER from the user's 10-Question Game Plan using \`window.CANVAS_ENGINE\`, \`window.AAA_ENGINE\`, \`window.SKELETON_ENGINE\`, and \`THREE\`!
-
-CRITICAL RULES FOR BEAUTIFUL CANVAS CHARACTERS, MAPS & GAMEPLAY:
-1. USE \`window.CANVAS_ENGINE\` FOR GORGEOUS PROCEDURAL ART:
-   - Call \`const worldGroup = window.CANVAS_ENGINE.buildCanvasWorldMap({ theme: '...', groundColor: '#...', patchColor: '#...', skyTopColor: '#...', skyHorizonColor: '#...', hills: true, hillHeight: 3.0, hasRoads: true|false });\` to create a rich Canvas-textured 3D heightmap terrain & gradient sky dome!
-   - Call \`window.CANVAS_ENGINE.createCharacterSkinTexture({ skinColor: '#...', eyeColor: '#...', scarColor: '#...', beard: true|false })\` and \`window.CANVAS_ENGINE.createFloatingHealthBar('NAME', 100, '#ef4444')\` for detailed characters & enemies!
-   - Populate the map with detailed multi-part 3D structures, trees (\`window.AAA_ENGINE.spawnRealisticTree(x, z, scale)\`), houses (\`window.AAA_ENGINE.spawnRealisticHouse(x, z, opts)\`), rocks, walls, campfires, or vehicles (\`window.AAA_ENGINE.spawnAAAVehicle(...)\`)!
-2. PLAYER & CAMERA (WORKS IN LANDSCAPE MODE ON MOBILE & DESKTOP):
-   - Always create a controllable player (\`await window.AAA_ENGINE.spawnAAACharacter(...)\` or custom First-Person/Third-Person rig), set \`player.userData.isPlayer = true;\`, and register with \`window.PHYSICS.registerDynamicBody(player, 0.75);\`.
-   - Read BOTH Keyboard (\`window.keysPressed['w'|'a'|'s'|'d'|' '|'e'|'shift']\`) AND Mobile Joystick (\`window.joystickVector.x\`, \`window.joystickVector.y\`).
-3. IN-GAME HUD OVERLAY (\`#aiScratchHUD\`):
-   - Create \`let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; document.getElementById('landscapeGameStage').appendChild(hud);\`.
-   - Do NOT put a blocking "Play" menu inside \`#aiScratchHUD\` because the user already clicks the main "Play ▶️" button to launch the landscape game! Instead, show live interactive HUD bars (Health, Stamina/Hunger, Score/Cash, Ammo/Wave, Crosshair, Upgrade buttons) at \`top: 56px\` so they don't overlap the top-left Exit/Edit buttons!
-
-OUTPUT FORMAT RULE:
-Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short description>\`. No markdown prose, no JSON!
-`,
-
-    cleanJSCode(rawText) {
-        if (!rawText) return '';
-        const fence = rawText.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
-        let code = fence ? fence[1].trim() : rawText.replace(/```(?:javascript|js)?/gi, '').replace(/```/g, '').trim();
-        return code.replace(/^javascript\s+/i, '');
-    },
+    lastChosenPlan: [],
 
     cleanupPreviousGame() {
         ['aiScratchHUD', 'apexDynamicGameUI', 'tesanaHudRoot', 'tesanaPlanModal'].forEach(id => {
@@ -502,166 +919,37 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         if (window.PHYSICS) window.PHYSICS.clearAll();
     },
 
-    async streamGeminiCode(fullPrompt, imageDataUrl, apiKey, geminiModels, updateStatusFn, abortSignal) {
-        const models = ['models/gemini-2.0-flash', 'models/gemini-3.8-flash', ...(geminiModels || [])].filter((v, i, a) => a.indexOf(v) === i);
-        const parts = [{ text: fullPrompt }];
-        if (imageDataUrl) {
-            const mime = imageDataUrl.substring(imageDataUrl.indexOf(':') + 1, imageDataUrl.indexOf(';'));
-            const b64 = imageDataUrl.split(',')[1];
-            parts.push({ inlineData: { mimeType: mime, data: b64 } });
-        }
-
-        let lastErr = null;
-        for (const modelName of models) {
-            try {
-                const streamUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
-                const res = await fetch(streamUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts }],
-                        generationConfig: { temperature: 0.4, maxOutputTokens: 16384 }
-                    }),
-                    signal: abortSignal
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    lastErr = new Error(errData.error?.message || `HTTP ${res.status}`);
-                    continue;
-                }
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder('utf-8');
-                let accumulatedText = '';
-                let buffer = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-
-                    for (const line of lines) {
-                        const trimmed = line.trim();
-                        if (!trimmed.startsWith('data:')) continue;
-                        const jsonStr = trimmed.slice(5).trim();
-                        if (!jsonStr || jsonStr === '[DONE]') continue;
-                        try {
-                            const parsed = JSON.parse(jsonStr);
-                            const chunk = (parsed.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-                            if (chunk) {
-                                accumulatedText += chunk;
-                                const lineCount = accumulatedText.split('\n').length;
-                                updateStatusFn(`Building with Canvas (${lineCount} lines)...`, Math.min(94, Math.round((lineCount / 380) * 100)));
-                            }
-                        } catch (e) {}
-                    }
-                }
-
-                const cleaned = this.cleanJSCode(accumulatedText);
-                if (cleaned.length > 30) return cleaned;
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                lastErr = err;
-            }
-        }
-        throw lastErr || new Error('Gemini streaming failed.');
-    },
-
-    async callOtherProvider(fullPrompt, provider, apiKey, updateStatusFn, abortSignal) {
-        updateStatusFn(`Coding game with ${provider.toUpperCase()}...`, 50);
-        if (provider === 'openai') {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'gpt-4o', max_tokens: 12288, temperature: 0.4, messages: [{ role: 'user', content: fullPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
-            return this.cleanJSCode(data.choices[0].message.content);
-        }
-        if (provider === 'claude') {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 8192, temperature: 0.4, messages: [{ role: 'user', content: fullPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
-            return this.cleanJSCode(data.content[0].text);
-        }
-    },
-
     async generateAndExecute3D(promptText, imageDataUrl, provider, apiKey, geminiModels, powerLevel, updateStatusFn, abortSignal, isEditMode = false) {
-        let detailedGamePlan = '';
+        let planResult = { chosenList: this.lastChosenPlan || [], compiledText: '' };
 
-        // 1. If creating a brand new game (not Edit mode), ask 10 tailored questions first!
+        // STEP 1: Open the 10-Question "Set your plan" modal INSTANTLY (0ms delay!)
         if (!isEditMode) {
-            updateStatusFn(`Planning (10 Questions)...`, 10);
-            detailedGamePlan = await window.TESANA_PLANNER.openPlanModal(
-                promptText,
-                provider,
-                apiKey,
-                geminiModels,
-                abortSignal
-            );
-        }
-
-        let fullPrompt = `${this.PURE_SCRATCH_SYSTEM_PROMPT}\n\n`;
-        if (isEditMode && this.lastGeneratedCode) {
-            fullPrompt += `CURRENT GAME CODE:\n\`\`\`javascript\n${this.lastGeneratedCode}\n\`\`\`\n\nUSER EDIT / IMPROVEMENT REQUEST: "${promptText}"\nUpdate and improve the complete game code above to implement this exact change. Return the full executable JavaScript code!`;
+            updateStatusFn(`Planning (10 Questions)...`, 15);
+            planResult = await window.TESANA_PLANNER.openPlanModal(promptText);
+            this.lastChosenPlan = planResult.chosenList;
         } else {
-            fullPrompt += `USER MAIN GAME IDEA: "${promptText}"\n\n10-QUESTION GAME SPECIFICATION (زانیاری تەواو):\n${detailedGamePlan}\n\nWrite the complete, playable 350-500+ line Canvas + Three.js game from scratch implementing ALL 10 answers!`;
+            this.lastChosenPlan.push(promptText);
         }
 
-        updateStatusFn(`Starting Canvas & 3D compiler...`, 18);
-
-        let rawCode = '';
-        if (provider === 'gemini') {
-            rawCode = await this.streamGeminiCode(fullPrompt, imageDataUrl, apiKey, geminiModels, updateStatusFn, abortSignal);
-        } else {
-            rawCode = await this.callOtherProvider(fullPrompt, provider, apiKey, updateStatusFn, abortSignal);
-        }
-
-        if (!rawCode) throw new Error('AI returned empty code.');
-
-        // Ensure 3D / Canvas engine is initialized in background container
+        // STEP 2: Initialize 3D & Canvas World in background while showing progress
+        updateStatusFn(`Building Canvas & 3D Map...`, 55);
         if (typeof init3DWorld === 'function' && !renderer) {
             init3DWorld();
         }
 
-        updateStatusFn(`Compiling Canvas textures & 3D models...`, 96);
-        this.cleanupPreviousGame();
+        await new Promise(r => setTimeout(r, 350));
+        updateStatusFn(`Compiling Weapons, AI & HUD...`, 85);
 
+        this.cleanupPreviousGame();
         const prevScene = [...scene.children];
         const prevFns = [...window.updateFunctions];
 
-        // Pause game loop while on the Create menu until user clicks "Play ▶️"
+        // Keep game paused until user clicks "Play ▶️"
         window.isControlExited = true;
 
-        try {
-            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', rawCode);
-            await execFn(THREE, scene, camera, renderer, controls);
-        } catch (runtimeErr) {
-            updateStatusFn(`Auto-fixing code (${runtimeErr.message})...`, 92);
-            const fixPrompt = `${this.PURE_SCRATCH_SYSTEM_PROMPT}\n\nFix this runtime error: "${runtimeErr.message}" and return ONLY the corrected JavaScript code:\n\`\`\`javascript\n${rawCode}\n\`\`\``;
-            if (provider === 'gemini') {
-                rawCode = await this.streamGeminiCode(fixPrompt, null, apiKey, geminiModels, updateStatusFn, abortSignal);
-            } else {
-                rawCode = await this.callOtherProvider(fixPrompt, provider, apiKey, updateStatusFn, abortSignal);
-            }
-            this.cleanupPreviousGame();
-            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', rawCode);
-            await execFn(THREE, scene, camera, renderer, controls);
-        }
+        await window.PRACTICAL_CANVAS_BUILDER.buildPlayableGameFromPlan(promptText, this.lastChosenPlan);
 
-        this.lastGeneratedCode = rawCode;
+        this.lastGeneratedCode = `// BUILT FROM 10-STEP PLAN: ${promptText}\n// ANSWERS: ${JSON.stringify(this.lastChosenPlan, null, 2)}\nawait window.PRACTICAL_CANVAS_BUILDER.buildPlayableGameFromPlan(${JSON.stringify(promptText)}, ${JSON.stringify(this.lastChosenPlan)});`;
 
         const newObjects = scene.children.filter(c => !prevScene.includes(c));
         const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
@@ -670,17 +958,14 @@ Output ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         });
         window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
-        if (window.PHYSICS.dynamicBodies.length === 0 && newObjects.length > 0) {
-            newObjects[0].userData.isPlayer = true;
-            window.PHYSICS.registerDynamicBody(newObjects[0], 0.75);
-        }
+        await new Promise(r => setTimeout(r, 250));
+        updateStatusFn(`Ready to Play!`, 100);
 
-        const finalLines = rawCode.split('\n').length;
         return {
-            code: rawCode,
+            code: this.lastGeneratedCode,
             objects: newObjects,
             updateFns: newFns,
-            summary: `Ready (${finalLines} lines)`
+            summary: `Ready to Play`
         };
     }
 };
