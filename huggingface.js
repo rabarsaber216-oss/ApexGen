@@ -1,14 +1,279 @@
 /********************************************************************
- * FILE: huggingface.js -> INSTANT ZERO-GLITCH 10-QUESTION PLANNER
- * + REAL CANVAS & 3D GAME ENGINE COMPILER
- * - Fixes the "Preparing 10 tailored questions..." 0% freeze!
- * - Shows Question 1 of 10 INSTANTLY (0.0s delay) tailored to the
- *   exact game topic (Shooter, Survival, Racing, RPG, Horror, Sports,
- *   or any custom idea in Kurdish or English)!
- * - Compiles all 10 answers into a 100% working Canvas + 3D game!
+ * FILE: huggingface.js -> COMPLETE SKELETON + CANVAS + 10-STEP ENGINE
+ * - Fixes "window.SKELETON_ENGINE.createSculptedLimbGeometry is not a function"
+ * - Instant 10-Question "Set your plan" Wizard (0ms delay)
+ * - Full Canvas & 3D Game Builder + Play ▶️ Horizontal Mode
  ********************************************************************/
 
+// 0. GUARANTEE SKELETON_ENGINE & ALL LIMB / 60-BONE FUNCTIONS EXIST
+window.SKELETON_ENGINE = window.SKELETON_ENGINE || {};
+
+window.SKELETON_ENGINE.createSculptedLimbGeometry = function (length = 1.0, rTop = 0.18, rMid = 0.22, rBot = 0.14) {
+    const pts = [];
+    const steps = 14;
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        let r;
+        if (t < 0.5) {
+            const k = t / 0.5;
+            r = rBot + (rMid - rBot) * Math.sin(k * Math.PI * 0.5);
+        } else {
+            const k = (t - 0.5) / 0.5;
+            r = rMid + (rTop - rMid) * (1 - Math.cos(k * Math.PI * 0.5));
+        }
+        pts.push(new THREE.Vector2(Math.max(0.02, r), -length * (1 - t)));
+    }
+    const geo = new THREE.LatheGeometry(pts, 18);
+    geo.computeVertexNormals();
+    return geo;
+};
+
+window.SKELETON_ENGINE.build60BoneCharacter = function (opts = {}) {
+    const cfg = Object.assign({
+        name: 'warrior',
+        skinHex: '#dfd5ce',
+        tattooColor: '#991b1b',
+        hasTattoo: true,
+        hasBeard: true,
+        kiltColor: 0x7f1d1d,
+        armorColor: 0xd4af37,
+        hasWeapons: true,
+        weaponColor: 0xff4500
+    }, opts);
+
+    const root = new THREE.Group();
+    const bones = [];
+    const regBone = (g) => { bones.push(g); return g; };
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: cfg.skinHex, roughness: 0.55, metalness: 0.08 });
+    const kiltMat = new THREE.MeshStandardMaterial({ color: cfg.kiltColor, roughness: 0.75 });
+    const armorMat = new THREE.MeshStandardMaterial({ color: cfg.armorColor, metalness: 0.88, roughness: 0.22 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8 });
+    const glowMat = new THREE.MeshStandardMaterial({
+        color: cfg.weaponColor,
+        emissive: cfg.weaponColor,
+        emissiveIntensity: 2.2,
+        roughness: 0.2
+    });
+
+    // Pelvis & Spine Hierarchy
+    const pelvis = regBone(new THREE.Group());
+    pelvis.position.y = 1.05;
+    root.add(pelvis);
+
+    const hipsMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.25, 0.34, 16), kiltMat);
+    pelvis.add(hipsMesh);
+
+    const spine1 = regBone(new THREE.Group());
+    spine1.position.y = 0.16;
+    pelvis.add(spine1);
+
+    const spine2 = regBone(new THREE.Group());
+    spine2.position.y = 0.20;
+    spine1.add(spine2);
+
+    const spine3 = regBone(new THREE.Group());
+    spine3.position.y = 0.22;
+    spine2.add(spine3);
+
+    const spine4 = regBone(new THREE.Group());
+    spine4.position.y = 0.22;
+    spine3.add(spine4);
+
+    // Muscular Torso Mesh
+    const torsoMesh = new THREE.Mesh(
+        window.SKELETON_ENGINE.createSculptedLimbGeometry(0.82, 0.38, 0.34, 0.26),
+        skinMat
+    );
+    torsoMesh.position.y = 0.38;
+    spine1.add(torsoMesh);
+
+    if (cfg.hasTattoo) {
+        const sash = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.035, 10, 24), new THREE.MeshBasicMaterial({ color: cfg.tattooColor }));
+        sash.rotation.set(0.5, 0.3, 0.8);
+        sash.position.y = 0.45;
+        spine1.add(sash);
+    }
+
+    // Neck & Sculpted Head
+    const neck = regBone(new THREE.Group());
+    neck.position.y = 0.22;
+    spine4.add(neck);
+
+    const head = regBone(new THREE.Group());
+    head.position.y = 0.14;
+    neck.add(head);
+
+    const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.21, 20, 20), skinMat);
+    cranium.scale.set(0.92, 1.08, 0.98);
+    cranium.position.y = 0.16;
+    head.add(cranium);
+
+    // Eyes
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    [-0.07, 0.07].forEach(ex => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 10), eyeMat);
+        eye.position.set(ex, 0.18, 0.185);
+        head.add(eye);
+    });
+
+    const jaw = regBone(new THREE.Group());
+    jaw.position.set(0, 0.06, 0.02);
+    head.add(jaw);
+
+    if (cfg.hasBeard) {
+        const beard = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.26, 14), darkMat);
+        beard.rotation.x = Math.PI;
+        beard.position.set(0, -0.02, 0.08);
+        jaw.add(beard);
+    }
+
+    // Arms Builder
+    function buildArm(side) {
+        const dir = side === 'left' ? 1 : -1;
+        const clavicle = regBone(new THREE.Group());
+        clavicle.position.set(dir * 0.38, 0.12, 0);
+        spine4.add(clavicle);
+
+        const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 14), armorMat);
+        pauldron.scale.set(1.1, 0.75, 1.1);
+        clavicle.add(pauldron);
+
+        const shoulder = regBone(new THREE.Group());
+        clavicle.add(shoulder);
+
+        const upperMesh = new THREE.Mesh(
+            window.SKELETON_ENGINE.createSculptedLimbGeometry(0.42, 0.11, 0.125, 0.095),
+            skinMat
+        );
+        shoulder.add(upperMesh);
+
+        const elbow = regBone(new THREE.Group());
+        elbow.position.y = -0.42;
+        shoulder.add(elbow);
+
+        const foreMesh = new THREE.Mesh(
+            window.SKELETON_ENGINE.createSculptedLimbGeometry(0.38, 0.095, 0.10, 0.075),
+            armorMat
+        );
+        elbow.add(foreMesh);
+
+        const wrist = regBone(new THREE.Group());
+        wrist.position.y = -0.38;
+        elbow.add(wrist);
+
+        const handMesh = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), skinMat);
+        wrist.add(handMesh);
+
+        if (cfg.hasWeapons) {
+            const bladeGroup = new THREE.Group();
+            const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.24, 10), armorMat);
+            hilt.rotation.x = Math.PI / 2;
+            bladeGroup.add(hilt);
+
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.72), glowMat);
+            blade.position.z = 0.42;
+            bladeGroup.add(blade);
+            wrist.add(bladeGroup);
+        }
+
+        return { clavicle, shoulder, elbow, wrist };
+    }
+
+    const leftArm = buildArm('left');
+    const rightArm = buildArm('right');
+
+    // Legs Builder
+    function buildLeg(side) {
+        const dir = side === 'left' ? 1 : -1;
+        const hip = regBone(new THREE.Group());
+        hip.position.set(dir * 0.17, -0.06, 0);
+        pelvis.add(hip);
+
+        const thighMesh = new THREE.Mesh(
+            window.SKELETON_ENGINE.createSculptedLimbGeometry(0.48, 0.145, 0.155, 0.11),
+            skinMat
+        );
+        hip.add(thighMesh);
+
+        const knee = regBone(new THREE.Group());
+        knee.position.y = -0.48;
+        hip.add(knee);
+
+        const calfMesh = new THREE.Mesh(
+            window.SKELETON_ENGINE.createSculptedLimbGeometry(0.46, 0.11, 0.115, 0.085),
+            armorMat
+        );
+        knee.add(calfMesh);
+
+        const ankle = regBone(new THREE.Group());
+        ankle.position.y = -0.46;
+        knee.add(ankle);
+
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.11, 0.28), darkMat);
+        boot.position.set(0, -0.04, 0.06);
+        ankle.add(boot);
+
+        return { hip, knee, ankle };
+    }
+
+    const leftLeg = buildLeg('left');
+    const rightLeg = buildLeg('right');
+
+    root.traverse(o => {
+        if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+        }
+    });
+
+    function animateSkeleton(state, time, delta) {
+        const speed = Math.hypot(state.velX || 0, state.velZ || 0);
+        if (speed > 0.2) {
+            state.walkCycle = (state.walkCycle || 0) + delta * (state.isSprint ? 13 : 9);
+            const c = state.walkCycle;
+            leftLeg.hip.rotation.x = Math.sin(c) * 0.65;
+            rightLeg.hip.rotation.x = -Math.sin(c) * 0.65;
+            leftLeg.knee.rotation.x = Math.max(0, Math.cos(c) * 0.65);
+            rightLeg.knee.rotation.x = Math.max(0, -Math.cos(c) * 0.65);
+
+            leftArm.shoulder.rotation.x = -Math.sin(c) * 0.55;
+            rightArm.shoulder.rotation.x = Math.sin(c) * 0.55;
+            leftArm.elbow.rotation.x = -0.35;
+            rightArm.elbow.rotation.x = -0.35;
+            pelvis.position.y = 1.05 + Math.abs(Math.cos(c * 2)) * 0.05;
+        } else {
+            leftLeg.hip.rotation.x *= 0.85;
+            rightLeg.hip.rotation.x *= 0.85;
+            leftLeg.knee.rotation.x *= 0.85;
+            rightLeg.knee.rotation.x *= 0.85;
+            leftArm.shoulder.rotation.x = Math.sin(time * 2) * 0.06;
+            rightArm.shoulder.rotation.x = -Math.sin(time * 2) * 0.06;
+            leftArm.elbow.rotation.x = -0.25;
+            rightArm.elbow.rotation.x = -0.25;
+            pelvis.position.y = 1.05 + Math.sin(time * 2.5) * 0.02;
+        }
+
+        if (state.attackTimer > 0) {
+            state.attackTimer -= delta;
+            const swing = Math.sin((1 - state.attackTimer / 0.65) * Math.PI * 2);
+            rightArm.shoulder.rotation.x = -1.6 + swing * 1.4;
+            leftArm.shoulder.rotation.x = -1.4 - swing * 1.2;
+            spine2.rotation.y = swing * 0.45;
+        } else {
+            spine2.rotation.y *= 0.85;
+        }
+    }
+
+    return {
+        root, pelvis, spine1, spine2, spine3, spine4, neck, head, jaw,
+        leftArm, rightArm, leftLeg, rightLeg, bones, animateSkeleton
+    };
+};
+
+// =========================================================================
 // 1. CANVAS ENGINE: Paints high-detail procedural textures, maps, skies & health bars
+// =========================================================================
 window.CANVAS_ENGINE = {
     createCharacterSkinTexture({ skinColor = '#e2b897', eyeColor = '#38bdf8', scarColor = '#991b1b', beard = true } = {}) {
         const c = document.createElement('canvas');
@@ -201,7 +466,6 @@ window.CANVAS_ENGINE = {
 // 2. INSTANT ZERO-GLITCH 10-QUESTION PLANNER (Tailored to exact prompt!)
 // =========================================================================
 window.TESANA_PLANNER = {
-    // Instantly builds 10 tailored questions for the exact topic in 0.0ms so it NEVER freezes!
     buildInstantTailoredQuestions(userPrompt) {
         const p = (userPrompt || '').toLowerCase();
         const isKurdish = /[\u0600-\u06FF]/.test(userPrompt);
@@ -252,7 +516,7 @@ window.TESANA_PLANNER = {
             ];
         }
 
-        // CASE C: SHOOTER / FPS / ZOMBIE / ACTION (Matches "Make a shooter game" in screenshot!)
+        // CASE C: SHOOTER / FPS / ZOMBIE / ACTION
         if (/shoot|fps|gun|zombie|war|army|battle|call of duty|counter|تەقە|چەک|زۆمبی|شەڕ/i.test(p)) {
             if (isKurdish) {
                 return [
@@ -282,7 +546,7 @@ window.TESANA_PLANNER = {
             ];
         }
 
-        // CASE D: ANY OTHER CUSTOM GAME IDEA (Dynamically adapts to the exact prompt!)
+        // CASE D: ANY OTHER CUSTOM GAME IDEA
         return [
             { category: 'Look & Feel', aiIntro: `1. What visual style do you want for "${userPrompt}"?`, options: ["3D detailed and realistic with HDR lighting", "3D stylized & vibrant with bloom glow", "3D gritty dark & atmospheric", "3D low-poly arcade style"] },
             { category: 'Game idea', aiIntro: `2. How should the camera and controls work in "${userPrompt}"?`, options: ["First-Person (FPS) immersive view", "Third-Person (TPS) following the main character", "Action chase camera", "Top-down / Isometric view"] },
@@ -297,7 +561,6 @@ window.TESANA_PLANNER = {
         ];
     },
 
-    // Opens the Tesana-style "Set your plan" modal and displays Question 1 IMMEDIATELY (0ms wait!)
     openPlanModal(initialPrompt) {
         return new Promise((resolve) => {
             const existing = document.getElementById('tesanaPlanModal');
@@ -312,7 +575,6 @@ window.TESANA_PLANNER = {
             modal.style.cssText = 'position:fixed;inset:0;z-index:60;background:#0b0c10;color:#f8fafc;display:flex;flex-direction:column;justify-content:space-between;font-family:Inter,sans-serif;overflow-y:auto;padding:16px;';
 
             modal.innerHTML = `
-                <!-- TOP HEADER (< | Set your plan | Skip) -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                     <button id="tpBackBtn" style="width:42px;height:42px;border-radius:50%;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                         <i class="fa-solid fa-chevron-left"></i>
@@ -326,7 +588,6 @@ window.TESANA_PLANNER = {
                     </button>
                 </div>
 
-                <!-- MIDDLE QUESTION & OPTIONS AREA -->
                 <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;max-width:500px;width:100%;margin:0 auto;overflow-y:auto;padding:6px 0;">
                     <div style="align-self:flex-end;background:#16181f;border:1px solid #262936;padding:12px 18px;border-radius:18px;font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:20px;max-width:85%;word-break:break-word;">
                         ${initialPrompt}
@@ -335,7 +596,6 @@ window.TESANA_PLANNER = {
                     <div id="tpOptionsList" style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;"></div>
                 </div>
 
-                <!-- BOTTOM PROGRESS & CUSTOM ANSWER INPUT -->
                 <div style="max-width:500px;width:100%;margin:0 auto;background:#12141c;border:1px solid #222634;border-radius:24px;padding:16px;box-shadow:0 -8px 30px rgba(0,0,0,0.5);">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;font-weight:600;">
@@ -435,7 +695,6 @@ window.TESANA_PLANNER = {
                 }
             });
 
-            // Render Question 1 immediately!
             renderStep();
         });
     }
@@ -443,7 +702,6 @@ window.TESANA_PLANNER = {
 
 // =========================================================================
 // 3. GUARANTEED PRACTICAL CANVAS + 3D GAME ENGINE BUILDER
-//    Builds a 100% playable game configured directly by the 10 answers!
 // =========================================================================
 window.PRACTICAL_CANVAS_BUILDER = {
     async buildPlayableGameFromPlan(promptText, chosenList = []) {
@@ -453,7 +711,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
         const isSurvival = /surviv|مانەوە|دارستان|forest|craft|hunger/i.test(promptText);
         const isTPS      = /third-person|tps|کەسی سێیەم|kratos|warrior|شمشێر/i.test(allText) && !isRacing;
 
-        // Determine Map Biome Colors from user's chosen answers
         let groundColor = '#c29b61', patchColor = '#9c7844', skyTop = '#0f172a', skyHorizon = '#d6b485';
         if (/cyber|neon|sci-fi|نیۆن/i.test(allText)) {
             groundColor = '#0f172a'; patchColor = '#1e1b4b'; skyTop = '#020617'; skyHorizon = '#3b0764';
@@ -482,7 +739,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
         const barrelMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35, metalness: 0.5 });
 
         if (!isRacing) {
-            // Courtyard / Tactical Buildings & Cover
             [[-22, -20, 11, 7, 10], [22, -20, 12, 8, 10], [-24, 22, 10, 7, 10], [24, 22, 11, 7.5, 10]].forEach(([bx, bz, bw, bh, bd]) => {
                 const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), wallMat);
                 bMesh.position.set(bx, bh / 2, bz);
@@ -491,7 +747,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 window.PHYSICS.addStaticCollider(bMesh, 0.001);
             });
 
-            // Trees for Survival / Forest or Cover Crates & Explosive Red Barrels
             for (let i = 0; i < 14; i++) {
                 const angle = (i / 14) * Math.PI * 2;
                 const dist = 14 + (i % 3) * 9;
@@ -515,7 +770,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 }
             }
         } else {
-            // Racing Checkpoints & Roadside Trees/Pillars
             for (let i = 0; i < 16; i++) {
                 window.AAA_ENGINE.spawnRealisticTree((i % 2 === 0 ? -16 : 16), -120 + i * 18, 1.25);
             }
@@ -527,14 +781,12 @@ window.PRACTICAL_CANVAS_BUILDER = {
         hud = document.createElement('div');
         hud.id = 'aiScratchHUD';
         hud.innerHTML = `
-            <!-- Center Crosshair -->
             <div id="gameCrosshair" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;display:${isRacing ? 'none' : 'block'};">
                 <div style="width:18px;height:2px;background:rgba(255,255,255,0.9);position:absolute;top:-1px;left:-9px;"></div>
                 <div style="width:2px;height:18px;background:rgba(255,255,255,0.9);position:absolute;top:-9px;left:-1px;"></div>
                 <div style="width:4px;height:4px;border-radius:50%;background:#ef4444;position:absolute;top:-2px;left:-2px;"></div>
             </div>
 
-            <!-- Top Center Stats & Interactive Upgrade / Weapon Buttons -->
             <div style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:45;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.88);border:1px solid rgba(56,189,248,0.45);padding:6px 14px;border-radius:14px;backdrop-filter:blur(8px);pointer-events:auto;">
                 <span style="font-size:11px;font-weight:800;color:#f87171;">🔥 WAVE <span id="hudWaveVal">1</span></span>
                 <span style="color:#475569;">|</span>
@@ -543,7 +795,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 <button id="hudUpgradeBtn" style="font-size:10px;font-weight:800;background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;">⚡ Upgrade ($100)</button>
             </div>
 
-            <!-- Bottom Left HP Bar & Bottom Right Ammo / Speed Counter -->
             <div style="position:fixed;bottom:145px;left:20px;right:20px;z-index:35;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
                 <div style="background:rgba(15,23,42,0.88);border:1px solid rgba(74,222,128,0.45);padding:7px 12px;border-radius:12px;width:140px;">
                     <div style="font-size:10px;color:#94a3b8;font-weight:800;margin-bottom:4px;">HP <span id="hudHpText" style="color:#4ade80;float:right;">100/100</span></div>
@@ -553,7 +804,7 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 </div>
 
                 <div style="background:rgba(15,23,42,0.88);border:1px solid rgba(251,191,36,0.45);padding:7px 14px;border-radius:12px;text-align:right;">
-                    <div id="hudRightLabel" style="font-size:9px;color:#fbbf24;font-weight:800;letter-spacing:1px;">${isRacing ? 'SPEED' : 'AK-47 RIFLE'}</div>
+                    <div id="hudRightLabel" style="font-size:9px;color:#fbbf24;font-weight:800;letter-spacing:1px;">${isRacing ? 'SPEED' : (isSurvival ? 'SURVIVAL AXE & RIFLE' : 'AK-47 RIFLE')}</div>
                     <div id="hudRightVal" style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:900;color:#ffffff;">${isRacing ? '0 KM/H' : '30/180'}</div>
                 </div>
             </div>
@@ -561,10 +812,9 @@ window.PRACTICAL_CANVAS_BUILDER = {
         const stageEl = document.getElementById('landscapeGameStage') || document.body;
         stageEl.appendChild(hud);
 
-        // 4. Spawn Player Controller (Racing Supercar OR TPS Warrior OR FPS Shooter with 3D Arms & Weapons)
         if (isRacing) {
-            const car = window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 42, isPlayer: true, followCamera: true });
-            let cash = 50, wave = 1;
+            window.AAA_ENGINE.spawnAAAVehicle({ x: 0, z: 0, bodyColor: 0xdc2626, maxSpeed: 42, isPlayer: true, followCamera: true });
+            let cash = 50;
             window.updateFunctions.push((delta) => {
                 const spd = Math.round(Math.hypot(window.joystickVector.x, window.joystickVector.y) * 185 || (window.keysPressed['w'] ? 195 : 0));
                 const rVal = document.getElementById('hudRightVal');
@@ -578,7 +828,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
             return;
         }
 
-        // Player Collider Group
         let playerRoot;
         let fpsRig = null, pistolGroup = null, akGroup = null, muzzleFlash = null;
 
@@ -587,7 +836,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 name: 'kratos', x: 0, z: 10, speed: 10, isPlayer: true, followCamera: true
             });
         } else {
-            // Full First-Person Shooter (FPS) Controller with Visible 3D Arms, Pistol & AK-47!
             playerRoot = new THREE.Group();
             playerRoot.position.set(0, 0, 12);
             playerRoot.userData.isPlayer = true;
@@ -599,7 +847,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
             const gunMetal  = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.88, roughness: 0.22 });
             const woodMat   = window.AAA_ENGINE.material('wood', 1, 1, 0x9a3412);
 
-            // AK-47 Rifle Group
             akGroup = new THREE.Group();
             const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.068, 0.6, 16), sleeveMat);
             lArm.rotation.set(Math.PI / 2.1, 0, -0.32); lArm.position.set(-0.12, -0.22, -0.46);
@@ -615,7 +862,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
             brl.rotation.x = Math.PI / 2; brl.position.set(0.10, -0.13, -1.02); akGroup.add(brl);
             fpsRig.add(akGroup);
 
-            // Pistol Group
             pistolGroup = new THREE.Group();
             pistolGroup.visible = false;
             const pArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.55, 16), sleeveMat);
@@ -637,7 +883,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
             scene.add(camera);
         }
 
-        // 5. Spawn Animated Enemy Waves + Bosses with Floating Canvas Health Bars
         const enemies = [];
         const bloodParticles = [];
         const bloodMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
@@ -683,7 +928,7 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 100,
                 isBoss ? '#f59e0b' : '#ef4444'
             );
-            hpSprite.position.y = isBoss ? 6.2 : 3.7;
+            hpSprite.position.y = isBoss ? 4.2 : 2.6;
             eGroup.add(hpSprite);
 
             worldGroup.add(eGroup);
@@ -713,7 +958,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
         }
         spawnWave(1);
 
-        // Hook up HUD Buttons
         const swBtn = document.getElementById('hudSwitchWepBtn');
         if (swBtn) {
             swBtn.onclick = () => {
@@ -753,11 +997,12 @@ window.PRACTICAL_CANVAS_BUILDER = {
             if (rVl) rVl.innerText = `${gState.clip}/${gState.reserve}`;
         }
 
-        // Touch / Mouse Drag to Aim Camera in FPS Mode
         let draggingLook = false, lx = 0, ly = 0;
-        renderer.domElement.addEventListener('pointerdown', e => {
-            draggingLook = true; lx = e.clientX; ly = e.clientY;
-        });
+        if (renderer && renderer.domElement) {
+            renderer.domElement.addEventListener('pointerdown', e => {
+                draggingLook = true; lx = e.clientX; ly = e.clientY;
+            });
+        }
         window.addEventListener('pointermove', e => {
             if (!draggingLook || isTPS) return;
             gState.yaw   -= (e.clientX - lx) * 0.0055;
@@ -768,7 +1013,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
 
         const raycaster = new THREE.Raycaster();
 
-        // 6. Main 60FPS Gameplay Loop
         window.updateFunctions.push((delta, time) => {
             if (!isTPS) {
                 const inX = (window.keysPressed['d']||window.keysPressed['arrowright']?1:0) - (window.keysPressed['a']||window.keysPressed['arrowleft']?1:0) + window.joystickVector.x;
@@ -815,7 +1059,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
             if (gState.fireCooldown > 0) gState.fireCooldown -= delta;
             if (muzzleFlash) muzzleFlash.visible = (gState.fireCooldown > 0.06);
 
-            // Shooting / Attacking ('e' or ATTACK button)
             if (window.keysPressed['e'] && gState.fireCooldown <= 0) {
                 if (gState.clip > 0) {
                     gState.clip--;
@@ -857,7 +1100,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 }
             }
 
-            // Update Enemies AI
             enemies.forEach(en => {
                 const dx = playerRoot.position.x - en.root.position.x;
                 const dz = playerRoot.position.z - en.root.position.z;
@@ -876,7 +1118,6 @@ window.PRACTICAL_CANVAS_BUILDER = {
                 en.rig.animateSkeleton(en.state, time, delta);
             });
 
-            // Update Blood Particles
             for (let i = bloodParticles.length - 1; i >= 0; i--) {
                 const bp = bloodParticles[i];
                 bp.life -= delta;
@@ -892,7 +1133,7 @@ window.PRACTICAL_CANVAS_BUILDER = {
 };
 
 // =========================================================================
-// 4. MAIN BUILDER CONTROLLER (10 Questions -> Build -> Show Play ▶️)
+// 4. MAIN BUILDER CONTROLLER
 // =========================================================================
 window.REAL_3D_AI_BUILDER = {
     lastGeneratedCode: '',
@@ -922,7 +1163,6 @@ window.REAL_3D_AI_BUILDER = {
     async generateAndExecute3D(promptText, imageDataUrl, provider, apiKey, geminiModels, powerLevel, updateStatusFn, abortSignal, isEditMode = false) {
         let planResult = { chosenList: this.lastChosenPlan || [], compiledText: '' };
 
-        // STEP 1: Open the 10-Question "Set your plan" modal INSTANTLY (0ms delay!)
         if (!isEditMode) {
             updateStatusFn(`Planning (10 Questions)...`, 15);
             planResult = await window.TESANA_PLANNER.openPlanModal(promptText);
@@ -931,20 +1171,18 @@ window.REAL_3D_AI_BUILDER = {
             this.lastChosenPlan.push(promptText);
         }
 
-        // STEP 2: Initialize 3D & Canvas World in background while showing progress
         updateStatusFn(`Building Canvas & 3D Map...`, 55);
         if (typeof init3DWorld === 'function' && !renderer) {
             init3DWorld();
         }
 
-        await new Promise(r => setTimeout(r, 350));
+        await new Promise(r => setTimeout(r, 300));
         updateStatusFn(`Compiling Weapons, AI & HUD...`, 85);
 
         this.cleanupPreviousGame();
         const prevScene = [...scene.children];
         const prevFns = [...window.updateFunctions];
 
-        // Keep game paused until user clicks "Play ▶️"
         window.isControlExited = true;
 
         await window.PRACTICAL_CANVAS_BUILDER.buildPlayableGameFromPlan(promptText, this.lastChosenPlan);
@@ -958,7 +1196,7 @@ window.REAL_3D_AI_BUILDER = {
         });
         window.PHYSICS.autoRegisterSceneObstacles(newObjects);
 
-        await new Promise(r => setTimeout(r, 250));
+        await new Promise(r => setTimeout(r, 200));
         updateStatusFn(`Ready to Play!`, 100);
 
         return {
