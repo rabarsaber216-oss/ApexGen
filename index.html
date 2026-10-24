@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body class="w-screen h-screen bg-[#0b0c10] text-white overflow-x-hidden select-none font-['Inter',sans-serif]">
 
@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <!-- 2. API KEY SETUP MODAL (Unchanged - Saves Key Locally) -->
+    <!-- 2. API KEY SETUP MODAL (Saves API Key in localStorage) -->
     <div id="authScreen" class="fixed inset-0 z-40 hidden items-center justify-center bg-[#050811]/95 p-4 transition-all duration-500 overflow-y-auto">
         <div class="glass neon-shadow w-full max-w-lg rounded-3xl p-5 md:p-7 relative z-10 border border-sky-500/30 my-auto">
             <div class="flex items-center justify-between mb-4">
@@ -96,14 +96,12 @@
         </div>
     </div>
 
-    <!-- 3. MAIN "CREATE" HUB SCREEN (Replaces default 3D Map, Zero Bottom Buttons!) -->
+    <!-- 3. MAIN "CREATE" HUB SCREEN (No default 3D Map, No Bottom Bar) -->
     <div id="workspace" class="fixed inset-0 hidden flex-col bg-[#0b0c10] overflow-y-auto px-5 py-5">
         
-        <!-- Top Header: "Create" on Left + "Edit", "Code", & Settings on Right -->
         <div class="w-full max-w-lg mx-auto flex items-center justify-between mb-8">
             <h1 class="text-2xl font-bold tracking-tight text-white">Create</h1>
             <div class="flex items-center gap-2">
-                <!-- TOP EDIT BUTTON (Appears when a game is built or anytime to edit/improve game) -->
                 <button id="topEditGameBtn" onclick="openEditGameModal()" class="px-3.5 py-2 rounded-full bg-[#161821] hover:bg-[#1f2230] border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all">
                     <i class="fa-solid fa-pen-to-square"></i>
                     <span>Edit</span>
@@ -117,7 +115,6 @@
             </div>
         </div>
 
-        <!-- Center Hero Title & ApexGen Subtitle -->
         <div class="w-full max-w-lg mx-auto text-center mb-7">
             <h2 class="text-[26px] md:text-3xl font-bold text-white tracking-tight mb-2.5">What game do you want to make?</h2>
             <p class="text-sm text-[#94a3b8] leading-relaxed">
@@ -128,7 +125,7 @@
             </p>
         </div>
 
-        <!-- ACTIVE PROJECT STATUS / "PLAY ▶️" CARD -->
+        <!-- ACTIVE PROJECT STATUS & "PLAY ▶️" CARD -->
         <div id="projectStatusCard" class="w-full max-w-lg mx-auto mb-4 hidden">
             <div class="bg-[#14161f] border border-[#262938] rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-lg">
                 <div class="flex items-center gap-3 min-w-0">
@@ -148,20 +145,17 @@
                     <button id="stopBuildBtn" onclick="stopAICoding()" class="hidden px-3 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300 font-bold text-xs">
                         Stop
                     </button>
-                    <!-- PLAY ▶️ BUTTON (Revealed only when AI finishes 100% of the build!) -->
                     <button id="playBuiltGameBtn" onclick="enterLandscapeGameMode()" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs items-center gap-2 shadow-lg shadow-emerald-500/25 transition-all">
                         <span>Play</span>
                         <span>▶️</span>
                     </button>
                 </div>
             </div>
-            <!-- Progress bar inside card while compiling -->
             <div id="projectCardProgressWrap" class="w-full h-1 bg-[#1d202d] rounded-b-xl overflow-hidden mt-1 hidden">
                 <div id="projectCardProgressBar" class="h-full bg-gradient-to-r from-amber-400 via-sky-400 to-emerald-400 w-0 transition-all duration-150"></div>
             </div>
         </div>
 
-        <!-- Attached Reference Image Preview -->
         <div id="imageAttachmentBar" class="w-full max-w-lg mx-auto mb-3 hidden items-center justify-between bg-[#14161f] border border-amber-500/40 rounded-xl px-3.5 py-2">
             <div class="flex items-center gap-2.5">
                 <img id="attachedImagePreview" src="" class="w-8 h-8 rounded-lg object-cover border border-amber-400">
@@ -172,26 +166,23 @@
             </button>
         </div>
 
-        <!-- MAIN PROMPT BOX ("Ask ApexGen to make") -->
+        <!-- MAIN PROMPT BOX -->
         <div class="w-full max-w-lg mx-auto bg-[#13151d] border border-[#232736] focus-within:border-[#3b425c] rounded-3xl p-4 shadow-2xl mb-7 transition-all">
             <textarea id="hfPromptInput" rows="4" placeholder="Ask ApexGen to make"
                 class="w-full bg-transparent text-white placeholder-[#64748b] text-base outline-none resize-none leading-relaxed"></textarea>
 
             <div class="flex items-center justify-between mt-3 pt-2">
-                <!-- "+" Image Upload Button -->
                 <label class="w-10 h-10 rounded-full bg-[#1c1f2b] hover:bg-[#25293a] border border-[#2c3144] flex items-center justify-center cursor-pointer text-slate-300 transition-all" title="Attach Reference Image">
                     <i class="fa-solid fa-plus text-sm"></i>
                     <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleChatImageSelect(event)">
                 </label>
 
                 <div class="flex items-center gap-2.5">
-                    <!-- "Auto v" Power / Mode Button -->
                     <button type="button" onclick="cycleAIPowerMode()" id="autoPowerBtn" class="px-4 py-2 rounded-full bg-[#1c1f2b] hover:bg-[#25293a] border border-[#2c3144] text-slate-200 text-xs font-bold flex items-center gap-2 transition-all">
                         <span id="autoPowerLabel">Auto</span>
                         <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
                     </button>
 
-                    <!-- Submit / Build Button -->
                     <button id="hfBuildBtn" onclick="send3DBuildPrompt()" class="w-10 h-10 rounded-full bg-white hover:bg-sky-400 text-[#0b0c10] font-black flex items-center justify-center shadow-lg transition-all" title="Start 10-Step Plan & Build">
                         <i class="fa-solid fa-arrow-up text-sm"></i>
                     </button>
@@ -199,7 +190,6 @@
             </div>
         </div>
 
-        <!-- "Need an idea?" Section -->
         <div class="w-full max-w-lg mx-auto">
             <div class="flex items-center gap-2.5 text-sm text-[#94a3b8] font-medium mb-3.5">
                 <span>Need an idea?</span>
@@ -207,19 +197,15 @@
                     <i class="fa-solid fa-arrows-rotate text-xs"></i>
                 </button>
             </div>
-
-            <div id="ideaPillsContainer" class="flex items-center gap-3 overflow-x-auto pb-3 no-scrollbar">
-                <!-- Populated dynamically by ai-core.js -->
-            </div>
+            <div id="ideaPillsContainer" class="flex items-center gap-3 overflow-x-auto pb-3 no-scrollbar"></div>
         </div>
     </div>
 
-    <!-- 4. FULLSCREEN HORIZONTAL (LANDSCAPE) GAME STAGE OVERLAY -->
+    <!-- 4. FULLSCREEN HORIZONTAL (LANDSCAPE) GAME STAGE -->
     <div id="landscapeGameStage" class="fixed inset-0 z-50 hidden bg-black overflow-hidden">
-        <!-- Three.js & Canvas Container -->
         <div id="canvasContainer" class="w-full h-full relative"></div>
 
-        <!-- TOP BAR INSIDE GAME: EDIT & EXIT BUTTONS -->
+        <!-- TOP BAR IN GAME: EXIT & EDIT BUTTONS -->
         <div class="fixed top-3 left-4 right-4 z-50 flex items-center justify-between pointer-events-none">
             <div class="flex items-center gap-2 pointer-events-auto">
                 <button onclick="exitLandscapeGameMode()" class="px-4 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xl border border-rose-400/50">
@@ -239,7 +225,6 @@
             </div>
         </div>
 
-        <!-- MOBILE JOYSTICK & ACTION PAD INSIDE LANDSCAPE GAME -->
         <div id="mobileControls" class="fixed bottom-6 left-6 z-40 flex items-center select-none">
             <div id="joystickZone" class="joystick-base">
                 <div id="joystickKnob" class="joystick-knob"></div>
@@ -265,7 +250,7 @@
         </div>
     </div>
 
-    <!-- 5. "EDIT GAME" MODAL (Allows user to modify/upgrade their game anytime!) -->
+    <!-- 5. EDIT GAME MODAL -->
     <div id="editGameModal" class="fixed inset-0 z-[65] hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="bg-[#13151d] border border-sky-500/40 w-full max-w-md rounded-3xl p-5 shadow-2xl">
             <div class="flex items-center justify-between mb-3">
@@ -277,8 +262,8 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <p class="text-xs text-slate-400 mb-3">Write what you want to change, fix, or add to your current game (e.g., new weapons, better map, boss enemies, faster speed):</p>
-            <textarea id="editGamePromptInput" rows="3" placeholder="Tell ApexGen what to change or add..."
+            <p class="text-xs text-slate-400 mb-3">Tell ApexGen what to change, fix, or add to your current game:</p>
+            <textarea id="editGamePromptInput" rows="3" placeholder="e.g. Add a giant boss, make it night time, add faster weapons..."
                 class="w-full bg-[#0b0c10] border border-[#262938] focus:border-sky-400 rounded-2xl p-3.5 text-sm text-white placeholder-slate-500 outline-none resize-none mb-4"></textarea>
             <div class="flex items-center justify-end gap-2">
                 <button onclick="closeEditGameModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Cancel</button>
@@ -290,13 +275,13 @@
         </div>
     </div>
 
-    <!-- 6. SHOW CODE MODAL -->
+    <!-- 6. LIVE CODE VIEWER MODAL -->
     <div id="codeModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="glass neon-shadow w-full max-w-3xl rounded-3xl p-5 border border-emerald-500/30 flex flex-col max-h-[85vh]">
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-code text-emerald-400 text-lg"></i>
-                    <h3 class="text-base font-extrabold text-emerald-400 font-cyber">Live Canvas & Three.js Code</h3>
+                    <h3 class="text-base font-extrabold text-emerald-400 font-cyber">Live AI Generated Game Code</h3>
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="copyGeneratedCode()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs text-sky-300 font-semibold">Copy</button>
@@ -309,10 +294,12 @@
         </div>
     </div>
 
-    <script src="skeleton.js"></script>
-    <script src="physics.js"></script>
-    <script src="graphics.js"></script>
-    <script src="huggingface.js"></script>
-    <script src="ai-core.js"></script>
+    <!-- SCRIPTS WITH ?v=5 CACHE-BUSTER SO NEW FILES ALWAYS LOAD -->
+    <script src="skeleton.js?v=5"></script>
+    <script src="physics.js?v=5"></script>
+    <script src="graphics.js?v=5"></script>
+    <script src="canvas-planner.js?v=5"></script>
+    <script src="huggingface.js?v=5"></script>
+    <script src="ai-core.js?v=5"></script>
 </body>
 </html>
