@@ -1,59 +1,133 @@
 /********************************************************************
- * FILE 1: huggingface.js -> 100% REAL AI STREAMING GAME COMPILER
- * - Zero fake templates! Every single game is written live from
- *   scratch by Gemini / OpenAI / Claude based on your 10 answers!
- * - Automatically detects working Gemini models (gemini-2.5-flash,
- *   gemini-2.5-pro, gemini-2.0-flash) so it NEVER freezes!
+ * FILE 2: huggingface.js -> 100% REAL AI STREAMING GAME COMPILER
+ * - Fixes "Error: Unexpected token '*'" on 1000+ line scripts
+ * - Reads all 10 tailored answers from window.TESANA_PLANNER
+ * - Streams real Three.js + HTML5 Canvas game code from scratch
  ********************************************************************/
 window.REAL_3D_AI_BUILDER = {
     lastGeneratedCode: '',
     lastPlanSummary: '',
 
     SYSTEM_PROMPT: `
-You are the Core AI Game Engine Compiler inside "ApexGen".
-Your job is to write a COMPLETE, 100% REAL, playable 3D & HTML5 Canvas game from scratch in raw JavaScript (Three.js r128) tailored to the user's exact prompt and their 10-Question Game Plan!
+You are the Master AI Game Engine Compiler inside "ApexGen".
+Your job is to write a COMPLETE, 100% REAL, playable 3D & HTML5 Canvas game from scratch in raw JavaScript (Three.js r128) that implements the user's exact game description and all 10 of their Game Plan answers!
 
-STRICT RULES FOR REAL, EXECUTABLE GAME CODE:
-1. NEVER write placeholders, TODOs, or fake stub code. Write the complete working game logic, 3D models, Canvas textures, physics, enemies/objectives, and HUD from scratch!
-2. Your code runs inside an \`async\` function with these globals already initialized:
-   - \`THREE\`, \`scene\`, \`camera\`, \`renderer\`, \`controls\`
-   - \`window.CANVAS_ENGINE\`:
-     * \`window.CANVAS_ENGINE.buildCanvasWorldMap({ groundColor: '#...', patchColor: '#...', skyTopColor: '#...', skyHorizonColor: '#...', hills: true|false, hillHeight: 2.5, hasRoads: true|false })\` -> Returns \`worldGroup\` with procedural Canvas-painted terrain & sky dome!
-     * \`window.CANVAS_ENGINE.createCharacterSkinTexture({ skinColor: '#...', eyeColor: '#...', scarColor: '#...', beard: true|false })\` -> Returns a \`THREE.CanvasTexture\`.
-     * \`window.CANVAS_ENGINE.createFloatingHealthBar(label, pct, colorHexStr)\` -> Returns a \`THREE.Sprite\` with \`.updateHealth(newPct)\`.
-     * \`window.CANVAS_ENGINE.createCustomTexture(drawCallback, width, height)\` -> Lets you paint ANY custom 2D Canvas texture for buildings, signs, faces, weapons, or football pitches!
-   - \`window.SKELETON_ENGINE.build60BoneCharacter({ name, skinHex, tattooColor, hasBeard, kiltColor, armorColor, hasWeapons, weaponColor })\` -> Returns \`{ root, animateSkeleton(state, time, delta) }\`.
-   - \`window.PHYSICS\`:
-     * \`window.PHYSICS.addStaticCollider(mesh, 0.001)\`
-     * \`window.PHYSICS.registerDynamicBody(playerRoot, 0.75)\`
-     * \`window.PHYSICS.resolveSubstepMovement(body, targetX, targetZ)\`
-   - \`window.keysPressed\` (\`'w'\`, \`'a'\`, \`'s'\`, \`'d'\`, \`' '\` for Jump, \`'e'\` for Attack/Shoot/Action, \`'shift'\` for Sprint)
-   - \`window.joystickVector\` (\`{ x, y }\` from mobile touch joystick)
-   - \`window.updateFunctions\` (push your \`(delta, time) => {}\` 60FPS loop here!)
-   - \`window.createdObjects\` (push all root 3D objects here!)
+CRITICAL SYNTAX RULES (TO PREVENT SYNTAX ERRORS):
+1. Output ONLY raw executable JavaScript code. Start line 1 with: // BUILT: <short game title>
+2. NEVER use multi-line comments (/* ... */) or JSDoc blocks (/** ... */) anywhere in your code! Use ONLY single-line comments (//).
+3. NEVER output Markdown bolding (**text**), bullet points (* item), or explanations before or after the code!
+4. Keep your code focused, dense, and between 300 and 550 lines so it finishes cleanly without cutting off!
 
-3. MANDATORY ARCHITECTURE FOR EVERY GENERATED GAME:
-   - STEP A (IN-GAME HUD):
-     Create \`let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; (document.getElementById('landscapeGameStage') || document.body).appendChild(hud);\`.
-     Build live HUD elements (Health bar, Score/Cash/Resources, Ammo/Speed/Wave, Crosshair, and interactive Upgrade/Action buttons) positioned cleanly so they don't cover the top-left Exit/Edit buttons.
-   - STEP B (3D + CANVAS ENVIRONMENT):
-     Use \`window.CANVAS_ENGINE.buildCanvasWorldMap(...)\` plus custom multi-part \`THREE.Group\` buildings, trees, obstacles, props, lighting (\`THREE.PointLight\`, \`THREE.SpotLight\`), and colliders matching the user's exact theme!
-   - STEP C (CONTROLLABLE PLAYER & CAMERA):
-     * Create \`playerRoot = new THREE.Group()\`, set \`playerRoot.userData.isPlayer = true\`, add to \`scene.add(playerRoot)\` & \`window.createdObjects.push(playerRoot)\`, and call \`window.PHYSICS.registerDynamicBody(playerRoot, 0.75)\`.
-     * If First-Person (FPS): set \`controls.enabled = false\`, attach 3D arms/weapons/flashlight to \`camera\`, add \`scene.add(camera)\`, update \`camera.position\` to follow \`playerRoot\`, and bind \`pointerdown\`/\`pointermove\` on \`renderer.domElement\` for touch/mouse camera look!
-     * If Third-Person (TPS) or Vehicle: build the articulated character or vehicle inside \`playerRoot\` and smoothly follow \`playerRoot.position\` with \`camera\` and \`controls.target\`.
-   - STEP D (REAL GAMEPLAY LOOP, AI ENEMIES/NPCS & INTERACTION):
-     Inside \`window.updateFunctions.push((delta, time) => { ... })\`, implement full movement (reading both \`window.keysPressed\` AND \`window.joystickVector\`), jumping (\`' '\`), attacking/shooting/interacting (\`'e'\`), enemy AI pathfinding/combat, particle effects, and win/wave progression!
+AVAILABLE ENGINE GLOBALS INSIDE YOUR async FUNCTION:
+- THREE, scene, camera, renderer, controls
+- window.CANVAS_ENGINE:
+  * window.CANVAS_ENGINE.buildCanvasWorldMap({ groundColor: '#...', patchColor: '#...', skyTopColor: '#...', skyHorizonColor: '#...', hills: true|false, hillHeight: 2.2, hasRoads: true|false }) -> returns worldGroup
+  * window.CANVAS_ENGINE.createCustomTexture((ctx, w, h) => { ... }, 512, 512) -> returns THREE.CanvasTexture
+  * window.CANVAS_ENGINE.createCharacterSkinTexture({ skinColor: '#...', eyeColor: '#...', scarColor: '#...', beard: true|false })
+  * window.CANVAS_ENGINE.createFloatingHealthBar(label, pct, colorHexStr) -> returns THREE.Sprite with .updateHealth(newPct)
+- window.SKELETON_ENGINE.build60BoneCharacter({ name, skinHex, tattooColor, hasBeard, kiltColor, armorColor, hasWeapons, weaponColor }) -> returns { root, animateSkeleton(state, time, delta) }
+- window.PHYSICS:
+  * window.PHYSICS.addStaticCollider(mesh, 0.001)
+  * window.PHYSICS.registerDynamicBody(playerRoot, 0.75)
+  * window.PHYSICS.resolveSubstepMovement(body, targetX, targetZ)
+- window.keysPressed ('w', 'a', 's', 'd', ' ' for Jump, 'e' for Attack/Action, 'shift' for Sprint)
+- window.joystickVector ({ x, y } from mobile touch joystick)
+- window.updateFunctions (push your (delta, time) => {} 60FPS loop here!)
+- window.createdObjects (push all root 3D objects here!)
 
-OUTPUT FORMAT:
-Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short title>\`. Do NOT wrap in prose!
+MANDATORY 4-PART GAME ARCHITECTURE:
+1. IN-GAME HUD (#aiScratchHUD):
+   Create let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; (document.getElementById('landscapeGameStage') || document.body).appendChild(hud);
+   Build live HUD elements (Health bar, Score/Cash/Resources, Ammo/Wave/Objective, Crosshair, and interactive Upgrade/Switch buttons) positioned cleanly below top: 55px.
+2. 3D + CANVAS ENVIRONMENT:
+   Call window.CANVAS_ENGINE.buildCanvasWorldMap(...) and build custom multi-part 3D structures, buildings, trees, props, lighting (SpotLight/PointLight), and static colliders matching the user's 10 answers.
+3. CONTROLLABLE PLAYER & CAMERA:
+   Create playerRoot = new THREE.Group(), set playerRoot.userData.isPlayer = true, add to scene.add(playerRoot) & window.createdObjects.push(playerRoot), and call window.PHYSICS.registerDynamicBody(playerRoot, 0.75).
+   Support both First-Person (FPS with 3D arms/weapons/flashlight attached to camera and pointerdrag look on renderer.domElement) or Third-Person (TPS) based on the user's plan.
+4. 60FPS GAMEPLAY LOOP & AI ENEMIES/OBJECTIVES:
+   Push your update loop to window.updateFunctions. Read both window.keysPressed AND window.joystickVector so movement works on mobile and desktop. Implement attacking/shooting ('e'), jumping (' '), enemy AI, particles, and upgrades!
 `,
 
-    cleanJSCode(rawText) {
+    // Sanitizes AI output to eliminate "Unexpected token '*'" and unclosed blocks
+    sanitizeJSCode(rawText) {
         if (!rawText) return '';
-        const fence = rawText.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
-        let code = fence ? fence[1].trim() : rawText.replace(/```(?:javascript|js)?/gi, '').replace(/```/g, '').trim();
-        return code.replace(/^javascript\s+/i, '');
+        let code = rawText;
+
+        // 1. Extract inside ```javascript ... ``` even if closing ``` was truncated
+        const openFence = code.match(/```(?:javascript|js)?\s*/i);
+        if (openFence) {
+            const startPos = openFence.index + openFence[0].length;
+            code = code.slice(startPos);
+            const closeFenceIdx = code.indexOf('```');
+            if (closeFenceIdx !== -1) {
+                code = code.slice(0, closeFenceIdx);
+            }
+        }
+
+        // 2. Remove all multi-line /* ... */ comments and unclosed /* comments that cause Unexpected token '*'
+        code = code.replace(/\/\*[\s\S]*?\*\//g, '');
+        const unclosedCommentIdx = code.indexOf('/*');
+        if (unclosedCommentIdx !== -1) {
+            code = code.slice(0, unclosedCommentIdx);
+        }
+        code = code.replace(/\*\//g, '');
+
+        // 3. Filter out any stray Markdown lines (e.g. **Explanation**, * bullet, # heading)
+        const cleanLines = code.split('\n').filter(line => {
+            const t = line.trim();
+            if (t.startsWith('```')) return false;
+            if (/^\*\*[^*]+\*\*/.test(t)) return false;
+            if (/^\*\s+[A-Za-z]/.test(t)) return false;
+            if (/^#{1,6}\s+/.test(t)) return false;
+            return true;
+        });
+
+        code = cleanLines.join('\n').trim();
+        code = code.replace(/^javascript\s+/i, '');
+
+        // 4. Auto-balance brackets/parens/braces if a long script got truncated at the very last line
+        let openCurly = 0, openParen = 0, openSq = 0;
+        let inStr = false, strChar = '', escaped = false;
+        let inSingleComment = false;
+
+        for (let i = 0; i < code.length; i++) {
+            const ch = code[i];
+            const next = code[i + 1];
+
+            if (inSingleComment) {
+                if (ch === '\n') inSingleComment = false;
+                continue;
+            }
+            if (inStr) {
+                if (escaped) { escaped = false; continue; }
+                if (ch === '\\') { escaped = true; continue; }
+                if (ch === strChar) inStr = false;
+                continue;
+            }
+            if (ch === '/' && next === '/') {
+                inSingleComment = true;
+                i++;
+                continue;
+            }
+            if (ch === '"' || ch === "'" || ch === '`') {
+                inStr = true;
+                strChar = ch;
+                continue;
+            }
+            if (ch === '{') openCurly++;
+            else if (ch === '}') openCurly = Math.max(0, openCurly - 1);
+            else if (ch === '(') openParen++;
+            else if (ch === ')') openParen = Math.max(0, openParen - 1);
+            else if (ch === '[') openSq++;
+            else if (ch === ']') openSq = Math.max(0, openSq - 1);
+        }
+
+        if (inStr) code += strChar;
+        while (openSq > 0) { code += ']'; openSq--; }
+        while (openParen > 0) { code += ')'; openParen--; }
+        while (openCurly > 0) { code += '\n}'; openCurly--; }
+
+        return code;
     },
 
     cleanupPreviousGame() {
@@ -73,12 +147,11 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
         if (window.PHYSICS) window.PHYSICS.clearAll();
     },
 
-    // Finds real working Gemini models on the user's API key (Prioritizes gemini-2.5-flash & gemini-2.5-pro)
     async getWorkingGeminiModels(apiKey, cachedModels) {
         const priorityDefaults = [
             'models/gemini-2.5-flash',
-            'models/gemini-2.5-pro',
-            'models/gemini-2.0-flash'
+            'models/gemini-2.0-flash',
+            'models/gemini-2.5-pro'
         ];
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -122,7 +195,7 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts }],
-                            generationConfig: { temperature: 0.35, maxOutputTokens: 16384 }
+                            generationConfig: { temperature: 0.3, maxOutputTokens: 16384 }
                         }),
                         signal: abortSignal
                     });
@@ -156,14 +229,14 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
                                 if (chunk) {
                                     accumulated += chunk;
                                     const lineCount = accumulated.split('\n').length;
-                                    const pct = Math.min(92, 20 + Math.round((lineCount / 320) * 72));
-                                    updateStatusFn(`AI writing game code (${lineCount} lines)...`, pct);
+                                    const pct = Math.min(94, 20 + Math.round((lineCount / 400) * 74));
+                                    updateStatusFn(`AI writing game (${lineCount} lines)...`, pct);
                                 }
                             } catch (e) {}
                         }
                     }
 
-                    const cleaned = this.cleanJSCode(accumulated);
+                    const cleaned = this.sanitizeJSCode(accumulated);
                     if (cleaned.length > 40) return cleaned;
                 } catch (err) {
                     if (err.name === 'AbortError') throw err;
@@ -181,14 +254,14 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
                 body: JSON.stringify({
                     model: 'gpt-4o',
                     max_tokens: 12288,
-                    temperature: 0.35,
+                    temperature: 0.3,
                     messages: [{ role: 'user', content: fullPrompt }]
                 }),
                 signal: abortSignal
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
-            return this.cleanJSCode(data.choices[0].message.content);
+            return this.sanitizeJSCode(data.choices[0].message.content);
         }
 
         if (provider === 'claude') {
@@ -204,14 +277,14 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
                 body: JSON.stringify({
                     model: 'claude-3-5-sonnet-latest',
                     max_tokens: 8192,
-                    temperature: 0.35,
+                    temperature: 0.3,
                     messages: [{ role: 'user', content: fullPrompt }]
                 }),
                 signal: abortSignal
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
-            return this.cleanJSCode(data.content[0].text);
+            return this.sanitizeJSCode(data.content[0].text);
         }
     },
 
@@ -220,9 +293,9 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
             window.ENSURE_SKELETON_ENGINE();
         }
 
-        // STEP 1: Ask 10 Real Tailored Questions via window.TESANA_PLANNER (unless editing existing game)
+        // STEP 1: AI listens to user description & asks 10 tailored questions
         if (!isEditMode && window.TESANA_PLANNER) {
-            updateStatusFn(`Planning (10 Questions)...`, 10);
+            updateStatusFn(`AI reading description & preparing 10 questions...`, 10);
             const planResult = await window.TESANA_PLANNER.openPlanModal(
                 promptText,
                 provider,
@@ -233,24 +306,23 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
             this.lastPlanSummary = planResult.compiledText;
         }
 
-        // STEP 2: Build the prompt with all 10 answers & stream real code from AI
+        // STEP 2: Stream real executable game code implementing all 10 answers
         let fullPrompt = `${this.SYSTEM_PROMPT}\n\n`;
         if (isEditMode && this.lastGeneratedCode) {
-            fullPrompt += `EXISTING GAME CODE:\n\`\`\`javascript\n${this.lastGeneratedCode}\n\`\`\`\n\nUSER EDIT / UPGRADE REQUEST: "${promptText}"\nModify and improve the existing game code to implement this exact request. Return the complete updated JavaScript code!`;
+            fullPrompt += `EXISTING GAME CODE:\n\`\`\`javascript\n${this.lastGeneratedCode}\n\`\`\`\n\nUSER EDIT REQUEST: "${promptText}"\nUpdate and improve the game code above to implement this exact change. Return ONLY raw JavaScript code using // comments!`;
         } else {
-            fullPrompt += `USER MAIN GAME IDEA: "${promptText}"\n\nUSER'S 10-POINT GAME PLAN ANSWERS (IMPLEMENT ALL 10 IN DETAIL):\n${this.lastPlanSummary}\n\nWrite the complete, playable 3D + Canvas game in raw JavaScript now!`;
+            fullPrompt += `USER MAIN GAME DESCRIPTION: "${promptText}"\n\nUSER'S 10-POINT GAME PLAN ANSWERS (IMPLEMENT ALL 10 FAITHFULLY):\n${this.lastPlanSummary}\n\nWrite the complete, playable 3D + Canvas game in raw JavaScript now! Remember: use ONLY // comments, never /* or **!`;
         }
 
-        updateStatusFn(`Connecting to AI Compiler...`, 18);
+        updateStatusFn(`Starting AI Game Compiler...`, 18);
         let rawCode = await this.streamRealCodeFromAI(fullPrompt, imageDataUrl, provider, apiKey, geminiModels, updateStatusFn, abortSignal);
         if (!rawCode) throw new Error('AI returned empty code.');
 
-        // STEP 3: Initialize 3D/Canvas world in background and compile the AI's code
         if (typeof init3DWorld === 'function' && (typeof renderer === 'undefined' || !renderer)) {
             init3DWorld();
         }
 
-        updateStatusFn(`Compiling & testing game world...`, 95);
+        updateStatusFn(`Compiling & verifying 3D world...`, 96);
         this.cleanupPreviousGame();
 
         const prevScene = [...scene.children];
@@ -264,9 +336,8 @@ Return ONLY raw executable JavaScript code. Start line 1 with \`// BUILT: <short
             const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', rawCode);
             await execFn(THREE, scene, camera, renderer, controls);
         } catch (runtimeErr) {
-            // Self-healing: send the exact error back to AI to fix automatically
-            updateStatusFn(`Auto-fixing script error (${runtimeErr.message})...`, 90);
-            const fixPrompt = `${this.SYSTEM_PROMPT}\n\nThe following Three.js code threw this runtime error: "${runtimeErr.message}". Fix the error and return ONLY the corrected, complete JavaScript code:\n\`\`\`javascript\n${rawCode}\n\`\`\``;
+            updateStatusFn(`Auto-fixing code (${runtimeErr.message})...`, 90);
+            const fixPrompt = `${this.SYSTEM_PROMPT}\n\nFix this JavaScript error: "${runtimeErr.message}" in the code below. Return ONLY valid raw JavaScript code with NO /* comments and NO ** markdown:\n\`\`\`javascript\n${rawCode}\n\`\`\``;
             rawCode = await this.streamRealCodeFromAI(fixPrompt, null, provider, apiKey, geminiModels, updateStatusFn, abortSignal);
             this.cleanupPreviousGame();
             const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
