@@ -1,11 +1,13 @@
 /********************************************************************
- * FILE 2: canvas-planner.js
- * 1. Complete window.SKELETON_ENGINE (Zero missing function errors)
- * 2. Complete window.CANVAS_ENGINE (HTML5 2D & 3D WebGL Canvas Art)
- * 3. Real AI 10-Question Generator ("Set your plan" Modal)
+ * FILE 1: canvas-planner.js
+ * - AI FIRST LISTENS & ANALYZES THE USER'S EXACT DESCRIPTION, THEN
+ *   GENERATES 10 REAL, HYPER-SPECIFIC QUESTIONS ABOUT IT!
+ * - Zero fake fallback questions! Uses all verified models from your
+ *   API Key so it always generates real AI questions.
+ * - Includes full CANVAS_ENGINE & SKELETON_ENGINE.
  ********************************************************************/
 
-// 1. SKELETON ENGINE (Guarantees createSculptedLimbGeometry & build60BoneCharacter)
+// 1. SKELETON ENGINE (Prevents any missing bone/limb function errors)
 window.ENSURE_SKELETON_ENGINE = function () {
     window.SKELETON_ENGINE = window.SKELETON_ENGINE || {};
 
@@ -221,7 +223,7 @@ window.CANVAS_ENGINE = {
                 ctx.setLineDash([18, 14]);
                 ctx.beginPath();
                 ctx.moveTo(256, 0); ctx.lineTo(256, h);
-                ctx.moveTo(0, 256); ctx.lineTo(w, 256);
+                ctx.moveTo(0, 256); ctx.lineTo(512, 256);
                 ctx.stroke();
             }
         }, 512, 512);
@@ -322,98 +324,107 @@ window.CANVAS_ENGINE = {
 };
 
 // =========================================================================
-// 3. REAL AI 10-QUESTION GENERATOR ("Set your plan" Modal)
+// 3. REAL AI LISTENER & 10-QUESTION GENERATOR ("Set your plan")
 // =========================================================================
 window.TESANA_PLANNER = {
-    async fetchRealAIQuestions(userPrompt, provider, apiKey, abortSignal) {
+    async fetchRealAIQuestions(userPrompt, provider, apiKey, geminiModels, abortSignal) {
         const isKurdish = /[\u0600-\u06FF]/.test(userPrompt);
-        const sysPrompt = `The user wants to create this game: "${userPrompt}".
-Generate EXACTLY 10 specific, practical game design questions exclusively about "${userPrompt}".
-Never ask about unrelated genres!
-Language: ${isKurdish ? 'Write all questions and options in Central Kurdish (سۆرانی).' : 'Write all questions and options in English.'}
-Return ONLY a raw JSON array of 10 objects in this exact structure:
-[{"category":"Look & Feel","aiIntro":"1. Question...","options":["Option 1","Option 2","Option 3","Option 4"]}]
-Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & Progression", "Look & Feel".`;
+        const promptForQuestions = `
+You are an expert game director inside ApexGen.
+STEP 1: Carefully read and understand every single word of the user's game description:
+USER DESCRIPTION: "${userPrompt}"
 
-        // 7-second safety timeout so the modal NEVER freezes on 0%!
-        const timeoutCtrl = new AbortController();
-        const timer = setTimeout(() => timeoutCtrl.abort(), 7500);
-        if (abortSignal) abortSignal.addEventListener('abort', () => timeoutCtrl.abort());
+STEP 2: Generate EXACTLY 10 deep, specific, practical follow-up questions to ask the user about THEIR exact description ("${userPrompt}").
+CRITICAL RULES:
+- Every single question and all 4 options per question MUST be 100% about the specific characters, monsters, setting, rules, items, atmosphere, and mechanics mentioned or implied in "${userPrompt}"!
+- NEVER ask generic questions or mention things unrelated to "${userPrompt}"!
+- LANGUAGE: ${isKurdish ? 'Write all "aiIntro" questions and "options" in natural Central Kurdish (سۆرانی).' : 'Write all "aiIntro" questions and "options" in English.'}
+- Return ONLY a valid JSON array of 10 objects (no markdown prose):
+[
+  {
+    "category": "Game idea",
+    "aiIntro": "1. Specific question about ${userPrompt}...",
+    "options": ["Specific option A", "Specific option B", "Specific option C", "Specific option D"]
+  }
+]
+(Cycle "category" across: "Game idea", "Gameplay", "Direction", "World & Progression", "Look & Feel").`;
 
-        try {
-            let rawText = '';
-            if (provider === 'gemini') {
-                const fastModels = ['models/gemini-2.5-flash', 'models/gemini-2.0-flash'];
-                for (const m of fastModels) {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`, {
+        let rawText = '';
+
+        if (provider === 'gemini') {
+            // Discover all working Gemini models on the user's key so it NEVER fails
+            const candidateModels = [
+                'models/gemini-2.5-flash',
+                'models/gemini-2.0-flash',
+                'models/gemini-2.5-pro',
+                ...(geminiModels || [])
+            ].filter((v, i, a) => a.indexOf(v) === i);
+
+            for (const modelName of candidateModels) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{ parts: [{ text: sysPrompt }] }],
+                            contents: [{ parts: [{ text: promptForQuestions }] }],
                             generationConfig: {
-                                temperature: 0.4,
-                                responseMimeType: 'application/json'
+                                temperature: 0.45,
+                                maxOutputTokens: 4096
                             }
                         }),
-                        signal: timeoutCtrl.signal
+                        signal: abortSignal
                     });
-                    if (res.ok) {
-                        const data = await res.json();
-                        rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                        if (rawText.trim()) break;
-                    }
-                }
-            } else if (provider === 'openai') {
-                const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: sysPrompt }] }),
-                    signal: timeoutCtrl.signal
-                });
-                if (res.ok) {
+                    if (!res.ok) continue;
                     const data = await res.json();
-                    rawText = data.choices[0].message.content;
-                }
-            } else if (provider === 'claude') {
-                const res = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                    body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 2048, messages: [{ role: 'user', content: sysPrompt }] }),
-                    signal: timeoutCtrl.signal
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    rawText = data.content[0].text;
+                    rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                    if (rawText && rawText.includes('[')) break;
+                } catch (e) {
+                    if (e.name === 'AbortError') throw e;
                 }
             }
-
-            clearTimeout(timer);
-            const s = rawText.indexOf('['), e = rawText.lastIndexOf(']');
-            if (s !== -1 && e !== -1) {
-                const parsed = JSON.parse(rawText.slice(s, e + 1));
-                if (Array.isArray(parsed) && parsed.length >= 5) return parsed.slice(0, 10);
-            }
-        } catch (err) {
-            clearTimeout(timer);
+        } else if (provider === 'openai') {
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    temperature: 0.45,
+                    messages: [{ role: 'user', content: promptForQuestions }]
+                }),
+                signal: abortSignal
+            });
+            const data = await res.json();
+            if (res.ok) rawText = data.choices[0].message.content;
+        } else if (provider === 'claude') {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                body: JSON.stringify({
+                    model: 'claude-3-5-sonnet-latest',
+                    max_tokens: 4096,
+                    temperature: 0.45,
+                    messages: [{ role: 'user', content: promptForQuestions }]
+                }),
+                signal: abortSignal
+            });
+            const data = await res.json();
+            if (res.ok) rawText = data.content[0].text;
         }
 
-        // Context-aware fallback if internet is slow
-        return [
-            { category: 'Look & Feel', aiIntro: `1. What visual style do you want for "${userPrompt}"?`, options: [`3D detailed & realistic (${userPrompt})`, `3D dark & atmospheric (${userPrompt})`, `3D vibrant stylized (${userPrompt})`, `3D low-poly retro`] },
-            { category: 'Game idea', aiIntro: `2. How should the camera work in "${userPrompt}"?`, options: ["First-Person (FPS) immersive view", "Third-Person (TPS) follow camera", "Top-down tactical camera", "Dynamic action camera"] },
-            { category: 'World & Progression', aiIntro: `3. What 3D map & setting should we build for "${userPrompt}"?`, options: [`Detailed outdoor terrain & structures for ${userPrompt}`, `Walled arena / compound for ${userPrompt}`, `Dark night environment with fog & lights`, `Large open world map`] },
-            { category: 'Game idea', aiIntro: `4. How should the main controllable player work?`, options: ["Fast & agile character with custom gear", "Heavy armored specialist", "First-person hands & interactive tools/weapons", "Custom hero tailored to the game"] },
-            { category: 'Gameplay', aiIntro: `5. What is the main objective in "${userPrompt}"?`, options: ["Survive waves & defeat bosses", "Complete challenges & score points", "Gather resources, craft & survive", "Eliminate all targets & upgrade"] },
-            { category: 'Gameplay', aiIntro: `6. What primary action/weapon is triggered by the ATTACK button?`, options: ["Ranged projectile / firearm attack", "Melee weapon slash / tool swing", "Special ability & shockwave", "Context action & interaction"] },
-            { category: 'Direction', aiIntro: `7. What enemies, opponents, or hazards should spawn?`, options: ["Aggressive chasing enemies + Bosses", "Patrolling guards & traps", "Wild creatures / monsters in waves", "Dynamic physics obstacles & rivals"] },
-            { category: 'World & Progression', aiIntro: `8. How does upgrading and progression work?`, options: ["Earn cash/points per action + In-game Upgrade Button", "Wave/Level progression with higher difficulty", "Collect power-ups & health packs", "Upgrade speed, health & power"] },
-            { category: 'Look & Feel', aiIntro: `9. What lighting & Canvas particle effects should be active?`, options: ["HDR bloom, hit particles & atmospheric fog", "Sunny daylight with crisp shadows", "Dark horror lighting with spotlight/flashlight", "Neon cyber glow & sparks"] },
-            { category: 'Direction', aiIntro: `10. What HUD elements should appear on screen?`, options: ["Health Bar + Score/Cash + Wave + Upgrade Button", "Crosshair + Ammo/Energy + Boss Health Bar", "Timer + Scoreboard + Vitals", "Clean modern HUD"] }
-        ];
+        const cleaned = (rawText || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+        const startIdx = cleaned.indexOf('[');
+        const endIdx = cleaned.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) {
+            const parsed = JSON.parse(cleaned.slice(startIdx, endIdx + 1));
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.slice(0, 10);
+            }
+        }
+        throw new Error('Could not parse AI questions. Please tap Retry.');
     },
 
     openPlanModal(initialPrompt, provider, apiKey, geminiModels, abortSignal) {
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
             const existing = document.getElementById('tesanaPlanModal');
             if (existing) existing.remove();
 
@@ -432,7 +443,7 @@ Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & P
                     </button>
                     <div style="text-align:center;">
                         <div style="font-size:15px;font-weight:700;color:#cbd5e1;">Set your plan</div>
-                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">AI Generating 10 Questions...</div>
+                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Reading your description...</div>
                     </div>
                     <button id="tpSkipBtn" style="padding:9px 18px;border-radius:999px;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
                         Skip
@@ -444,8 +455,8 @@ Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & P
                         ${initialPrompt}
                     </div>
                     <div id="tpAiQuestionText" style="font-size:15px;color:#cbd5e1;margin-bottom:16px;line-height:1.45;font-weight:600;">
-                        <i class="fa-solid fa-wand-magic-sparkles fa-fade" style="color:#38bdf8;margin-right:6px;"></i>
-                        AI is crafting 10 custom questions for "${initialPrompt}"...
+                        <i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i>
+                        AI is reading your description and preparing 10 tailored questions...
                     </div>
                     <div id="tpOptionsList" style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;"></div>
                 </div>
@@ -453,7 +464,7 @@ Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & P
                 <div style="max-width:500px;width:100%;margin:0 auto;background:#12141c;border:1px solid #222634;border-radius:24px;padding:16px;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <span style="font-size:13px;color:#94a3b8;font-weight:600;"><i class="fa-regular fa-file-lines mr-1"></i> Game plan progress</span>
-                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">10%</span>
+                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">0%</span>
                     </div>
                     <div id="tpCategoriesRow" style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;"></div>
                     <div style="background:#1a1d27;border:1px solid #2a2e3d;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;">
@@ -526,11 +537,14 @@ Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & P
                     return;
                 }
                 const chosenList = questions.map((q, idx) => answers[idx] || (q.options && q.options[0]) || 'Standard');
-                const compiledText = questions.map((q, idx) => `${idx + 1}. [${q.category}] ${q.aiIntro} -> ${chosenList[idx]}`).join('\n');
+                const compiledText = questions.map((q, idx) => `${idx + 1}. [${q.category}] ${q.aiIntro}\n   -> USER ANSWER: ${chosenList[idx]}`).join('\n');
                 resolve({ chosenList, compiledText });
             }
 
-            document.getElementById('tpBackBtn').onclick = () => { if (currentIdx > 0) { currentIdx--; renderStep(); } else finishPlanning(); };
+            document.getElementById('tpBackBtn').onclick = () => {
+                if (questions.length && currentIdx > 0) { currentIdx--; renderStep(); }
+                else { modal.remove(); reject(new Error('Planning cancelled')); }
+            };
             document.getElementById('tpSkipBtn').onclick = () => finishPlanning();
             document.getElementById('tpWriteOwnFocusBtn').onclick = () => document.getElementById('tpCustomInput')?.focus();
             document.getElementById('tpSendCustomBtn').onclick = () => {
@@ -544,9 +558,30 @@ Categories must be cycled from: "Game idea", "Gameplay", "Direction", "World & P
                 }
             });
 
-            questions = await this.fetchRealAIQuestions(initialPrompt, provider, apiKey, abortSignal);
-            answers = new Array(questions.length).fill('');
-            renderStep();
+            const loadQuestions = async () => {
+                try {
+                    document.getElementById('tpAiQuestionText').innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i> AI is analyzing "${initialPrompt}" to craft 10 tailored questions...`;
+                    questions = await this.fetchRealAIQuestions(initialPrompt, provider, apiKey, geminiModels, abortSignal);
+                    answers = new Array(questions.length).fill('');
+                    renderStep();
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        modal.remove();
+                        reject(err);
+                        return;
+                    }
+                    document.getElementById('tpAiQuestionText').innerHTML = `<span style="color:#f87171;">Connection slow while generating questions: ${err.message}</span>`;
+                    const list = document.getElementById('tpOptionsList');
+                    list.innerHTML = '';
+                    const retryBtn = document.createElement('button');
+                    retryBtn.style.cssText = 'padding:12px 20px;border-radius:16px;background:#0284c7;color:#fff;font-size:14px;font-weight:700;cursor:pointer;border:none;';
+                    retryBtn.innerText = '🔄 Retry Generating 10 Questions';
+                    retryBtn.onclick = () => loadQuestions();
+                    list.appendChild(retryBtn);
+                }
+            };
+
+            await loadQuestions();
         });
     }
 };
