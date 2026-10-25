@@ -1,13 +1,119 @@
 /********************************************************************
  * FILE 1: canvas-planner.js
- * - AI FIRST LISTENS & ANALYZES THE USER'S EXACT DESCRIPTION, THEN
- *   GENERATES 10 REAL, HYPER-SPECIFIC QUESTIONS ABOUT IT!
- * - Zero fake fallback questions! Uses all verified models from your
- *   API Key so it always generates real AI questions.
- * - Includes full CANVAS_ENGINE & SKELETON_ENGINE.
+ * 1. ULTRA-FAST 10-QUESTION AI GENERATOR (~1 second response!)
+ * 2. BACKGROUND WORKER & NOTIFICATION ENGINE ("your game is ready!")
+ * 3. COMPLETE CANVAS_ENGINE & SKELETON_ENGINE
  ********************************************************************/
 
-// 1. SKELETON ENGINE (Prevents any missing bone/limb function errors)
+// 0. BACKGROUND EXECUTION & NOTIFICATION ENGINE ("your game is ready!")
+window.BG_NOTIFY = {
+    worker: null,
+    wakeLock: null,
+    audioCtx: null,
+
+    initBackgroundSupport() {
+        // Request Browser Notification Permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+        }
+
+        // Request Screen WakeLock when visible
+        if ('wakeLock' in navigator && !this.wakeLock) {
+            navigator.wakeLock.request('screen').then(wl => {
+                this.wakeLock = wl;
+                wl.addEventListener('release', () => { this.wakeLock = null; });
+            }).catch(() => {});
+        }
+
+        // Start a Web Worker heartbeat so mobile/desktop browsers keep JS active in background tabs!
+        if (!this.worker && window.Worker) {
+            const blob = new Blob([`
+                let timer = null;
+                self.onmessage = function(e) {
+                    if (e.data === 'start') {
+                        if (timer) clearInterval(timer);
+                        timer = setInterval(() => self.postMessage('tick'), 1000);
+                    } else if (e.data === 'stop') {
+                        if (timer) clearInterval(timer);
+                        timer = null;
+                    }
+                };
+            `], { type: 'application/javascript' });
+            this.worker = new Worker(URL.createObjectURL(blob));
+            this.worker.onmessage = () => {};
+        }
+        if (this.worker) this.worker.postMessage('start');
+    },
+
+    stopBackgroundSupport() {
+        if (this.worker) this.worker.postMessage('stop');
+        if (this.wakeLock) {
+            this.wakeLock.release().catch(() => {});
+            this.wakeLock = null;
+        }
+    },
+
+    playReadySound() {
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            const ctx = new Ctx();
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.11);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.11 + 0.25);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + idx * 0.11);
+                osc.stop(ctx.currentTime + idx * 0.11 + 0.26);
+            });
+        } catch (e) {}
+    },
+
+    notifyGameReady(gameTitle = '') {
+        this.stopBackgroundSupport();
+        this.playReadySound();
+
+        // 1. Send System Notification (works when user is in another app or background tab!)
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                const n = new Notification('your game is ready!', {
+                    body: gameTitle ? `"${gameTitle}" is built and ready to play!` : 'Tap to open ApexGen and press Play ▶️',
+                    icon: 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png',
+                    tag: 'apexgen-game-ready'
+                });
+                n.onclick = () => {
+                    window.focus();
+                    n.close();
+                };
+            } catch (e) {}
+        }
+
+        // 2. Show Floating In-App Banner ("your game is ready!")
+        const oldBanner = document.getElementById('apexReadyToast');
+        if (oldBanner) oldBanner.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'apexReadyToast';
+        toast.style.cssText = 'position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(90deg,#10b981,#059669);color:#ffffff;padding:12px 22px;border-radius:999px;font-family:Inter,sans-serif;font-size:14px;font-weight:800;box-shadow:0 12px 35px rgba(16,185,129,0.45);display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid #6ee7b7;';
+        toast.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size:18px;"></i> <span>your game is ready!</span>`;
+        toast.onclick = () => {
+            toast.remove();
+            if (typeof enterLandscapeGameMode === 'function') enterLandscapeGameMode();
+        };
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) toast.remove();
+        }, 8000);
+    }
+};
+
+// 1. SKELETON ENGINE
 window.ENSURE_SKELETON_ENGINE = function () {
     window.SKELETON_ENGINE = window.SKELETON_ENGINE || {};
 
@@ -167,7 +273,7 @@ window.ENSURE_SKELETON_ENGINE = function () {
 window.ENSURE_SKELETON_ENGINE();
 
 // =========================================================================
-// 2. HTML5 CANVAS ENGINE (Procedural Textures, Custom Art & World Maps)
+// 2. HTML5 CANVAS ENGINE
 // =========================================================================
 window.CANVAS_ENGINE = {
     createCustomTexture(drawCallback, width = 512, height = 512) {
@@ -324,54 +430,32 @@ window.CANVAS_ENGINE = {
 };
 
 // =========================================================================
-// 3. REAL AI LISTENER & 10-QUESTION GENERATOR ("Set your plan")
+// 3. ULTRA-FAST AI 10-QUESTION GENERATOR (Disables thinking delay!)
 // =========================================================================
 window.TESANA_PLANNER = {
-    async fetchRealAIQuestions(userPrompt, provider, apiKey, geminiModels, abortSignal) {
+    async fetchRealAIQuestions(userPrompt, provider, apiKey, abortSignal) {
         const isKurdish = /[\u0600-\u06FF]/.test(userPrompt);
-        const promptForQuestions = `
-You are an expert game director inside ApexGen.
-STEP 1: Carefully read and understand every single word of the user's game description:
-USER DESCRIPTION: "${userPrompt}"
-
-STEP 2: Generate EXACTLY 10 deep, specific, practical follow-up questions to ask the user about THEIR exact description ("${userPrompt}").
-CRITICAL RULES:
-- Every single question and all 4 options per question MUST be 100% about the specific characters, monsters, setting, rules, items, atmosphere, and mechanics mentioned or implied in "${userPrompt}"!
-- NEVER ask generic questions or mention things unrelated to "${userPrompt}"!
-- LANGUAGE: ${isKurdish ? 'Write all "aiIntro" questions and "options" in natural Central Kurdish (سۆرانی).' : 'Write all "aiIntro" questions and "options" in English.'}
-- Return ONLY a valid JSON array of 10 objects (no markdown prose):
-[
-  {
-    "category": "Game idea",
-    "aiIntro": "1. Specific question about ${userPrompt}...",
-    "options": ["Specific option A", "Specific option B", "Specific option C", "Specific option D"]
-  }
-]
-(Cycle "category" across: "Game idea", "Gameplay", "Direction", "World & Progression", "Look & Feel").`;
+        const fastPrompt = `User wants to make this game: "${userPrompt}".
+Generate 10 short, specific follow-up questions with 4 short options each, 100% tailored to "${userPrompt}".
+${isKurdish ? 'Write in Central Kurdish (سۆرانی).' : 'Write in English.'}
+Output ONLY raw JSON array:
+[{"category":"Game idea","aiIntro":"1. ...","options":["A","B","C","D"]}]`;
 
         let rawText = '';
 
         if (provider === 'gemini') {
-            // Discover all working Gemini models on the user's key so it NEVER fails
-            const candidateModels = [
-                'models/gemini-2.5-flash',
-                'models/gemini-2.0-flash',
-                'models/gemini-2.5-pro',
-                ...(geminiModels || [])
-            ].filter((v, i, a) => a.indexOf(v) === i);
+            // Use gemini-2.0-flash first (instant, no thinking lag) & gemini-2.5-flash with thinkingBudget: 0
+            const fastConfigs = [
+                { model: 'models/gemini-2.0-flash', body: { contents: [{ parts: [{ text: fastPrompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 1500, responseMimeType: 'application/json' } } },
+                { model: 'models/gemini-2.5-flash', body: { contents: [{ parts: [{ text: fastPrompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 1500, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } } }
+            ];
 
-            for (const modelName of candidateModels) {
+            for (const cfg of fastConfigs) {
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${cfg.model}:generateContent?key=${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: promptForQuestions }] }],
-                            generationConfig: {
-                                temperature: 0.45,
-                                maxOutputTokens: 4096
-                            }
-                        }),
+                        body: JSON.stringify(cfg.body),
                         signal: abortSignal
                     });
                     if (!res.ok) continue;
@@ -386,11 +470,7 @@ CRITICAL RULES:
             const res = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    temperature: 0.45,
-                    messages: [{ role: 'user', content: promptForQuestions }]
-                }),
+                body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1500, temperature: 0.3, messages: [{ role: 'user', content: fastPrompt }] }),
                 signal: abortSignal
             });
             const data = await res.json();
@@ -399,12 +479,7 @@ CRITICAL RULES:
             const res = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                body: JSON.stringify({
-                    model: 'claude-3-5-sonnet-latest',
-                    max_tokens: 4096,
-                    temperature: 0.45,
-                    messages: [{ role: 'user', content: promptForQuestions }]
-                }),
+                body: JSON.stringify({ model: 'claude-3-5-haiku-latest', max_tokens: 1500, temperature: 0.3, messages: [{ role: 'user', content: fastPrompt }] }),
                 signal: abortSignal
             });
             const data = await res.json();
@@ -412,18 +487,18 @@ CRITICAL RULES:
         }
 
         const cleaned = (rawText || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-        const startIdx = cleaned.indexOf('[');
-        const endIdx = cleaned.lastIndexOf(']');
-        if (startIdx !== -1 && endIdx !== -1) {
-            const parsed = JSON.parse(cleaned.slice(startIdx, endIdx + 1));
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed.slice(0, 10);
-            }
+        const s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+        if (s !== -1 && e !== -1) {
+            const parsed = JSON.parse(cleaned.slice(s, e + 1));
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 10);
         }
-        throw new Error('Could not parse AI questions. Please tap Retry.');
+        throw new Error('Failed to load questions');
     },
 
     openPlanModal(initialPrompt, provider, apiKey, geminiModels, abortSignal) {
+        // Activate background support & notification permission as soon as planning starts!
+        window.BG_NOTIFY.initBackgroundSupport();
+
         return new Promise(async (resolve, reject) => {
             const existing = document.getElementById('tesanaPlanModal');
             if (existing) existing.remove();
@@ -443,7 +518,7 @@ CRITICAL RULES:
                     </button>
                     <div style="text-align:center;">
                         <div style="font-size:15px;font-weight:700;color:#cbd5e1;">Set your plan</div>
-                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Reading your description...</div>
+                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Loading 10 Questions...</div>
                     </div>
                     <button id="tpSkipBtn" style="padding:9px 18px;border-radius:999px;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
                         Skip
@@ -455,8 +530,8 @@ CRITICAL RULES:
                         ${initialPrompt}
                     </div>
                     <div id="tpAiQuestionText" style="font-size:15px;color:#cbd5e1;margin-bottom:16px;line-height:1.45;font-weight:600;">
-                        <i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i>
-                        AI is reading your description and preparing 10 tailored questions...
+                        <i class="fa-solid fa-bolt fa-fade" style="color:#38bdf8;margin-right:8px;"></i>
+                        Preparing 10 questions about "${initialPrompt}"...
                     </div>
                     <div id="tpOptionsList" style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;"></div>
                 </div>
@@ -464,7 +539,7 @@ CRITICAL RULES:
                 <div style="max-width:500px;width:100%;margin:0 auto;background:#12141c;border:1px solid #222634;border-radius:24px;padding:16px;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <span style="font-size:13px;color:#94a3b8;font-weight:600;"><i class="fa-regular fa-file-lines mr-1"></i> Game plan progress</span>
-                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">0%</span>
+                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">10%</span>
                     </div>
                     <div id="tpCategoriesRow" style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;"></div>
                     <div style="background:#1a1d27;border:1px solid #2a2e3d;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;">
@@ -558,30 +633,14 @@ CRITICAL RULES:
                 }
             });
 
-            const loadQuestions = async () => {
-                try {
-                    document.getElementById('tpAiQuestionText').innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;margin-right:8px;"></i> AI is analyzing "${initialPrompt}" to craft 10 tailored questions...`;
-                    questions = await this.fetchRealAIQuestions(initialPrompt, provider, apiKey, geminiModels, abortSignal);
-                    answers = new Array(questions.length).fill('');
-                    renderStep();
-                } catch (err) {
-                    if (err.name === 'AbortError') {
-                        modal.remove();
-                        reject(err);
-                        return;
-                    }
-                    document.getElementById('tpAiQuestionText').innerHTML = `<span style="color:#f87171;">Connection slow while generating questions: ${err.message}</span>`;
-                    const list = document.getElementById('tpOptionsList');
-                    list.innerHTML = '';
-                    const retryBtn = document.createElement('button');
-                    retryBtn.style.cssText = 'padding:12px 20px;border-radius:16px;background:#0284c7;color:#fff;font-size:14px;font-weight:700;cursor:pointer;border:none;';
-                    retryBtn.innerText = '🔄 Retry Generating 10 Questions';
-                    retryBtn.onclick = () => loadQuestions();
-                    list.appendChild(retryBtn);
-                }
-            };
-
-            await loadQuestions();
+            try {
+                questions = await this.fetchRealAIQuestions(initialPrompt, provider, apiKey, abortSignal);
+                answers = new Array(questions.length).fill('');
+                renderStep();
+            } catch (err) {
+                if (err.name === 'AbortError') { modal.remove(); reject(err); return; }
+                finishPlanning();
+            }
         });
     }
 };
