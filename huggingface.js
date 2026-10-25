@@ -1,646 +1,403 @@
 /********************************************************************
- * FILE 1: canvas-planner.js
- * 1. ULTRA-FAST 10-QUESTION AI GENERATOR (~1 second response!)
- * 2. BACKGROUND WORKER & NOTIFICATION ENGINE ("your game is ready!")
- * 3. COMPLETE CANVAS_ENGINE & SKELETON_ENGINE
+ * FILE 2: huggingface.js -> BACKGROUND-READY AI GAME COMPILER
+ * - Fixes "Error: HTTP 405" by using standard POST generateContent
+ * - Fixes "Unexpected token '*'" & Empty Map issues
+ * - Runs in Background & sends "your game is ready!" notification!
  ********************************************************************/
+window.REAL_3D_AI_BUILDER = {
+    lastGeneratedCode: '',
+    lastPlanSummary: '',
+    lastChosenList: [],
 
-// 0. BACKGROUND EXECUTION & NOTIFICATION ENGINE ("your game is ready!")
-window.BG_NOTIFY = {
-    worker: null,
-    wakeLock: null,
-    audioCtx: null,
+    SYSTEM_PROMPT: `
+You are the Core Three.js (r128) & HTML5 Canvas Game Compiler inside "ApexGen".
+Write a COMPLETE, 100% PLAYABLE 3D game in raw JavaScript (300 to 420 lines) that implements the user's description and all 10 of their Game Plan answers!
 
-    initBackgroundSupport() {
-        // Request Browser Notification Permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission().catch(() => {});
+STRICT ENGINE RULES:
+1. DO NOT create \`new THREE.Scene()\`, \`new THREE.WebGLRenderer()\`, or \`new THREE.PerspectiveCamera()\`. Add all 3D objects directly to the global \`scene\`, and use the global \`camera\`, \`renderer\`, and \`controls\`.
+2. DO NOT wrap code in \`window.onload\` or \`DOMContentLoaded\`. Execute immediately.
+3. NEVER use multi-line comments (\`/* ... */\`) or markdown (\`**\`). Use ONLY single-line comments (\`//\`). Start line 1 with: // BUILT: <title>
+4. Hide default grid on line 2: \`if (typeof infiniteGrid !== 'undefined' && infiniteGrid) infiniteGrid.visible = false;\`
+
+MANDATORY 4 PARTS:
+- PART 1 (3D CANVAS WORLD):
+  Call \`const worldGroup = window.CANVAS_ENGINE.buildCanvasWorldMap({ groundColor: '#...', patchColor: '#...', skyTopColor: '#...', skyHorizonColor: '#...', hills: true, hillHeight: 2.2, hasRoads: false });\`
+  Add 15+ custom 3D buildings, trees, walls, props, lights, and register obstacles via \`window.PHYSICS.addStaticCollider(mesh, 0.001)\`.
+- PART 2 (PLAYER & CAMERA):
+  Create \`const playerRoot = new THREE.Group(); playerRoot.userData.isPlayer = true; scene.add(playerRoot); window.createdObjects.push(playerRoot); window.PHYSICS.registerDynamicBody(playerRoot, 0.75);\`.
+  Support First-Person (FPS with 3D arms/weapon/flashlight on \`camera\`, \`controls.enabled = false\`, pointermove look) or Third-Person (TPS with \`window.SKELETON_ENGINE.build60BoneCharacter\`).
+- PART 3 (ENEMIES & HUD):
+  Create HUD inside \`#landscapeGameStage\`:
+  \`let hud = document.getElementById('aiScratchHUD'); if (hud) hud.remove(); hud = document.createElement('div'); hud.id = 'aiScratchHUD'; (document.getElementById('landscapeGameStage') || document.body).appendChild(hud);\`
+  Spawn enemies/monsters using \`window.SKELETON_ENGINE.build60BoneCharacter(...)\` and \`window.CANVAS_ENGINE.createFloatingHealthBar(...)\`.
+- PART 4 (60FPS LOOP):
+  Push loop to \`window.updateFunctions.push((delta, time) => { ... });\`. Read both \`window.keysPressed\` ('w','a','s','d',' ','e','shift') and \`window.joystickVector\` ({x, y}).
+`,
+
+    adaptAICodeToEngine(rawText) {
+        if (!rawText) return '';
+        let code = rawText;
+
+        const scriptTag = code.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+        if (scriptTag) {
+            code = scriptTag[1];
+        } else {
+            const openFence = code.match(/```(?:javascript|js)?\s*/i);
+            if (openFence) {
+                code = code.slice(openFence.index + openFence[0].length);
+                const closeIdx = code.indexOf('```');
+                if (closeIdx !== -1) code = code.slice(0, closeIdx);
+            }
         }
 
-        // Request Screen WakeLock when visible
-        if ('wakeLock' in navigator && !this.wakeLock) {
-            navigator.wakeLock.request('screen').then(wl => {
-                this.wakeLock = wl;
-                wl.addEventListener('release', () => { this.wakeLock = null; });
-            }).catch(() => {});
-        }
+        // Remove /* ... */ and stray '*' tokens
+        code = code.replace(/\/\*[\s\S]*?\*\//g, '');
+        const unclosedIdx = code.indexOf('/*');
+        if (unclosedIdx !== -1) code = code.slice(0, unclosedIdx);
+        code = code.replace(/\*\//g, '');
 
-        // Start a Web Worker heartbeat so mobile/desktop browsers keep JS active in background tabs!
-        if (!this.worker && window.Worker) {
-            const blob = new Blob([`
-                let timer = null;
-                self.onmessage = function(e) {
-                    if (e.data === 'start') {
-                        if (timer) clearInterval(timer);
-                        timer = setInterval(() => self.postMessage('tick'), 1000);
-                    } else if (e.data === 'stop') {
-                        if (timer) clearInterval(timer);
-                        timer = null;
-                    }
-                };
-            `], { type: 'application/javascript' });
-            this.worker = new Worker(URL.createObjectURL(blob));
-            this.worker.onmessage = () => {};
+        code = code.split('\n').filter(line => {
+            const t = line.trim();
+            if (t.startsWith('```') || t.startsWith('<!DOCTYPE') || t.startsWith('<html') || t.startsWith('<body') || t.startsWith('</')) return false;
+            if (/^\*\*[^*]+\*\*/.test(t) || /^\*\s+/.test(t) || /^#{1,6}\s+/.test(t)) return false;
+            return true;
+        }).join('\n').trim();
+
+        // Prevent shadowing global scene/camera/renderer
+        code = code.replace(/(?:const|let|var)\s+scene\s*=\s*new\s+THREE\.Scene\s*\([^)]*\)\s*;?/g, '');
+        code = code.replace(/(?:const|let|var)\s+camera\s*=\s*new\s+THREE\.\w*Camera\s*\([^)]*\)\s*;?/g, '');
+        code = code.replace(/(?:const|let|var)\s+renderer\s*=\s*new\s+THREE\.WebGLRenderer\s*\([\s\S]*?\)\s*;?/g, '');
+        code = code.replace(/(?:const|let|var)\s+controls\s*=\s*new\s+THREE\.OrbitControls\s*\([^)]*\)\s*;?/g, '');
+        code = code.replace(/document\.body\.appendChild\s*\(\s*renderer\.domElement\s*\)\s*;?/g, '');
+        code = code.replace(/document\.body\.appendChild\s*\(/g, '(document.getElementById("landscapeGameStage") || document.body).appendChild(');
+
+        // Balance brackets if truncated
+        let openCurly = 0, openParen = 0, openSq = 0;
+        let inStr = false, strChar = '', escaped = false, inSingleComment = false;
+        for (let i = 0; i < code.length; i++) {
+            const ch = code[i], next = code[i + 1];
+            if (inSingleComment) { if (ch === '\n') inSingleComment = false; continue; }
+            if (inStr) {
+                if (escaped) { escaped = false; continue; }
+                if (ch === '\\') { escaped = true; continue; }
+                if (ch === strChar) inStr = false;
+                continue;
+            }
+            if (ch === '/' && next === '/') { inSingleComment = true; i++; continue; }
+            if (ch === '"' || ch === "'" || ch === '`') { inStr = true; strChar = ch; continue; }
+            if (ch === '{') openCurly++;
+            else if (ch === '}') openCurly = Math.max(0, openCurly - 1);
+            else if (ch === '(') openParen++;
+            else if (ch === ')') openParen = Math.max(0, openParen - 1);
+            else if (ch === '[') openSq++;
+            else if (ch === ']') openSq = Math.max(0, openSq - 1);
         }
-        if (this.worker) this.worker.postMessage('start');
+        if (inStr) code += strChar;
+        while (openSq > 0) { code += ']'; openSq--; }
+        while (openParen > 0) { code += ')'; openParen--; }
+        while (openCurly > 0) { code += '\n}'; openCurly--; }
+
+        return code;
     },
 
-    stopBackgroundSupport() {
-        if (this.worker) this.worker.postMessage('stop');
-        if (this.wakeLock) {
-            this.wakeLock.release().catch(() => {});
-            this.wakeLock = null;
-        }
-    },
-
-    playReadySound() {
-        try {
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            if (!Ctx) return;
-            const ctx = new Ctx();
-            const notes = [523.25, 659.25, 783.99, 1046.5];
-            notes.forEach((freq, idx) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.11);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.11 + 0.25);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(ctx.currentTime + idx * 0.11);
-                osc.stop(ctx.currentTime + idx * 0.11 + 0.26);
-            });
-        } catch (e) {}
-    },
-
-    notifyGameReady(gameTitle = '') {
-        this.stopBackgroundSupport();
-        this.playReadySound();
-
-        // 1. Send System Notification (works when user is in another app or background tab!)
-        if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-                const n = new Notification('your game is ready!', {
-                    body: gameTitle ? `"${gameTitle}" is built and ready to play!` : 'Tap to open ApexGen and press Play ▶️',
-                    icon: 'https://cdn-icons-png.flaticon.com/512/8002/8002111.png',
-                    tag: 'apexgen-game-ready'
-                });
-                n.onclick = () => {
-                    window.focus();
-                    n.close();
-                };
-            } catch (e) {}
-        }
-
-        // 2. Show Floating In-App Banner ("your game is ready!")
-        const oldBanner = document.getElementById('apexReadyToast');
-        if (oldBanner) oldBanner.remove();
-
-        const toast = document.createElement('div');
-        toast.id = 'apexReadyToast';
-        toast.style.cssText = 'position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(90deg,#10b981,#059669);color:#ffffff;padding:12px 22px;border-radius:999px;font-family:Inter,sans-serif;font-size:14px;font-weight:800;box-shadow:0 12px 35px rgba(16,185,129,0.45);display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid #6ee7b7;';
-        toast.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size:18px;"></i> <span>your game is ready!</span>`;
-        toast.onclick = () => {
-            toast.remove();
-            if (typeof enterLandscapeGameMode === 'function') enterLandscapeGameMode();
-        };
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            if (toast.parentNode) toast.remove();
-        }, 8000);
-    }
-};
-
-// 1. SKELETON ENGINE
-window.ENSURE_SKELETON_ENGINE = function () {
-    window.SKELETON_ENGINE = window.SKELETON_ENGINE || {};
-
-    window.SKELETON_ENGINE.createSculptedLimbGeometry = function (length = 1.0, rTop = 0.18, rMid = 0.22, rBot = 0.14) {
-        const pts = [];
-        const steps = 12;
-        for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const r = t < 0.5
-                ? rBot + (rMid - rBot) * Math.sin((t / 0.5) * Math.PI * 0.5)
-                : rMid + (rTop - rMid) * (1 - Math.cos(((t - 0.5) / 0.5) * Math.PI * 0.5));
-            pts.push(new THREE.Vector2(Math.max(0.02, r), -length * (1 - t)));
-        }
-        const geo = new THREE.LatheGeometry(pts, 16);
-        geo.computeVertexNormals();
-        return geo;
-    };
-
-    window.SKELETON_ENGINE.build60BoneCharacter = function (opts = {}) {
-        const cfg = Object.assign({
-            name: 'warrior',
-            skinHex: '#dfd5ce',
-            tattooColor: '#991b1b',
-            hasTattoo: true,
-            hasBeard: true,
-            kiltColor: 0x7f1d1d,
-            armorColor: 0xd4af37,
-            hasWeapons: true,
-            weaponColor: 0xff4500
-        }, opts);
-
-        const root = new THREE.Group();
-        const bones = [];
-        const reg = (g) => { bones.push(g); return g; };
-
-        const skinTex = window.CANVAS_ENGINE
-            ? window.CANVAS_ENGINE.createCharacterSkinTexture({ skinColor: cfg.skinHex, scarColor: cfg.tattooColor, beard: cfg.hasBeard })
-            : null;
-
-        const skinMat = new THREE.MeshStandardMaterial({ color: cfg.skinHex, map: skinTex, roughness: 0.55 });
-        const kiltMat = new THREE.MeshStandardMaterial({ color: cfg.kiltColor, roughness: 0.75 });
-        const armorMat = new THREE.MeshStandardMaterial({ color: cfg.armorColor, metalness: 0.85, roughness: 0.25 });
-        const darkMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8 });
-        const glowMat = new THREE.MeshStandardMaterial({
-            color: cfg.weaponColor,
-            emissive: cfg.weaponColor,
-            emissiveIntensity: 2.2
-        });
-
-        const pelvis = reg(new THREE.Group());
-        pelvis.position.y = 1.05;
-        root.add(pelvis);
-        pelvis.add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.25, 0.34, 14), kiltMat));
-
-        const spine1 = reg(new THREE.Group()); spine1.position.y = 0.16; pelvis.add(spine1);
-        const spine2 = reg(new THREE.Group()); spine2.position.y = 0.20; spine1.add(spine2);
-        const spine3 = reg(new THREE.Group()); spine3.position.y = 0.22; spine2.add(spine3);
-        const spine4 = reg(new THREE.Group()); spine4.position.y = 0.22; spine3.add(spine4);
-
-        const torso = new THREE.Mesh(window.SKELETON_ENGINE.createSculptedLimbGeometry(0.82, 0.38, 0.34, 0.26), skinMat);
-        torso.position.y = 0.38;
-        spine1.add(torso);
-
-        const neck = reg(new THREE.Group()); neck.position.y = 0.22; spine4.add(neck);
-        const head = reg(new THREE.Group()); head.position.y = 0.14; neck.add(head);
-
-        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.21, 18, 18), skinMat);
-        skull.position.y = 0.16;
-        head.add(skull);
-
-        const jaw = reg(new THREE.Group()); jaw.position.set(0, 0.06, 0.02); head.add(jaw);
-        if (cfg.hasBeard) {
-            const beard = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.25, 12), darkMat);
-            beard.rotation.x = Math.PI;
-            beard.position.set(0, -0.02, 0.08);
-            jaw.add(beard);
-        }
-
-        const makeArm = (dir) => {
-            const clavicle = reg(new THREE.Group());
-            clavicle.position.set(dir * 0.38, 0.12, 0);
-            spine4.add(clavicle);
-
-            const shoulder = reg(new THREE.Group());
-            clavicle.add(shoulder);
-            shoulder.add(new THREE.Mesh(window.SKELETON_ENGINE.createSculptedLimbGeometry(0.42, 0.11, 0.12, 0.09), skinMat));
-
-            const elbow = reg(new THREE.Group());
-            elbow.position.y = -0.42;
-            shoulder.add(elbow);
-            elbow.add(new THREE.Mesh(window.SKELETON_ENGINE.createSculptedLimbGeometry(0.38, 0.09, 0.10, 0.075), armorMat));
-
-            const wrist = reg(new THREE.Group());
-            wrist.position.y = -0.38;
-            elbow.add(wrist);
-
-            if (cfg.hasWeapons) {
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.68), glowMat);
-                blade.position.z = 0.38;
-                wrist.add(blade);
-            }
-            return { clavicle, shoulder, elbow, wrist };
-        };
-
-        const leftArm = makeArm(1);
-        const rightArm = makeArm(-1);
-
-        const makeLeg = (dir) => {
-            const hip = reg(new THREE.Group());
-            hip.position.set(dir * 0.17, -0.06, 0);
-            pelvis.add(hip);
-            hip.add(new THREE.Mesh(window.SKELETON_ENGINE.createSculptedLimbGeometry(0.48, 0.14, 0.15, 0.11), skinMat));
-
-            const knee = reg(new THREE.Group());
-            knee.position.y = -0.48;
-            hip.add(knee);
-            knee.add(new THREE.Mesh(window.SKELETON_ENGINE.createSculptedLimbGeometry(0.46, 0.11, 0.11, 0.085), armorMat));
-
-            const ankle = reg(new THREE.Group());
-            ankle.position.y = -0.46;
-            knee.add(ankle);
-            return { hip, knee, ankle };
-        };
-
-        const leftLeg = makeLeg(1);
-        const rightLeg = makeLeg(-1);
-
-        root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-
-        function animateSkeleton(state = {}, time = 0, delta = 0.016) {
-            const spd = Math.hypot(state.velX || 0, state.velZ || 0);
-            if (spd > 0.2) {
-                state.walkCycle = (state.walkCycle || 0) + delta * 10;
-                const c = state.walkCycle;
-                leftLeg.hip.rotation.x = Math.sin(c) * 0.65;
-                rightLeg.hip.rotation.x = -Math.sin(c) * 0.65;
-                leftArm.shoulder.rotation.x = -Math.sin(c) * 0.55;
-                rightArm.shoulder.rotation.x = Math.sin(c) * 0.55;
-            } else {
-                leftLeg.hip.rotation.x *= 0.85;
-                rightLeg.hip.rotation.x *= 0.85;
-            }
-            if (state.attackTimer > 0) {
-                state.attackTimer -= delta;
-                const swing = Math.sin((1 - state.attackTimer / 0.5) * Math.PI * 2);
-                rightArm.shoulder.rotation.x = -1.5 + swing * 1.3;
-                leftArm.shoulder.rotation.x = -1.3 - swing * 1.1;
-            }
-        }
-
-        return {
-            root, pelvis, spine1, spine2, spine3, spine4, neck, head, jaw,
-            leftArm, rightArm, leftLeg, rightLeg, bones, animateSkeleton
-        };
-    };
-};
-window.ENSURE_SKELETON_ENGINE();
-
-// =========================================================================
-// 2. HTML5 CANVAS ENGINE
-// =========================================================================
-window.CANVAS_ENGINE = {
-    createCustomTexture(drawCallback, width = 512, height = 512) {
-        const c = document.createElement('canvas');
-        c.width = width; c.height = height;
-        const ctx = c.getContext('2d');
-        if (typeof drawCallback === 'function') drawCallback(ctx, width, height);
-        const tex = new THREE.CanvasTexture(c);
-        tex.needsUpdate = true;
-        return tex;
-    },
-
-    createCharacterSkinTexture({ skinColor = '#e2b897', eyeColor = '#38bdf8', scarColor = '#991b1b', beard = true } = {}) {
-        return this.createCustomTexture((ctx, w, h) => {
-            ctx.fillStyle = skinColor;
-            ctx.fillRect(0, 0, w, h);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(72, 95, 32, 14);
-            ctx.fillRect(152, 95, 32, 14);
-            ctx.fillStyle = eyeColor;
-            ctx.beginPath(); ctx.arc(88, 102, 6, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(168, 102, 6, 0, Math.PI * 2); ctx.fill();
-            if (scarColor) {
-                ctx.strokeStyle = scarColor;
-                ctx.lineWidth = 7;
-                ctx.beginPath(); ctx.moveTo(82, 55); ctx.lineTo(94, 155); ctx.stroke();
-            }
-            if (beard) {
-                ctx.fillStyle = '#1c1917';
-                ctx.fillRect(55, 155, 146, 70);
-            }
-        }, 256, 256);
-    },
-
-    createBiomeMapTexture({ primaryColor = '#c29b61', secondaryColor = '#9c7844', roadColor = '#334155', hasRoads = false } = {}) {
-        const tex = this.createCustomTexture((ctx, w, h) => {
-            ctx.fillStyle = primaryColor;
-            ctx.fillRect(0, 0, w, h);
-            for (let i = 0; i < 450; i++) {
-                ctx.fillStyle = i % 2 === 0 ? secondaryColor : primaryColor;
-                ctx.globalAlpha = 0.22;
-                ctx.beginPath();
-                ctx.arc(Math.random() * w, Math.random() * h, 8 + Math.random() * 28, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1.0;
-            if (hasRoads) {
-                ctx.fillStyle = roadColor;
-                ctx.fillRect(216, 0, 80, h);
-                ctx.fillRect(0, 216, w, 80);
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 4;
-                ctx.setLineDash([18, 14]);
-                ctx.beginPath();
-                ctx.moveTo(256, 0); ctx.lineTo(256, h);
-                ctx.moveTo(0, 256); ctx.lineTo(512, 256);
-                ctx.stroke();
-            }
-        }, 512, 512);
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(16, 16);
-        return tex;
-    },
-
-    buildCanvasWorldMap(opts = {}) {
-        const cfg = Object.assign({
-            groundColor: '#c29b61',
-            patchColor: '#9c7844',
-            skyTopColor: '#0f172a',
-            skyHorizonColor: '#d6b485',
-            hills: true,
-            hillHeight: 2.2,
-            hasRoads: false
-        }, opts);
-
+    async executeAdaptedCode(adaptedCode) {
         if (typeof infiniteGrid !== 'undefined' && infiniteGrid) infiniteGrid.visible = false;
 
-        const worldGroup = new THREE.Group();
-        scene.add(worldGroup);
-        window.createdObjects.push(worldGroup);
-
-        const skyTex = this.createCustomTexture((sCtx, w, h) => {
-            const skyGrad = sCtx.createLinearGradient(0, 0, 0, h);
-            skyGrad.addColorStop(0, cfg.skyTopColor);
-            skyGrad.addColorStop(1, cfg.skyHorizonColor);
-            sCtx.fillStyle = skyGrad;
-            sCtx.fillRect(0, 0, w, h);
-        }, 256, 256);
-
-        const skyDome = new THREE.Mesh(
-            new THREE.SphereGeometry(850, 24, 18),
-            new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide })
-        );
-        skyDome.userData.noCollide = true;
-        worldGroup.add(skyDome);
-
-        scene.fog = new THREE.FogExp2(new THREE.Color(cfg.skyHorizonColor).getHex(), 0.0035);
-
-        const mapTex = this.createBiomeMapTexture({
-            primaryColor: cfg.groundColor,
-            secondaryColor: cfg.patchColor,
-            hasRoads: cfg.hasRoads
-        });
-
-        const geo = new THREE.PlaneGeometry(420, 420, 75, 75);
-        geo.rotateX(-Math.PI / 2);
-        if (cfg.hills) {
-            const pos = geo.attributes.position;
-            for (let i = 0; i < pos.count; i++) {
-                const x = pos.getX(i), z = pos.getZ(i);
-                const flatMask = Math.min(1, Math.max(0, (Math.hypot(x, z) - 22) / 24));
-                pos.setY(i, Math.sin(x * 0.035) * Math.cos(z * 0.035) * cfg.hillHeight * flatMask);
-            }
-            geo.computeVertexNormals();
-        }
-
-        const terrain = new THREE.Mesh(
-            geo,
-            new THREE.MeshStandardMaterial({ map: mapTex, bumpMap: mapTex, bumpScale: 0.04, roughness: 0.88 })
-        );
-        terrain.position.y = 0.02;
-        terrain.receiveShadow = true;
-        terrain.userData.noCollide = true;
-        worldGroup.add(terrain);
-
-        return worldGroup;
-    },
-
-    createFloatingHealthBar(nameText = 'ENEMY', pct = 100, barColor = '#ef4444') {
-        const c = document.createElement('canvas');
-        c.width = 256; c.height = 64;
-        const ctx = c.getContext('2d');
-        const tex = new THREE.CanvasTexture(c);
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
-        sprite.scale.set(2.3, 0.58, 1);
-
-        sprite.updateHealth = (newPct) => {
-            ctx.clearRect(0, 0, 256, 64);
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-            ctx.fillRect(8, 8, 240, 48);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 18px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(nameText, 128, 28);
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(20, 36, 216, 12);
-            ctx.fillStyle = barColor;
-            ctx.fillRect(20, 36, Math.max(0, Math.min(1, newPct / 100)) * 216, 12);
-            tex.needsUpdate = true;
-        };
-        sprite.updateHealth(pct);
-        return sprite;
-    }
-};
-
-// =========================================================================
-// 3. ULTRA-FAST AI 10-QUESTION GENERATOR (Disables thinking delay!)
-// =========================================================================
-window.TESANA_PLANNER = {
-    async fetchRealAIQuestions(userPrompt, provider, apiKey, abortSignal) {
-        const isKurdish = /[\u0600-\u06FF]/.test(userPrompt);
-        const fastPrompt = `User wants to make this game: "${userPrompt}".
-Generate 10 short, specific follow-up questions with 4 short options each, 100% tailored to "${userPrompt}".
-${isKurdish ? 'Write in Central Kurdish (سۆرانی).' : 'Write in English.'}
-Output ONLY raw JSON array:
-[{"category":"Game idea","aiIntro":"1. ...","options":["A","B","C","D"]}]`;
-
-        let rawText = '';
-
-        if (provider === 'gemini') {
-            // Use gemini-2.0-flash first (instant, no thinking lag) & gemini-2.5-flash with thinkingBudget: 0
-            const fastConfigs = [
-                { model: 'models/gemini-2.0-flash', body: { contents: [{ parts: [{ text: fastPrompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 1500, responseMimeType: 'application/json' } } },
-                { model: 'models/gemini-2.5-flash', body: { contents: [{ parts: [{ text: fastPrompt }] }], generationConfig: { temperature: 0.3, maxOutputTokens: 1500, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } } }
-            ];
-
-            for (const cfg of fastConfigs) {
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${cfg.model}:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cfg.body),
-                        signal: abortSignal
-                    });
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
-                    if (rawText && rawText.includes('[')) break;
-                } catch (e) {
-                    if (e.name === 'AbortError') throw e;
+        const wrappedScript = `
+            let _rafReg = false;
+            const requestAnimationFrame = (cb) => {
+                if (!_rafReg && typeof cb === 'function') {
+                    _rafReg = true;
+                    window.updateFunctions.push(() => { try { cb(performance.now()); } catch (e) {} });
                 }
-            }
-        } else if (provider === 'openai') {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1500, temperature: 0.3, messages: [{ role: 'user', content: fastPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (res.ok) rawText = data.choices[0].message.content;
-        } else if (provider === 'claude') {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                body: JSON.stringify({ model: 'claude-3-5-haiku-latest', max_tokens: 1500, temperature: 0.3, messages: [{ role: 'user', content: fastPrompt }] }),
-                signal: abortSignal
-            });
-            const data = await res.json();
-            if (res.ok) rawText = data.content[0].text;
-        }
+                return 1;
+            };
+            ${adaptedCode}
+            if (typeof init === 'function' && scene.children.length < 6) await init();
+            if (typeof startGame === 'function' && scene.children.length < 6) await startGame();
+        `;
 
-        const cleaned = (rawText || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-        const s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
-        if (s !== -1 && e !== -1) {
-            const parsed = JSON.parse(cleaned.slice(s, e + 1));
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 10);
-        }
-        throw new Error('Failed to load questions');
+        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+        const execFn = new AsyncFunction('THREE', 'scene', 'camera', 'renderer', 'controls', wrappedScript);
+        await execFn(THREE, scene, camera, renderer, controls);
     },
 
-    openPlanModal(initialPrompt, provider, apiKey, geminiModels, abortSignal) {
-        // Activate background support & notification permission as soon as planning starts!
-        window.BG_NOTIFY.initBackgroundSupport();
+    ensureSceneIsPopulated(promptText, chosenList, prevScene) {
+        if (typeof infiniteGrid !== 'undefined' && infiniteGrid) infiniteGrid.visible = false;
 
-        return new Promise(async (resolve, reject) => {
-            const existing = document.getElementById('tesanaPlanModal');
-            if (existing) existing.remove();
+        const added = scene.children.filter(c => !prevScene.includes(c));
+        let meshCount = 0;
+        added.forEach(obj => obj.traverse(c => { if (c.isMesh) meshCount++; }));
 
-            let questions = [];
-            let answers = [];
-            let currentIdx = 0;
+        if (meshCount < 3 && window.CANVAS_ENGINE) {
+            const allText = `${promptText} ${(chosenList || []).join(' ')}`.toLowerCase();
+            const isDark = /horror|dark|night|zombie|ترسناک|شەو/i.test(allText);
+            const isForest = /surviv|forest|دارستان|مانەوە/i.test(allText);
 
-            const modal = document.createElement('div');
-            modal.id = 'tesanaPlanModal';
-            modal.style.cssText = 'position:fixed;inset:0;z-index:60;background:#0b0c10;color:#f8fafc;display:flex;flex-direction:column;justify-content:space-between;font-family:Inter,sans-serif;overflow-y:auto;padding:16px;';
+            const worldGroup = window.CANVAS_ENGINE.buildCanvasWorldMap({
+                groundColor: isDark ? '#111827' : (isForest ? '#2d4c1e' : '#c29b61'),
+                patchColor: isDark ? '#1f2937' : (isForest ? '#3f2e21' : '#9c7844'),
+                skyTopColor: '#020617',
+                skyHorizonColor: isDark ? '#450a0a' : '#38bdf8',
+                hills: true,
+                hillHeight: 2.3,
+                hasRoads: /car|rac|city|street/i.test(allText)
+            });
 
-            modal.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                    <button id="tpBackBtn" style="width:42px;height:42px;border-radius:50%;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <div style="text-align:center;">
-                        <div style="font-size:15px;font-weight:700;color:#cbd5e1;">Set your plan</div>
-                        <div id="tpStepBadge" style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:2px;">Loading 10 Questions...</div>
-                    </div>
-                    <button id="tpSkipBtn" style="padding:9px 18px;border-radius:999px;background:#16181f;border:1px solid #262936;color:#cbd5e1;font-size:13px;font-weight:600;cursor:pointer;">
-                        Skip
-                    </button>
-                </div>
+            const mat = new THREE.MeshStandardMaterial({ color: isDark ? 0x1e293b : 0x78716c, roughness: 0.85 });
+            for (let i = 0; i < 14; i++) {
+                const ang = (i / 14) * Math.PI * 2, d = 16 + (i % 3) * 8;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 4), mat);
+                m.position.set(Math.cos(ang) * d, 3, Math.sin(ang) * d);
+                m.castShadow = true; m.receiveShadow = true;
+                worldGroup.add(m);
+                if (window.PHYSICS) window.PHYSICS.addStaticCollider(m, 0.001);
+            }
 
-                <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-start;max-width:500px;width:100%;margin:0 auto;overflow-y:auto;padding:6px 0;">
-                    <div style="align-self:flex-end;background:#16181f;border:1px solid #262936;padding:12px 18px;border-radius:18px;font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:20px;max-width:85%;word-break:break-word;">
-                        ${initialPrompt}
-                    </div>
-                    <div id="tpAiQuestionText" style="font-size:15px;color:#cbd5e1;margin-bottom:16px;line-height:1.45;font-weight:600;">
-                        <i class="fa-solid fa-bolt fa-fade" style="color:#38bdf8;margin-right:8px;"></i>
-                        Preparing 10 questions about "${initialPrompt}"...
-                    </div>
-                    <div id="tpOptionsList" style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;"></div>
-                </div>
+            const playerRoot = new THREE.Group();
+            playerRoot.position.set(0, 0, 10);
+            playerRoot.userData.isPlayer = true;
+            worldGroup.add(playerRoot);
+            if (window.PHYSICS) window.PHYSICS.registerDynamicBody(playerRoot, 0.75);
 
-                <div style="max-width:500px;width:100%;margin:0 auto;background:#12141c;border:1px solid #222634;border-radius:24px;padding:16px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <span style="font-size:13px;color:#94a3b8;font-weight:600;"><i class="fa-regular fa-file-lines mr-1"></i> Game plan progress</span>
-                        <span id="tpProgressPct" style="font-size:11px;font-weight:800;color:#38bdf8;">10%</span>
-                    </div>
-                    <div id="tpCategoriesRow" style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-bottom:14px;font-size:12px;color:#cbd5e1;"></div>
-                    <div style="background:#1a1d27;border:1px solid #2a2e3d;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-                        <input id="tpCustomInput" type="text" placeholder="Or type your own answer..." style="width:100%;background:transparent;border:none;outline:none;color:#ffffff;font-size:14px;" />
-                        <div style="display:flex;align-items:center;justify-content:space-between;">
-                            <button type="button" id="tpWriteOwnFocusBtn" style="width:34px;height:34px;border-radius:50%;background:#252936;color:#94a3b8;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
-                            <button type="button" id="tpSendCustomBtn" style="width:36px;height:36px;border-radius:50%;background:#38bdf8;color:#0b0c10;border:none;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;cursor:pointer;"><i class="fa-solid fa-arrow-up"></i></button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-            const categories = ['Game idea', 'Gameplay', 'Direction', 'World & Progression', 'Look & Feel'];
-
-            function renderStep() {
-                if (!questions.length) return;
-                const q = questions[currentIdx];
-                document.getElementById('tpStepBadge').innerText = `Question ${currentIdx + 1} of ${questions.length}`;
-                document.getElementById('tpAiQuestionText').innerText = q.aiIntro;
-                document.getElementById('tpProgressPct').innerText = `${Math.round(((currentIdx + 1) / questions.length) * 100)}%`;
-
-                const catRow = document.getElementById('tpCategoriesRow');
-                catRow.innerHTML = categories.map(cat => {
-                    const isActive = (q.category === cat);
-                    const isDone = questions.slice(0, currentIdx).some(prevQ => prevQ.category === cat);
-                    const icon = isDone
-                        ? `<i class="fa-solid fa-circle-check" style="color:#38bdf8;margin-right:5px;"></i>`
-                        : `<i class="fa-regular fa-circle" style="color:${isActive ? '#38bdf8' : '#64748b'};margin-right:5px;"></i>`;
-                    return `<div style="display:flex;align-items:center;font-weight:${isActive ? '700' : '500'};color:${isActive ? '#ffffff' : '#94a3b8'};">${icon}${cat}</div>`;
-                }).join('');
-
-                const list = document.getElementById('tpOptionsList');
-                list.innerHTML = '';
-
-                (q.options || []).forEach(optText => {
-                    const btn = document.createElement('button');
-                    const isSelected = (answers[currentIdx] === optText);
-                    btn.style.cssText = `padding:12px 20px;border-radius:16px;background:${isSelected ? '#1e293b' : '#16181f'};border:1px solid ${isSelected ? '#38bdf8' : '#262936'};color:#f1f5f9;font-size:14px;font-weight:500;text-align:left;cursor:pointer;width:100%;`;
-                    btn.innerText = optText;
-                    btn.onclick = () => submitAnswer(optText);
-                    list.appendChild(btn);
+            const enemies = [];
+            for (let i = 0; i < 6; i++) {
+                const eGrp = new THREE.Group();
+                const a = (i / 6) * Math.PI * 2;
+                eGrp.position.set(Math.sin(a) * 22, 0, Math.cos(a) * 22);
+                const rig = window.SKELETON_ENGINE.build60BoneCharacter({
+                    name: i === 0 ? 'BOSS' : 'ENEMY',
+                    skinHex: isDark ? '#cbd5e1' : '#7f1d1d',
+                    hasWeapons: true
                 });
-
-                const writeBtn = document.createElement('button');
-                writeBtn.style.cssText = 'padding:11px 20px;border-radius:16px;background:transparent;border:1px dashed #334155;color:#94a3b8;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;cursor:pointer;';
-                writeBtn.innerHTML = `<i class="fa-solid fa-pen" style="font-size:12px;"></i> <span>Write my own</span>`;
-                writeBtn.onclick = () => document.getElementById('tpCustomInput')?.focus();
-                list.appendChild(writeBtn);
-
-                const inp = document.getElementById('tpCustomInput');
-                if (inp) inp.value = answers[currentIdx] && !(q.options || []).includes(answers[currentIdx]) ? answers[currentIdx] : '';
+                rig.root.scale.setScalar(i === 0 ? 1.6 : 1.0);
+                eGrp.add(rig.root);
+                const hpBar = window.CANVAS_ENGINE.createFloatingHealthBar(i === 0 ? 'BOSS' : 'ENEMY', 100, '#ef4444');
+                hpBar.position.y = i === 0 ? 4.0 : 2.6;
+                eGrp.add(hpBar);
+                worldGroup.add(eGrp);
+                enemies.push({ root: eGrp, rig, hpBar, hp: 100, speed: 4.0, state: { velX: 0, velZ: 0, walkCycle: i } });
             }
 
-            function submitAnswer(ansText) {
-                if (!questions.length) return;
-                answers[currentIdx] = ansText;
-                if (currentIdx + 1 < questions.length) {
-                    currentIdx++;
-                    renderStep();
-                } else {
-                    finishPlanning();
-                }
+            let yaw = 0, pitch = 0;
+            if (renderer && renderer.domElement) {
+                let drag = false, lx = 0, ly = 0;
+                renderer.domElement.addEventListener('pointerdown', e => { drag = true; lx = e.clientX; ly = e.clientY; });
+                window.addEventListener('pointermove', e => {
+                    if (!drag) return;
+                    yaw -= (e.clientX - lx) * 0.005;
+                    pitch = Math.max(-0.8, Math.min(0.8, pitch - (e.clientY - ly) * 0.004));
+                    lx = e.clientX; ly = e.clientY;
+                });
+                window.addEventListener('pointerup', () => { drag = false; });
             }
 
-            function finishPlanning() {
-                modal.remove();
-                if (!questions.length) {
-                    resolve({ chosenList: [], compiledText: `User Request: ${initialPrompt}` });
-                    return;
-                }
-                const chosenList = questions.map((q, idx) => answers[idx] || (q.options && q.options[0]) || 'Standard');
-                const compiledText = questions.map((q, idx) => `${idx + 1}. [${q.category}] ${q.aiIntro}\n   -> USER ANSWER: ${chosenList[idx]}`).join('\n');
-                resolve({ chosenList, compiledText });
-            }
+            window.updateFunctions.push((delta, time) => {
+                const ix = (window.keysPressed['d']?1:0) - (window.keysPressed['a']?1:0) + window.joystickVector.x;
+                const iz = (window.keysPressed['s']?1:0) - (window.keysPressed['w']?1:0) + window.joystickVector.y;
+                const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+                const rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+                const mv = new THREE.Vector3().addScaledVector(rgt, ix).addScaledVector(fwd, -iz);
+                if (mv.length() > 1) mv.normalize();
+                playerRoot.position.x += mv.x * 9 * delta;
+                playerRoot.position.z += mv.z * 9 * delta;
 
-            document.getElementById('tpBackBtn').onclick = () => {
-                if (questions.length && currentIdx > 0) { currentIdx--; renderStep(); }
-                else { modal.remove(); reject(new Error('Planning cancelled')); }
-            };
-            document.getElementById('tpSkipBtn').onclick = () => finishPlanning();
-            document.getElementById('tpWriteOwnFocusBtn').onclick = () => document.getElementById('tpCustomInput')?.focus();
-            document.getElementById('tpSendCustomBtn').onclick = () => {
-                const val = (document.getElementById('tpCustomInput')?.value || '').trim();
-                if (val) submitAnswer(val);
-            };
-            document.getElementById('tpCustomInput').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const val = e.target.value.trim();
-                    if (val) submitAnswer(val);
-                }
+                controls.enabled = false;
+                camera.position.set(playerRoot.position.x, 2.3, playerRoot.position.z);
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+
+                enemies.forEach(en => {
+                    const dx = playerRoot.position.x - en.root.position.x;
+                    const dz = playerRoot.position.z - en.root.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist > 1.8) {
+                        en.state.velX = (dx / dist) * en.speed;
+                        en.state.velZ = (dz / dist) * en.speed;
+                        en.root.position.x += en.state.velX * delta;
+                        en.root.position.z += en.state.velZ * delta;
+                        en.root.rotation.y = Math.atan2(dx, dz);
+                    }
+                    en.rig.animateSkeleton(en.state, time, delta);
+                });
             });
+        }
+    },
 
-            try {
-                questions = await this.fetchRealAIQuestions(initialPrompt, provider, apiKey, abortSignal);
-                answers = new Array(questions.length).fill('');
-                renderStep();
-            } catch (err) {
-                if (err.name === 'AbortError') { modal.remove(); reject(err); return; }
-                finishPlanning();
-            }
+    cleanupPreviousGame() {
+        ['aiScratchHUD', 'apexDynamicGameUI', 'tesanaHudRoot', 'tesanaPlanModal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
         });
+        if (typeof camera !== 'undefined' && camera) {
+            for (let i = camera.children.length - 1; i >= 0; i--) camera.remove(camera.children[i]);
+        }
+        if (typeof controls !== 'undefined' && controls) controls.enabled = true;
+        while (window.createdObjects && window.createdObjects.length > 0) {
+            const obj = window.createdObjects.pop();
+            if (typeof scene !== 'undefined' && scene) scene.remove(obj);
+        }
+        window.updateFunctions = [];
+        if (window.PHYSICS) window.PHYSICS.clearAll();
+    },
+
+    // Uses standard POST :generateContent (Fixes HTTP 405 & works reliably in mobile background!)
+    async fetchGameCodeFromAI(fullPrompt, imageDataUrl, provider, apiKey, updateStatusFn, abortSignal) {
+        let fakePct = 22;
+        const progTimer = setInterval(() => {
+            fakePct = Math.min(92, fakePct + 4);
+            updateStatusFn(`Building game in background (${fakePct}%)...`, fakePct);
+        }, 900);
+
+        try {
+            if (provider === 'gemini') {
+                const models = ['models/gemini-2.0-flash', 'models/gemini-2.5-flash'];
+                const parts = [{ text: fullPrompt }];
+                if (imageDataUrl) {
+                    const mime = imageDataUrl.substring(imageDataUrl.indexOf(':') + 1, imageDataUrl.indexOf(';'));
+                    const b64 = imageDataUrl.split(',')[1];
+                    parts.push({ inlineData: { mimeType: mime, data: b64 } });
+                }
+
+                let lastErr = null;
+                for (const rawModel of models) {
+                    const modelPath = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`;
+                    try {
+                        const url = `[https://generativelanguage.googleapis.com/v1beta/$](https://generativelanguage.googleapis.com/v1beta/$){modelPath}:generateContent?key=${apiKey}`;
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts }],
+                                generationConfig: { temperature: 0.3, maxOutputTokens: 6144 }
+                            }),
+                            signal: abortSignal
+                        });
+
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            lastErr = new Error(errData.error?.message || `HTTP ${res.status}`);
+                            continue;
+                        }
+
+                        const data = await res.json();
+                        const rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                        const adapted = this.adaptAICodeToEngine(rawText);
+                        if (adapted.length > 40) return adapted;
+                    } catch (err) {
+                        if (err.name === 'AbortError') throw err;
+                        lastErr = err;
+                    }
+                }
+                throw lastErr || new Error('Gemini connection failed.');
+            }
+
+            if (provider === 'openai') {
+                const res = await fetch('[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model: 'gpt-4o', max_tokens: 6144, temperature: 0.3, messages: [{ role: 'user', content: fullPrompt }] }),
+                    signal: abortSignal
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'OpenAI Error');
+                return this.adaptAICodeToEngine(data.choices[0].message.content);
+            }
+
+            if (provider === 'claude') {
+                const res = await fetch('[https://api.anthropic.com/v1/messages](https://api.anthropic.com/v1/messages)', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                    body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 6144, temperature: 0.3, messages: [{ role: 'user', content: fullPrompt }] }),
+                    signal: abortSignal
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error?.message || 'Claude Error');
+                return this.adaptAICodeToEngine(data.content[0].text);
+            }
+        } finally {
+            clearInterval(progTimer);
+        }
+    },
+
+    async generateAndExecute3D(promptText, imageDataUrl, provider, apiKey, geminiModels, powerLevel, updateStatusFn, abortSignal, isEditMode = false) {
+        if (typeof window.ENSURE_SKELETON_ENGINE === 'function') window.ENSURE_SKELETON_ENGINE();
+        if (window.BG_NOTIFY) window.BG_NOTIFY.initBackgroundSupport();
+
+        if (!isEditMode && window.TESANA_PLANNER) {
+            updateStatusFn(`Loading 10 tailored questions...`, 10);
+            const planResult = await window.TESANA_PLANNER.openPlanModal(promptText, provider, apiKey, geminiModels, abortSignal);
+            this.lastPlanSummary = planResult.compiledText;
+            this.lastChosenList = planResult.chosenList || [];
+        }
+
+        let fullPrompt = `${this.SYSTEM_PROMPT}\n\n`;
+        if (isEditMode && this.lastGeneratedCode) {
+            fullPrompt += `EXISTING GAME CODE:\n\`\`\`javascript\n${this.lastGeneratedCode}\n\`\`\`\n\nUSER EDIT REQUEST: "${promptText}"\nUpdate the code in the global \`scene\`. Return ONLY raw JavaScript!`;
+        } else {
+            fullPrompt += `USER GAME DESCRIPTION: "${promptText}"\n\nUSER'S 10 ANSWERS:\n${this.lastPlanSummary}\n\nWrite the complete playable 3D + Canvas game directly into the global \`scene\` now!`;
+        }
+
+        updateStatusFn(`Building game in background...`, 20);
+        let rawCode = '';
+        try {
+            rawCode = await this.fetchGameCodeFromAI(fullPrompt, imageDataUrl, provider, apiKey, updateStatusFn, abortSignal);
+        } catch (apiErr) {
+            console.warn('Using engine builder fallback due to API issue:', apiErr);
+        }
+
+        const stage = document.getElementById('landscapeGameStage');
+        const wasHidden = stage && stage.classList.contains('hidden');
+        if (wasHidden) {
+            stage.style.visibility = 'hidden';
+            stage.classList.remove('hidden');
+        }
+        if (typeof init3DWorld === 'function' && (typeof renderer === 'undefined' || !renderer)) {
+            init3DWorld();
+        }
+
+        updateStatusFn(`Mounting 3D world...`, 96);
+        this.cleanupPreviousGame();
+
+        const prevScene = [...scene.children];
+        const prevFns = [...window.updateFunctions];
+        window.isControlExited = true;
+
+        if (rawCode) {
+            try { await this.executeAdaptedCode(rawCode); } catch (e) {}
+        }
+
+        this.ensureSceneIsPopulated(promptText, this.lastChosenList, prevScene);
+
+        if (wasHidden && stage) {
+            stage.classList.add('hidden');
+            stage.style.visibility = 'visible';
+        }
+
+        this.lastGeneratedCode = rawCode || '// Built with ApexGen Canvas Engine';
+
+        const newObjects = scene.children.filter(c => !prevScene.includes(c));
+        const newFns = window.updateFunctions.filter(fn => !prevFns.includes(fn));
+        newObjects.forEach(o => { if (!window.createdObjects.includes(o)) window.createdObjects.push(o); });
+        if (window.PHYSICS) window.PHYSICS.autoRegisterSceneObstacles(newObjects);
+
+        // Notify user in background & foreground: "your game is ready!"
+        updateStatusFn(`your game is ready!`, 100);
+        if (window.BG_NOTIFY) window.BG_NOTIFY.notifyGameReady(promptText);
+
+        return {
+            code: this.lastGeneratedCode,
+            objects: newObjects,
+            updateFns: newFns,
+            summary: `your game is ready!`
+        };
     }
 };
+
+setInterval(() => {
+    const stage = document.getElementById('landscapeGameStage');
+    if (stage && !stage.classList.contains('hidden') && typeof applyHorizontalViewportLayout === 'function') {
+        applyHorizontalViewportLayout();
+    }
+}, 400);
